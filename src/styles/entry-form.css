@@ -1,0 +1,19 @@
+.entry-form {
+  margin-bottom: var(--space-6);
+}
+
+.entry-form-fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.entry-form-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.entry-form-actions {
+  display: flex;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}

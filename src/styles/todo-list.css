@@ -1,0 +1,68 @@
+.todo-list {
+  width: 100%;
+}
+
+.todo-list-header {
+  margin-bottom: var(--space-5);
+}
+
+.todo-list-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.todo-list-table thead {
+  background-color: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.todo-list-table th {
+  padding: var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.todo-list-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.todo-list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.todo-list-table tbody tr:hover {
+  background-color: var(--color-surface);
+}
+
+.todo-list-item-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.todo-list-item-todo {
+  font-size: 0.875rem;
+  color: var(--color-text);
+  white-space: pre-wrap;
+}
+
+.todo-list-item-date {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.todo-list-empty {
+  text-align: center;
+  padding: var(--space-7);
+  color: var(--color-muted);
+}

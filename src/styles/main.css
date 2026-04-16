@@ -1,0 +1,205 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ================================
+   DESIGN TOKENS
+   ================================ */
+
+:root {
+  /* Colors — Veloblitz-inspired palette */
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-text: #111111;
+  --color-muted: #6b6b6b;
+  --color-brand: #f7e500;
+  --color-brand-hover: #ffec2e;
+  --color-brand-contrast: #111111;
+  --color-border: #111111;
+  --color-border-soft: #e5e5e5;
+  --color-error: #d33;
+  --color-success: #2a8a3e;
+
+  /* Spacing */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  /* Radii — pill-shaped controls */
+  --radius-sm: 0.25rem;
+  --radius: 999px;
+  --radius-lg: 1rem;
+
+  /* Shadows — minimal, flat design */
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.06);
+}
+
+/* ================================
+   RESET & BASE STYLES
+   ================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-weight: 400;
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.005em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+/* ================================
+   GLOBAL FORM ELEMENTS
+   ================================ */
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button {
+  padding: var(--space-3) var(--space-6);
+  border: 1.5px solid var(--color-text);
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: var(--color-text);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+button:hover {
+  background-color: var(--color-brand);
+  border-color: var(--color-text);
+  color: var(--color-brand-contrast);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 3px;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background-color: var(--color-brand);
+  border-color: var(--color-text);
+  color: var(--color-brand-contrast);
+}
+
+button.primary:hover {
+  background-color: var(--color-brand-hover);
+}
+
+button.secondary {
+  background-color: transparent;
+  color: var(--color-text);
+  border-color: var(--color-border-soft);
+}
+
+button.secondary:hover {
+  background-color: var(--color-brand);
+  border-color: var(--color-text);
+}
+
+input,
+textarea,
+select {
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  width: 100%;
+}
+
+textarea {
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  min-height: 100px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--color-text);
+}
+
+label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* ================================
+   UTILITY CLASSES
+   ================================ */
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 var(--space-5);
+}
+
+.card {
+  background-color: var(--color-surface);
+  border: 1.5px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  box-shadow: var(--shadow-sm);
+}
+
+.error-message {
+  color: var(--color-error);
+  font-size: 0.875rem;
+  margin-top: var(--space-2);
+}
+
+.success-message {
+  color: var(--color-success);
+  font-size: 0.875rem;
+  margin-top: var(--space-2);
+}
