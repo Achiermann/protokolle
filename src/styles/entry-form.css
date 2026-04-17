@@ -2,6 +2,10 @@
   margin-bottom: var(--space-6);
 }
 
+.entry-form h2 {
+  margin-bottom: var(--space-4);
+}
+
 .entry-form-fields {
   display: grid;
   gap: var(--space-4);
@@ -16,4 +20,14 @@
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-4);
+}
+
+.entry-form-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
 }

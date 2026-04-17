@@ -94,7 +94,6 @@ export default function GroupedList({ field, title, emptyLabel }) {
       <div className="entry-list-header">
         <h2>{title}</h2>
       </div>
-
       {selectedGroup && (
         <div className="entry-list-detail-panel">
           <div className="entry-list-detail-panel-header">
@@ -116,8 +115,9 @@ export default function GroupedList({ field, title, emptyLabel }) {
               </p>
             ) : (
               <div className="grouped-list-traktanden">
-                {selectedEntries.map((entry) => (
-                  <div key={entry.id} className="grouped-list-traktanden-section">
+                {selectedEntries.map((entry) =>
+                (
+                <div key={entry.id} className={'grouped-list-traktanden-section ' + (entry.item_title === "posteingang" ? `posteingang` : ``)}>
                     <div className="grouped-list-traktanden-section-header">
                       <strong className="grouped-list-traktanden-title">
                         {entry.item_title}

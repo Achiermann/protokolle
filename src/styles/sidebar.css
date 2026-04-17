@@ -67,6 +67,22 @@
   flex-shrink: 0;
 }
 
+.sidebar-workspace-name {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  padding: 0 var(--space-2);
+  margin-top: calc(-1 * var(--space-3));
+}
+
+.sidebar-footer {
+  margin-top: auto;
+}
+
+.sidebar-logout {
+  border-color: var(--color-border-soft);
+  font-size: 0.875rem;
+}
+
 .main-content {
   flex: 1;
   padding: var(--space-6);

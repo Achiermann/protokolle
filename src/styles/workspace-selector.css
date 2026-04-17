@@ -1,0 +1,98 @@
+.workspace-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-5);
+  background-color: var(--color-bg);
+}
+
+.workspace-container {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.workspace-title {
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.workspace-loading {
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.workspace-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.workspace-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-4) var(--space-5);
+  border: 1.5px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.workspace-item:hover {
+  border-color: var(--color-text);
+  background-color: var(--color-brand);
+}
+
+.workspace-item-name {
+  font-weight: 500;
+}
+
+.workspace-item-role {
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: capitalize;
+}
+
+.workspace-create-toggle {
+  width: 100%;
+}
+
+.workspace-create-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.workspace-create-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.workspace-empty-hint {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.workspace-logout-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.workspace-logout-button:hover {
+  color: var(--color-text);
+  background: none;
+  border: none;
+}

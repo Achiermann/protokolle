@@ -2,8 +2,17 @@ ONLY follow the following instructions if explicitly told:
 
 <!-- .1 Task -->
 
-When hitting the "<button class="secondary"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-mail-plus" aria-hidden="true"><path d="M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"></path><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path><path d="M19 16v6"></path><path d="M16 19h6"></path></svg></button>"
-i get "verschieben fehlgeschlagen.
+Now lets add a login logic. Use the modern best practices there are to achieve this, but keep the styling close to the design of the website as is atm.
+
+Also you may need to update the supabase table schema "protokolle" for this. Make sure to use the supabase MCP. Its already installed.
+
+A user logs in with an email adress and a passwort that can be reset via email code (use resend to achieve the email sending).
+
+When loged in, the user should choose a workspace or create on if there is no workspace connected to the user. 
+
+## current data in "protokolle" table
+create a column "workspace" on each table of the "protokolle" schema in supabase and connect all current existing data in the "protokolle" table to the workspace "Soybomb"
+
 
 <!-- .2 Disclaimer -->
 

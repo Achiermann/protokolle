@@ -1,13 +1,26 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/db/supabase';
+import { createSupabaseServerClient } from '@/db/supabase-server';
+import { cookies } from 'next/headers';
 
 // GET /api/todos
 export async function GET() {
   try {
+    const cookieStore = await cookies();
+    const workspaceId = cookieStore.get('workspace_id')?.value;
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: { code: 'NO_WORKSPACE', message: 'Kein Workspace ausgewählt' } },
+        { status: 400 }
+      );
+    }
+
+    const supabase = await createSupabaseServerClient();
     const { data, error, count } = await supabase
       .schema('protokoll_app')
       .from('todos')
       .select('*', { count: 'exact' })
+      .eq('workspace_id', workspaceId)
       .order('date_created', { ascending: false });
 
     if (error) {
@@ -36,6 +49,16 @@ export async function GET() {
 // POST /api/todos
 export async function POST(request) {
   try {
+    const cookieStore = await cookies();
+    const workspaceId = cookieStore.get('workspace_id')?.value;
+
+    if (!workspaceId) {
+      return NextResponse.json(
+        { error: { code: 'NO_WORKSPACE', message: 'Kein Workspace ausgewählt' } },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
 
     if (!body.title || !body.title.trim()) {
@@ -50,6 +73,7 @@ export async function POST(request) {
       );
     }
 
+    const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .schema('protokoll_app')
       .from('todos')
@@ -58,6 +82,7 @@ export async function POST(request) {
           title: body.title.trim(),
           topic: body.topic || null,
           project: body.project || null,
+          workspace_id: workspaceId,
         },
       ])
       .select()

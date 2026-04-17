@@ -14,54 +14,6 @@ for (const line of envText.split('\n')) {
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 
-const input = `
-## posteingang
-probestrategie & termine (stichwort sectionproben)
-livevideo nach tour
-finalisierung video
-
-## struktur
-absegnung der statuten / OSS befragung (b)
-lange und physische meetings
-label / partnerschaften
-thema diverse songwriter (r)
-slack? (b)
-struktur bedürfnisse db (b)
-struktur sitzungsprotokolle
-dropbox oder infomaniac? (ethik, USA-unabhängigkeit) (b)
-einhaltung der 3-2-1 regel (b)
-
-## timeline
-sessions und sitzungen ab juni (b)
-booking (b)
-ausblick 2027 (b)
-zukünftigen projekten vorausschauend raum geben
-tourplanung produktion / set
-EPK / promo / kommunikation nach aussen
-sessions & meeting
-release / EP / album
-ziele / pläne für 2027
-casa fuorn 2.0 (2026?)
-
-## live
-tourplakat
-
-## produktion
-studio session struktur: effizienz, bedürfnisse, p-split etc (b)
-zwischenziele album (b)
-feedback/listening session (b)
-weiteres produktionsvorgehen weiter (ggf. zu ende) denken
-drums und vocals rec? (r)
-session notes & service point workflow (b)
-mixing vision res (r)
-selbständiges arbeiten beda (logic oder ableton?) (b)
-finanzierung (r)
-pullis von karin (b)
-
-## projekt: livevideo
-debriefing videosession und konklusion beda (planung voraus)
-`;
-
 const rows = [];
 let currentTopic = null;
 let currentProject = null;

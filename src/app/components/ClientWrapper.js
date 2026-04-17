@@ -1,20 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuthStore } from '../stores/useAuthStore';
 import Sidebar from './Sidebar';
-import EntryForm from './EntryForm';
 import EntryList from './EntryList';
 import GroupedList from './GroupedList';
 import TodoList from './TodoList';
+import MembersList from './MembersList';
 
 export default function ClientWrapper() {
   // *** VARIABLES ***
   const [activeView, setActiveView] = useState('list');
+  const fetchSession = useAuthStore((state) => state.fetchSession);
+  const loading = useAuthStore((state) => state.loading);
 
   // *** FUNCTIONS/HANDLERS ***
+  useEffect(() => {
+    fetchSession();
+  }, [fetchSession]);
+
   const handleViewChange = (view) => {
     setActiveView(view);
   };
+
+  if (loading) {
+    return null;
+  }
 
   return (
     <div className="layout-container">
@@ -24,9 +35,6 @@ export default function ClientWrapper() {
           <EntryList contentFilter="without" title="Offene Traktanden" />
         )}
         {activeView === 'list' && <EntryList contentFilter="with" title="Alle Traktanden" />}
-        {activeView === 'create' && (
-          <EntryForm onCancel={() => setActiveView('list')} />
-        )}
         {activeView === 'themen' && (
           <GroupedList
             field="topic"
@@ -42,6 +50,7 @@ export default function ClientWrapper() {
           />
         )}
         {activeView === 'todo' && <TodoList />}
+        {activeView === 'members' && <MembersList />}
       </main>
     </div>
   );

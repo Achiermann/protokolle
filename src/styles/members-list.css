@@ -1,0 +1,68 @@
+.members-list {
+  max-width: 700px;
+}
+
+.members-list-header {
+  margin-bottom: var(--space-5);
+}
+
+.members-list-invite-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.members-list-invite-form {
+  margin-bottom: var(--space-5);
+}
+
+.members-list-invite-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.members-list-invite-row input {
+  flex: 1;
+}
+
+.members-list-invite-hint {
+  color: var(--color-muted);
+  font-size: 0.8rem;
+  margin-top: var(--space-2);
+}
+
+.members-list-empty {
+  color: var(--color-muted);
+}
+
+.members-list-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.members-list-table th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1.5px solid var(--color-border-soft);
+}
+
+.members-list-table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.members-list-item-email {
+  font-weight: 500;
+}
+
+.members-list-item-role {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
