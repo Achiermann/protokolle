@@ -146,8 +146,8 @@ export default function MembersList() {
               <tr key={member.id}>
                 <td>
                   <div className="members-list-item-email">
-                    {member.display_name
-                      ? `${member.display_name} (${member.email})`
+                    {member.name
+                      ? `${member.name} (${member.email})`
                       : member.email}
                   </div>
                 </td>

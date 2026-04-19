@@ -1,23 +1,33 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ListTodo, Tag, Folder, Users, LogOut } from 'lucide-react';
-import { useTodosStore } from '../stores/useTodosStore';
+import { useEntriesStore } from '../stores/useEntriesStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import '../../styles/sidebar.css';
 
 export default function Sidebar({ activeView, onViewChange }) {
   // *** VARIABLES ***
-  const todos = useTodosStore((state) => state.todos);
-  const fetchTodos = useTodosStore((state) => state.fetchTodos);
-  const todoCount = todos.length;
+  const entries = useEntriesStore((state) => state.entries);
+  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
 
+  const todoCount = useMemo(() => {
+    const regex = /\/todo@\S+[ \t]+[^\n]+/g;
+    let count = 0;
+    for (const entry of entries) {
+      if (!entry.content) continue;
+      const matches = entry.content.match(regex);
+      if (matches) count += matches.length;
+    }
+    return count;
+  }, [entries]);
+
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
-    fetchTodos();
-  }, [fetchTodos]);
+    fetchEntries();
+  }, [fetchEntries]);
 
   return (
     <aside className="sidebar">

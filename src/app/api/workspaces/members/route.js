@@ -42,7 +42,7 @@ export async function GET() {
     const { data: profiles, error: profileError } = await supabase
       .schema('protokoll_app')
       .from('profiles')
-      .select('id, email, display_name')
+      .select('id, email, name')
       .in('id', userIds);
 
     if (profileError) {
@@ -57,7 +57,7 @@ export async function GET() {
         id: m.id,
         user_id: m.user_id,
         email: profile?.email || '–',
-        display_name: profile?.display_name || null,
+        name: profile?.name || null,
         role: m.role,
         created_at: m.created_at,
       };

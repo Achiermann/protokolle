@@ -8,12 +8,12 @@
   /* Colors — Veloblitz-inspired palette */
   --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-text: #111111;
+  --color-text: #262626;
   --color-muted: #6b6b6b;
-  --color-brand: #ffe5c0;
-  --color-brand-hover: #fff2df;
-  --color-brand-contrast: #111111;
-  --color-border: #111111;
+  --color-brand: #feffe2;
+  --color-brand-hover: #dffdff;
+  --color-brand-contrast: #262626;
+  --color-border: #6b6b6b;
   --color-border-soft: #e5e5e5;
   --color-error: #d33;
   --color-success: #2a8a3e;

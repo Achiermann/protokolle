@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
-import { useTodosStore } from "../stores/useTodosStore";
 import toast from "react-hot-toast";
 import { Pencil, MailPlus, MailMinus, Trash, Plus } from "lucide-react";
 import EntryForm from "./EntryForm";
@@ -19,8 +18,10 @@ export default function EntryList({
   const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
-  const addTodo = useTodosStore((state) => state.addTodo);
 
+  const [members, setMembers] = useState([]);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [todoInsertPos, setTodoInsertPos] = useState(null);
   const [filterTopicProject, setFilterTopicProject] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -90,58 +91,59 @@ export default function EntryList({
   const handleItalic = () => wrapSelection("*", "*");
   const handleUnderline = () => wrapSelection("__", "__");
 
-  const handleExtractTodo = async () => {
-    const textarea = contentTextareaRef.current;
-    let todoTitle = "";
-    let removeStart = -1;
-    let removeEnd = -1;
-
-    if (textarea && textarea.selectionStart !== textarea.selectionEnd) {
-      removeStart = textarea.selectionStart;
-      removeEnd = textarea.selectionEnd;
-      todoTitle = contentDraft.slice(removeStart, removeEnd).trim();
-    } else {
-      const markerMatch = contentDraft.match(
-        /(^|\n)\s*(?:#todo|todo:)\s+([^\n]+)/i,
-      );
-      if (markerMatch) {
-        todoTitle = markerMatch[2].trim();
-        removeStart = contentDraft.indexOf(markerMatch[0]);
-        removeEnd = removeStart + markerMatch[0].length;
-      } else if (textarea) {
-        const cursor = textarea.selectionStart;
-        const lineStart = contentDraft.lastIndexOf("\n", cursor - 1) + 1;
-        const nextNewline = contentDraft.indexOf("\n", cursor);
-        const lineEnd = nextNewline === -1 ? contentDraft.length : nextNewline;
-        todoTitle = contentDraft.slice(lineStart, lineEnd).trim();
-        removeStart = lineStart;
-        removeEnd = lineEnd;
-      }
-    }
-
-    if (!todoTitle) {
-      toast.error("Text markieren oder Cursor auf eine Zeile setzen");
-      return;
-    }
-
-    const newContent = (
-      contentDraft.slice(0, removeStart) + contentDraft.slice(removeEnd)
-    )
-      .replace(/\n{3,}/g, "\n\n")
-      .trim();
-
+  const loadMembers = async () => {
     try {
-      await addTodo({
-        title: todoTitle,
-        topic: selectedEntry?.topic || null,
-        project: selectedEntry?.project || null,
-      });
-      await updateEntry(selectedId, { content: newContent });
-      setContentDraft(newContent);
-      toast.success("ToDo hinzugefügt");
+      const response = await fetch("/api/workspaces/members");
+      if (!response.ok) throw new Error("fail");
+      const data = await response.json();
+      setMembers(data.items || []);
     } catch (error) {
-      toast.error("ToDo konnte nicht hinzugefügt werden");
+      toast.error("Mitglieder konnten nicht geladen werden");
     }
+  };
+
+  const handleInsertTodo = async () => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+    if (members.length === 0) await loadMembers();
+
+    const pos = textarea.selectionStart;
+    const prefix = "/todo";
+    const next =
+      contentDraft.slice(0, pos) + prefix + contentDraft.slice(pos);
+    setContentDraft(next);
+    setTodoInsertPos(pos);
+    setShowMemberDropdown(true);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = pos + prefix.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const handleSelectMember = (member) => {
+    if (todoInsertPos === null) return;
+    const rawName = member.name || member.email.split("@")[0];
+    const nameTag = rawName.replace(/\s+/g, "_");
+    const replacement = `/todo@${nameTag} `;
+    const before = contentDraft.slice(0, todoInsertPos);
+    const after = contentDraft.slice(todoInsertPos + "/todo".length);
+    const nextContent = before + replacement + after;
+    const cursor = todoInsertPos + replacement.length;
+    setContentDraft(nextContent);
+    setShowMemberDropdown(false);
+    setTodoInsertPos(null);
+    requestAnimationFrame(() => {
+      const textarea = contentTextareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const handleCancelMemberDropdown = () => {
+    setShowMemberDropdown(false);
+    setTodoInsertPos(null);
   };
 
   const handleCancelEdit = () => {
@@ -311,10 +313,33 @@ export default function EntryList({
     if (!selectedEntry) return null;
     return (
       <div className="entry-list-detail-panel">
-        <div className="entry-list-detail-panel-header">
-          <h3 className="entry-list-detail-panel-title">
-            {selectedEntry.item_title}
-          </h3>
+        <div className="entry-list-detail-panel-top">
+          <div className="entry-list-detail-panel-header">
+            <h3 className="entry-list-detail-panel-title">
+              {selectedEntry.item_title}
+            </h3>
+          </div>
+
+          <div className="entry-list-detail-panel-meta">
+            {selectedEntry.topic && (
+              <span className="entry-list-detail-panel-meta-item">
+                <span className="entry-list-detail-panel-meta-label">Thema</span>
+                <span>{selectedEntry.topic}</span>
+              </span>
+            )}
+            {selectedEntry.project && (
+              <span className="entry-list-detail-panel-meta-item">
+                <span className="entry-list-detail-panel-meta-label">
+                  Projekt
+                </span>
+                <span>{selectedEntry.project}</span>
+              </span>
+            )}
+            <span className="entry-list-detail-panel-meta-item">
+              <span className="entry-list-detail-panel-meta-label">Datum</span>
+              <span>{formatDate(selectedEntry.date_created)}</span>
+            </span>
+          </div>
           <button
             type="button"
             className="secondary entry-list-detail-panel-close"
@@ -322,27 +347,6 @@ export default function EntryList({
           >
             ✕
           </button>
-        </div>
-
-        <div className="entry-list-detail-panel-meta">
-          {selectedEntry.topic && (
-            <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">Thema</span>
-              <span>{selectedEntry.topic}</span>
-            </span>
-          )}
-          {selectedEntry.project && (
-            <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">
-                Projekt
-              </span>
-              <span>{selectedEntry.project}</span>
-            </span>
-          )}
-          <span className="entry-list-detail-panel-meta-item">
-            <span className="entry-list-detail-panel-meta-label">Datum</span>
-            <span>{formatDate(selectedEntry.date_created)}</span>
-          </span>
         </div>
 
         <div className="entry-list-detail-panel-content">
@@ -376,11 +380,32 @@ export default function EntryList({
                 <button
                   type="button"
                   className="secondary"
-                  onClick={handleExtractTodo}
+                  onClick={handleInsertTodo}
                 >
                   + ToDo
                 </button>
               </div>
+              {showMemberDropdown && (
+                <div className="entry-list-detail-panel-member-dropdown">
+                  {members.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      className="secondary"
+                      onClick={() => handleSelectMember(m)}
+                    >
+                      {m.name || m.email}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={handleCancelMemberDropdown}
+                  >
+                    Abbrechen
+                  </button>
+                </div>
+              )}
               <textarea
                 ref={contentTextareaRef}
                 className="entry-list-detail-panel-content-textarea"
@@ -588,15 +613,15 @@ export default function EntryList({
               <tr>
                 <th
                   className="entry-list-table-th-sortable"
-                  onClick={() => handleSort("title")}
+                  onClick={() => handleSort("topic")}
                 >
-                  Traktanden{sortIndicator("title")}
+                  Thema / Projekt{sortIndicator("topic")}
                 </th>
                 <th
                   className="entry-list-table-th-sortable"
-                  onClick={() => handleSort("topic")}
+                  onClick={() => handleSort("title")}
                 >
-                  Thema{sortIndicator("topic")}
+                  Traktanden{sortIndicator("title")}
                 </th>
                 <th
                   className="entry-list-table-th-sortable"
@@ -619,16 +644,16 @@ export default function EntryList({
                     onClick={() => handleRowClick(entry)}
                   >
                     <td>
-                      <div className="entry-list-item-title">
-                        {entry.item_title}
-                      </div>
-                    </td>
-                    <td>
                       <div className="entry-list-item-topic">
                         <span
                           className={`entry-list-item-topic-circle ${getTopicColorClass(entry.topic || entry.project)}`}
                         />
                         {entry.topic || entry.project || "-"}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="entry-list-item-title">
+                        {entry.item_title}
                       </div>
                     </td>
                     <td>
@@ -638,6 +663,15 @@ export default function EntryList({
                     </td>
                     <td>
                       <div className="entry-list-item-actions">
+                        <button
+                          className="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingEntry(entry);
+                          }}
+                        >
+                          <Pencil size={16} />
+                        </button>
                         <button
                           className="secondary"
                           onClick={(e) => {

@@ -19,16 +19,23 @@ export async function GET() {
     const { data, error, count } = await supabase
       .schema('protokoll_app')
       .from('todos')
-      .select('*', { count: 'exact' })
+      .select('*, entry:entries(topic, project)', { count: 'exact' })
       .eq('workspace_id', workspaceId)
-      .order('date_created', { ascending: false });
+      .order('created_at', { ascending: false });
 
     if (error) {
       throw error;
     }
 
+    const items = (data || []).map(({ entry, ...t }) => ({
+      ...t,
+      topic: entry?.topic || null,
+      project: entry?.project || null,
+      date_created: t.created_at,
+    }));
+
     return NextResponse.json({
-      items: data || [],
+      items,
       total: count || 0,
       page: 1,
       pageSize: 20,
@@ -80,19 +87,26 @@ export async function POST(request) {
       .insert([
         {
           title: body.title.trim(),
-          topic: body.topic || null,
-          project: body.project || null,
+          entry_id: body.entry_id || null,
           workspace_id: workspaceId,
         },
       ])
-      .select()
+      .select('*, entry:entries(topic, project)')
       .single();
 
     if (error) {
       throw error;
     }
 
-    return NextResponse.json({ item: data }, { status: 201 });
+    const { entry, ...rest } = data;
+    const item = {
+      ...rest,
+      topic: entry?.topic || null,
+      project: entry?.project || null,
+      date_created: rest.created_at,
+    };
+
+    return NextResponse.json({ item }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
       {

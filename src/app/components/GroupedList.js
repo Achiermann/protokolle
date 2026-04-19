@@ -42,6 +42,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const groups = useMemo(() => {
     const map = new Map();
     for (const entry of entries) {
+      if (!entry.content) continue;
       const value = entry[field];
       if (!value) continue;
       if (!map.has(value)) map.set(value, []);
@@ -55,7 +56,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const selectedEntries = useMemo(() => {
     if (!selectedGroup) return [];
     return entries
-      .filter((e) => e[field] === selectedGroup)
+      .filter((e) => e.content && e[field] === selectedGroup)
       .sort(
         (a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime()
       );
