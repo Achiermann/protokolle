@@ -44,7 +44,7 @@
 }
 
 .workspace-item:hover {
-  border-color: var(--color-text);
+  border-color: var(--color-line);
   background-color: var(--color-brand);
 }
 

@@ -1,23 +1,29 @@
 .layout-container {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;
 }
 
 .sidebar {
   width: 270px;
+  height: 100vh;
+  position: sticky;
+  top: 0;
   background-color: var(--color-brand);
-  border-right: 1.5px solid var(--color-text);
+  border-right: 1.5px solid var(--color-line);
   padding: var(--space-6) var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  overflow-y: auto;
 }
 
 .sidebar-title {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.7rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
   margin-bottom: var(--space-4);
-  color: var(--color-text);
+  color: var(--color-title);
 }
 
 .sidebar-button {
@@ -25,7 +31,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
-  border: 1.5px solid var(--color-text);
+  border: 1.5px solid var(--color-line);
   border-radius: var(--radius);
   background-color: transparent;
   color: var(--color-text);
@@ -37,18 +43,18 @@
 }
 
 .sidebar-button:hover {
-  background-color: var(--color-text);
+  background-color: var(--color-line);
   color: var(--color-brand);
 }
 
 .sidebar-button.active {
-  background-color: var(--color-text);
+  background-color: var(--color-line);
   color: var(--color-brand);
-  border-color: var(--color-text);
+  border-color: var(--color-line);
 }
 
 .sidebar-button.active:hover {
-  background-color: var(--color-text);
+  background-color: var(--color-line);
   color: var(--color-brand);
 }
 
@@ -76,6 +82,13 @@
 
 .sidebar-footer {
   margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sidebar-einstellungen {
+  margin-top: var(--space-4);
 }
 
 .sidebar-logout {

@@ -136,7 +136,7 @@
   border: 1.5px solid var(--color-border-soft);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  accent-color: var(--color-text);
+  accent-color: var(--color-line);
 }
 
 .todo-list-table-td-check button {

@@ -3,7 +3,36 @@
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import toast from "react-hot-toast";
-import { Pencil, MailPlus, MailMinus, Trash, Plus } from "lucide-react";
+import {
+  Pencil,
+  MailPlus,
+  MailMinus,
+  Trash,
+  Plus,
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Hexagon,
+  Octagon,
+  Pentagon,
+  Star,
+  Heart,
+  Shield,
+} from "lucide-react";
+
+const SHAPE_ICONS = [
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Hexagon,
+  Octagon,
+  Pentagon,
+  Star,
+  Heart,
+  Shield,
+];
 import EntryForm from "./EntryForm";
 import "../../styles/entry-list.css";
 import "../../styles/filters.css";
@@ -221,14 +250,14 @@ export default function EntryList({
     return sortDir === "asc" ? " ▲" : " ▼";
   };
 
-  const getTopicColorClass = (topic) => {
-    if (!topic) return "entry-list-item-topic-circle-none";
+  const renderTopicIcon = (topic) => {
+    if (!topic) return null;
     let hash = 0;
     for (let i = 0; i < topic.length; i++) {
       hash = (hash * 31 + topic.charCodeAt(i)) | 0;
     }
-    const index = Math.abs(hash) % 10;
-    return `entry-list-item-topic-circle-${index}`;
+    const Icon = SHAPE_ICONS[Math.abs(hash) % SHAPE_ICONS.length];
+    return <Icon size={16} className="entry-list-item-topic-icon" />;
   };
 
   const formatDate = (dateString) => {
@@ -645,9 +674,7 @@ export default function EntryList({
                   >
                     <td>
                       <div className="entry-list-item-topic">
-                        <span
-                          className={`entry-list-item-topic-circle ${getTopicColorClass(entry.topic || entry.project)}`}
-                        />
+                        {renderTopicIcon(entry.topic || entry.project)}
                         {entry.topic || entry.project || "-"}
                       </div>
                     </td>

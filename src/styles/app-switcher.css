@@ -1,0 +1,36 @@
+.app-switcher {
+  position: fixed;
+  top: var(--space-4);
+  right: var(--space-4);
+  display: flex;
+  gap: var(--space-2);
+  z-index: 10;
+}
+
+.app-switcher-button {
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: 1.5px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-weight: 600;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-switcher-button:hover {
+  background-color: var(--color-brand);
+  color: var(--color-brand-contrast);
+  border-color: var(--color-line);
+}
+
+.app-switcher-button.active {
+  background-color: var(--color-line);
+  color: var(--color-brand);
+  border-color: var(--color-line);
+}

@@ -2,7 +2,32 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useEntriesStore } from '../stores/useEntriesStore';
-import { Pencil } from 'lucide-react';
+import {
+  Pencil,
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Hexagon,
+  Octagon,
+  Pentagon,
+  Star,
+  Heart,
+  Shield,
+} from 'lucide-react';
+
+const SHAPE_ICONS = [
+  Circle,
+  Square,
+  Triangle,
+  Diamond,
+  Hexagon,
+  Octagon,
+  Pentagon,
+  Star,
+  Heart,
+  Shield,
+];
 import toast from 'react-hot-toast';
 import '../../styles/entry-list.css';
 
@@ -21,14 +46,14 @@ export default function GroupedList({ field, title, emptyLabel }) {
     fetchEntries();
   }, [fetchEntries]);
 
-  const getGroupColorClass = (value) => {
-    if (!value) return 'entry-list-item-topic-circle-none';
+  const renderGroupIcon = (value) => {
+    if (!value) return null;
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       hash = (hash * 31 + value.charCodeAt(i)) | 0;
     }
-    const index = Math.abs(hash) % 10;
-    return `entry-list-item-topic-circle-${index}`;
+    const Icon = SHAPE_ICONS[Math.abs(hash) % SHAPE_ICONS.length];
+    return <Icon size={16} className="entry-list-item-topic-icon" />;
   };
 
   const formatDate = (dateString) => {
@@ -196,9 +221,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
               >
                 <td>
                   <div className="entry-list-item-topic">
-                    <span
-                      className={`entry-list-item-topic-circle ${getGroupColorClass(group.name)}`}
-                    />
+                    {renderGroupIcon(group.name)}
                     {group.name}
                   </div>
                 </td>

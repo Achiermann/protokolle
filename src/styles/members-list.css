@@ -6,6 +6,13 @@
   margin-bottom: var(--space-5);
 }
 
+.members-list-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+}
+
 .members-list-invite-toggle {
   display: inline-flex;
   align-items: center;

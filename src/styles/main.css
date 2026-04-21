@@ -9,6 +9,7 @@
   --color-bg: #ffffff;
   --color-surface: #ffffff;
   --color-text: #262626;
+  --color-line: #272727;
   --color-muted: #6b6b6b;
   --color-brand: #feffe2;
   --color-brand-hover: #dffdff;
@@ -17,6 +18,7 @@
   --color-border-soft: #e5e5e5;
   --color-error: #d33;
   --color-success: #2a8a3e;
+  --color-title: #ff8a96;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -109,7 +111,7 @@ select {
 
 button {
   padding: var(--space-3) var(--space-6);
-  border: 1.5px solid var(--color-text);
+  border: 1.5px solid var(--color-line);
   border-radius: var(--radius);
   background-color: transparent;
   color: var(--color-text);
@@ -123,12 +125,12 @@ button {
 
 button:hover {
   background-color: var(--color-brand);
-  border-color: var(--color-text);
+  border-color: var(--color-line);
   color: var(--color-brand-contrast);
 }
 
 button:focus-visible {
-  outline: 2px solid var(--color-text);
+  outline: 2px solid var(--color-line);
   outline-offset: 3px;
 }
 
@@ -139,7 +141,7 @@ button:disabled {
 
 button.primary {
   background-color: var(--color-brand);
-  border-color: var(--color-text);
+  border-color: var(--color-line);
   color: var(--color-brand-contrast);
 }
 
@@ -155,7 +157,7 @@ button.secondary {
 
 button.secondary:hover {
   background-color: var(--color-brand);
-  border-color: var(--color-text);
+  border-color: var(--color-line);
 }
 
 input,
@@ -188,7 +190,7 @@ input:focus,
 textarea:focus,
 select:focus {
   outline: none;
-  border-color: var(--color-text);
+  border-color: var(--color-line);
 }
 
 label {

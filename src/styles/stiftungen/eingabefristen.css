@@ -1,0 +1,50 @@
+.eingabefristen {
+  width: 100%;
+}
+
+.eingabefristen-header {
+  margin-bottom: var(--space-5);
+}
+
+.eingabefristen-empty {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.eingabefristen-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.eingabefristen-table thead {
+  background-color: var(--color-surface);
+  border-bottom: 2px solid var(--color-border);
+}
+
+.eingabefristen-table th {
+  padding: var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.eingabefristen-table td {
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+.eingabefristen-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.eingabefristen-table tbody tr:hover {
+  background-color: var(--color-surface);
+}

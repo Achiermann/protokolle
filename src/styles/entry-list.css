@@ -48,7 +48,7 @@
 
 .entry-list-table-th-sortable:hover {
   color: var(--color-brand);
-  background-color: var(--color-text);
+  background-color: var(--color-line);
 }
 
 .entry-list-table td {
@@ -71,54 +71,17 @@
 }
 
 .entry-list-item-topic {
-  font-size: 0.875rem;
-  color: var(--color-muted);
+  font-size: 1rem;
+  font-weight: 400;
+  color: var(--color-text);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
 }
 
-.entry-list-item-topic-circle {
-  display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
+.entry-list-item-topic-icon {
+  color: var(--color-title);
   flex-shrink: 0;
-  background-color: transparent;
-}
-
-.entry-list-item-topic-circle-0 {
-  background-color: #fde2e4;
-}
-.entry-list-item-topic-circle-1 {
-  background-color: #e2f0cb;
-}
-.entry-list-item-topic-circle-2 {
-  background-color: #cde7f0;
-}
-.entry-list-item-topic-circle-3 {
-  background-color: #fff1ba;
-}
-.entry-list-item-topic-circle-4 {
-  background-color: #e4d4f4;
-}
-.entry-list-item-topic-circle-5 {
-  background-color: #ffd6a5;
-}
-.entry-list-item-topic-circle-6 {
-  background-color: #d4f4dd;
-}
-.entry-list-item-topic-circle-7 {
-  background-color: #f4d4e4;
-}
-.entry-list-item-topic-circle-8 {
-  background-color: #c9e4de;
-}
-.entry-list-item-topic-circle-9 {
-  background-color: #f0d9c4;
-}
-.entry-list-item-topic-circle-none {
-  background-color: transparent;
 }
 
 .grouped-list-traktanden {
