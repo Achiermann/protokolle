@@ -32,7 +32,7 @@
 }
 
 .entry-list-table th {
-  padding: var(--space-4);
+  padding: var(--space-2) var(--space-4);
   text-align: left;
   font-weight: 600;
   color: var(--color-text);
@@ -44,6 +44,7 @@
 .entry-list-table-th-sortable {
   cursor: pointer;
   user-select: none;
+  font-family: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .entry-list-table-th-sortable:hover {
@@ -52,7 +53,7 @@
 }
 
 .entry-list-table td {
-  padding: var(--space-4);
+  padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -70,18 +71,50 @@
   color: var(--color-text);
 }
 
+.entry-list-item-creator {
+  color: rgb(195, 195, 195);
+  font-weight: 400;
+}
+
 .entry-list-item-topic {
   font-size: 1rem;
   font-weight: 400;
   color: var(--color-text);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
+  display: inline;
+  padding: 0 var(--space-1);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }
 
-.entry-list-item-topic-icon {
-  color: var(--color-title);
-  flex-shrink: 0;
+.entry-list-item-topic-c0 {
+  background: linear-gradient(transparent 55%, #fef3c7 55%, #fef3c7 92%, transparent 92%);
+}
+.entry-list-item-topic-c1 {
+  background: linear-gradient(transparent 55%, #fce7f3 55%, #fce7f3 92%, transparent 92%);
+}
+.entry-list-item-topic-c2 {
+  background: linear-gradient(transparent 55%, #dbeafe 55%, #dbeafe 92%, transparent 92%);
+}
+.entry-list-item-topic-c3 {
+  background: linear-gradient(transparent 55%, #d1fae5 55%, #d1fae5 92%, transparent 92%);
+}
+.entry-list-item-topic-c4 {
+  background: linear-gradient(transparent 55%, #ede9fe 55%, #ede9fe 92%, transparent 92%);
+}
+.entry-list-item-topic-c5 {
+  background: linear-gradient(transparent 55%, #ffedd5 55%, #ffedd5 92%, transparent 92%);
+}
+.entry-list-item-topic-c6 {
+  background: linear-gradient(transparent 55%, #cffafe 55%, #cffafe 92%, transparent 92%);
+}
+.entry-list-item-topic-c7 {
+  background: linear-gradient(transparent 55%, #fee2e2 55%, #fee2e2 92%, transparent 92%);
+}
+.entry-list-item-topic-c8 {
+  background: linear-gradient(transparent 55%, #e0e7ff 55%, #e0e7ff 92%, transparent 92%);
+}
+.entry-list-item-topic-c9 {
+  background: linear-gradient(transparent 55%, #fef9c3 55%, #fef9c3 92%, transparent 92%);
 }
 
 .grouped-list-traktanden {
@@ -127,9 +160,16 @@
 }
 
 .grouped-list-traktanden-title {
+  display: block;
   font-size: 0.9375rem;
-  font-weight: 400;
+  font-weight: 800;
   color: var(--color-text);
+}
+
+.grouped-list-traktanden
+  > .grouped-list-traktanden-section
+  > .grouped-list-traktanden-title {
+  margin: 20px 0 20px 0;
 }
 
 .entry-list-open-item {
@@ -137,7 +177,7 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-2) 0;
+  padding: var(--space-1) 0;
   cursor: pointer;
 }
 
@@ -162,8 +202,8 @@
 }
 
 .entry-list-open-item button {
-  padding: var(--space-1) var(--space-3);
-  font-size: 0.8125rem;
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.75rem;
   flex-shrink: 0;
 }
 
@@ -222,10 +262,12 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-5);
-  margin-bottom: var(--space-5);
-  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--color-border-soft);
   flex-wrap: wrap;
+  cursor: pointer;
 }
 
 .entry-list-detail-panel-top .entry-list-detail-panel-header,
@@ -233,6 +275,12 @@
   margin-bottom: 0;
   padding-bottom: 0;
   border-bottom: none;
+}
+
+.entry-list-detail-panel-top .entry-list-detail-panel-meta-item {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-2);
 }
 
 .entry-list-detail-panel-top .entry-list-detail-panel-header {
@@ -289,12 +337,11 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+  margin: 30px 0 30px 0;
 }
 
 .entry-list-detail-panel-content-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: none;
 }
 
 .entry-list-detail-panel-content-textarea {
@@ -362,6 +409,7 @@
   border-radius: 0;
   box-shadow: none;
   margin-bottom: 0;
+  padding: var(--space-2) var(--space-4);
 }
 
 .grouped-list-traktanden .entry-list-detail-panel {

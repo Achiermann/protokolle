@@ -1,4 +1,5 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;600;700&display=swap");
 
 /* ================================
    DESIGN TOKENS
@@ -11,7 +12,7 @@
   --color-text: #262626;
   --color-line: #272727;
   --color-muted: #6b6b6b;
-  --color-brand: #feffe2;
+  --color-brand: #ffe5e5;
   --color-brand-hover: #dffdff;
   --color-brand-contrast: #262626;
   --color-border: #6b6b6b;
@@ -31,7 +32,7 @@
 
   /* Radii — pill-shaped controls */
   --radius-sm: 0.25rem;
-  --radius: 999px;
+  --radius: 15px;
   --radius-lg: 1rem;
 
   /* Shadows — minimal, flat design */

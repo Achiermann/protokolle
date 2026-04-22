@@ -24,6 +24,7 @@
   letter-spacing: -0.02em;
   margin-bottom: var(--space-4);
   color: var(--color-title);
+  margin: 20px auto 20px auto;
 }
 
 .sidebar-button {
@@ -100,4 +101,5 @@
   flex: 1;
   padding: var(--space-6);
   overflow-y: auto;
+  font-family: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }

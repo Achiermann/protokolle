@@ -2,32 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useEntriesStore } from '../stores/useEntriesStore';
-import {
-  Pencil,
-  Circle,
-  Square,
-  Triangle,
-  Diamond,
-  Hexagon,
-  Octagon,
-  Pentagon,
-  Star,
-  Heart,
-  Shield,
-} from 'lucide-react';
-
-const SHAPE_ICONS = [
-  Circle,
-  Square,
-  Triangle,
-  Diamond,
-  Hexagon,
-  Octagon,
-  Pentagon,
-  Star,
-  Heart,
-  Shield,
-];
+import { Pencil } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../../styles/entry-list.css';
 
@@ -46,14 +21,13 @@ export default function GroupedList({ field, title, emptyLabel }) {
     fetchEntries();
   }, [fetchEntries]);
 
-  const renderGroupIcon = (value) => {
-    if (!value) return null;
+  const getTopicColorClass = (value) => {
+    if (!value) return '';
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       hash = (hash * 31 + value.charCodeAt(i)) | 0;
     }
-    const Icon = SHAPE_ICONS[Math.abs(hash) % SHAPE_ICONS.length];
-    return <Icon size={16} className="entry-list-item-topic-icon" />;
+    return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
   };
 
   const formatDate = (dateString) => {
@@ -147,6 +121,12 @@ export default function GroupedList({ field, title, emptyLabel }) {
                     <div className="grouped-list-traktanden-section-header">
                       <strong className="grouped-list-traktanden-title">
                         {entry.item_title}
+                        {entry.created_by_name && (
+                          <span className="entry-list-item-creator">
+                            {" - "}
+                            {entry.created_by_name}
+                          </span>
+                        )}
                       </strong>
                       <span className="grouped-list-traktanden-date">
                         {formatDate(entry.date_created)}
@@ -220,8 +200,11 @@ export default function GroupedList({ field, title, emptyLabel }) {
                 onClick={() => handleRowClick(group.name)}
               >
                 <td>
-                  <div className="entry-list-item-topic">
-                    {renderGroupIcon(group.name)}
+                  <div
+                    className={
+                      'entry-list-item-topic ' + getTopicColorClass(group.name)
+                    }
+                  >
                     {group.name}
                   </div>
                 </td>

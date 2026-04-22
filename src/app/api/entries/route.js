@@ -27,8 +27,29 @@ export async function GET() {
       throw error;
     }
 
+    const entries = data || [];
+    const creatorIds = [
+      ...new Set(entries.map((e) => e.created_by).filter(Boolean)),
+    ];
+
+    if (creatorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .schema('protokoll_app')
+        .from('profiles')
+        .select('id, name, email')
+        .in('id', creatorIds);
+
+      const profileMap = new Map((profiles || []).map((p) => [p.id, p]));
+      for (const entry of entries) {
+        const profile = profileMap.get(entry.created_by);
+        entry.created_by_name =
+          profile?.name ||
+          (profile?.email ? profile.email.split('@')[0] : null);
+      }
+    }
+
     return NextResponse.json({
-      items: data || [],
+      items: entries,
       total: count || 0,
       page: 1,
       pageSize: 20,
@@ -75,6 +96,18 @@ export async function POST(request) {
     }
 
     const supabase = await createSupabaseServerClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Nicht angemeldet' } },
+        { status: 401 }
+      );
+    }
+
     const { data, error } = await supabase
       .schema('protokoll_app')
       .from('entries')
@@ -86,6 +119,7 @@ export async function POST(request) {
           project: body.project || null,
           members: body.members || [],
           workspace_id: workspaceId,
+          created_by: user.id,
         },
       ])
       .select()
@@ -94,6 +128,17 @@ export async function POST(request) {
     if (error) {
       throw error;
     }
+
+    const { data: profile } = await supabase
+      .schema('protokoll_app')
+      .from('profiles')
+      .select('name, email')
+      .eq('id', user.id)
+      .single();
+
+    data.created_by_name =
+      profile?.name ||
+      (profile?.email ? profile.email.split('@')[0] : null);
 
     return NextResponse.json({ item: data }, { status: 201 });
   } catch (error) {

@@ -9,30 +9,7 @@ import {
   MailMinus,
   Trash,
   Plus,
-  Circle,
-  Square,
-  Triangle,
-  Diamond,
-  Hexagon,
-  Octagon,
-  Pentagon,
-  Star,
-  Heart,
-  Shield,
 } from "lucide-react";
-
-const SHAPE_ICONS = [
-  Circle,
-  Square,
-  Triangle,
-  Diamond,
-  Hexagon,
-  Octagon,
-  Pentagon,
-  Star,
-  Heart,
-  Shield,
-];
 import EntryForm from "./EntryForm";
 import "../../styles/entry-list.css";
 import "../../styles/filters.css";
@@ -250,14 +227,13 @@ export default function EntryList({
     return sortDir === "asc" ? " ▲" : " ▼";
   };
 
-  const renderTopicIcon = (topic) => {
-    if (!topic) return null;
+  const getTopicColorClass = (topic) => {
+    if (!topic) return "";
     let hash = 0;
     for (let i = 0; i < topic.length; i++) {
       hash = (hash * 31 + topic.charCodeAt(i)) | 0;
     }
-    const Icon = SHAPE_ICONS[Math.abs(hash) % SHAPE_ICONS.length];
-    return <Icon size={16} className="entry-list-item-topic-icon" />;
+    return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
   };
 
   const formatDate = (dateString) => {
@@ -338,14 +314,99 @@ export default function EntryList({
     return [{ name: "posteingang", items: posteingang }, ...groups];
   }, [contentFilter, filteredAndSortedEntries]);
 
+  const renderContentEditor = () => {
+    if (!selectedEntry) return null;
+    return (
+      <div className="entry-list-detail-panel">
+        <div className="entry-list-detail-panel-content">
+          <div className="entry-list-detail-panel-content-toolbar">
+            <button type="button" className="secondary" onClick={handleBold}>
+              <strong>B</strong>
+            </button>
+            <button type="button" className="secondary" onClick={handleItalic}>
+              <em>I</em>
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleUnderline}
+            >
+              <u>U</u>
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleInsertTodo}
+            >
+              + ToDo
+            </button>
+          </div>
+          {showMemberDropdown && (
+            <div className="entry-list-detail-panel-member-dropdown">
+              {members.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  className="secondary"
+                  onClick={() => handleSelectMember(m)}
+                >
+                  {m.name || m.email}
+                </button>
+              ))}
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleCancelMemberDropdown}
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
+          <textarea
+            ref={contentTextareaRef}
+            className="entry-list-detail-panel-content-textarea"
+            value={contentDraft}
+            onChange={(e) => setContentDraft(e.target.value)}
+            placeholder="Sitzungsnotizen hier schreiben... Text markieren (oder Cursor auf Zeile setzen) und + ToDo klicken."
+          />
+          <div className="entry-list-detail-panel-content-actions">
+            <button
+              type="button"
+              className="primary"
+              onClick={handleSaveContent}
+            >
+              Speichern
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleClosePanel}
+            >
+              Abbrechen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDetailPanel = () => {
     if (!selectedEntry) return null;
     return (
       <div className="entry-list-detail-panel">
-        <div className="entry-list-detail-panel-top">
+        <div
+          className="entry-list-detail-panel-top"
+          onClick={handleClosePanel}
+        >
           <div className="entry-list-detail-panel-header">
             <h3 className="entry-list-detail-panel-title">
               {selectedEntry.item_title}
+              {selectedEntry.created_by_name && (
+                <span className="entry-list-item-creator">
+                  {" - "}
+                  {selectedEntry.created_by_name}
+                </span>
+              )}
             </h3>
           </div>
 
@@ -369,13 +430,28 @@ export default function EntryList({
               <span>{formatDate(selectedEntry.date_created)}</span>
             </span>
           </div>
-          <button
-            type="button"
-            className="secondary entry-list-detail-panel-close"
-            onClick={handleClosePanel}
-          >
-            ✕
-          </button>
+          <div className="entry-list-item-actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingEntry(selectedEntry);
+              }}
+            >
+              <Pencil size={16} />
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete(selectedEntry.id);
+              }}
+            >
+              <Trash size={16} />
+            </button>
+          </div>
         </div>
 
         <div className="entry-list-detail-panel-content">
@@ -577,10 +653,25 @@ export default function EntryList({
                           ? "entry-list-open-item entry-list-open-item-selected"
                           : "entry-list-open-item"
                       }
-                      onClick={() => handleRowClick(entry)}
+                      onClick={() => {
+                        if (selectedId === entry.id) {
+                          setSelectedId(null);
+                          setIsEditingContent(false);
+                        } else {
+                          setSelectedId(entry.id);
+                          setIsEditingContent(true);
+                          setContentDraft(entry.content || "");
+                        }
+                      }}
                     >
                       <span className="entry-list-open-item-title">
                         {entry.item_title}
+                        {entry.created_by_name && (
+                          <span className="entry-list-item-creator">
+                            {" - erstellt von "}
+                            {entry.created_by_name}
+                          </span>
+                        )}
                       </span>
                       <div className="entry-list-item-actions">
                         <button
@@ -590,7 +681,7 @@ export default function EntryList({
                             setEditingEntry(entry);
                           }}
                         >
-                          <Pencil size={16} />
+                          <Pencil size={14} />
                         </button>
                         {isInPosteingang(entry) &&
                           entry.topic !== "posteingang" && (
@@ -601,7 +692,7 @@ export default function EntryList({
                                 handleRemoveFromPosteingang(entry.id);
                               }}
                             >
-                              <MailMinus size={16} />
+                              <MailMinus size={14} />
                             </button>
                           )}
                         {!isInPosteingang(entry) && (
@@ -612,7 +703,7 @@ export default function EntryList({
                               handleSendToPosteingang(entry.id);
                             }}
                           >
-                            <MailPlus size={16} />
+                            <MailPlus size={14} />
                           </button>
                         )}
                         <button
@@ -622,11 +713,11 @@ export default function EntryList({
                             handleDelete(entry.id);
                           }}
                         >
-                          <Trash size={16} />
+                          <Trash size={14} />
                         </button>
                       </div>
                     </div>
-                    {selectedId === entry.id && renderDetailPanel()}
+                    {selectedId === entry.id && renderContentEditor()}
                   </div>
                 ))}
               </div>
@@ -664,53 +755,61 @@ export default function EntryList({
             <tbody>
               {filteredAndSortedEntries.map((entry) => (
                 <React.Fragment key={entry.id}>
-                  <tr
-                    className={
-                      selectedId === entry.id
-                        ? "entry-list-table-row entry-list-table-row-selected"
-                        : "entry-list-table-row"
-                    }
-                    onClick={() => handleRowClick(entry)}
-                  >
-                    <td>
-                      <div className="entry-list-item-topic">
-                        {renderTopicIcon(entry.topic || entry.project)}
-                        {entry.topic || entry.project || "-"}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="entry-list-item-title">
-                        {entry.item_title}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="entry-list-item-date">
-                        {formatDate(entry.date_created)}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="entry-list-item-actions">
-                        <button
-                          className="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingEntry(entry);
-                          }}
+                  {selectedId !== entry.id && (
+                    <tr
+                      className="entry-list-table-row"
+                      onClick={() => handleRowClick(entry)}
+                    >
+                      <td>
+                        <div
+                          className={
+                            "entry-list-item-topic " +
+                            getTopicColorClass(entry.topic || entry.project)
+                          }
                         >
-                          <Pencil size={16} />
-                        </button>
-                        <button
-                          className="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(entry.id);
-                          }}
-                        >
-                          <Trash size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          {entry.topic || entry.project || "-"}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="entry-list-item-title">
+                          {entry.item_title}
+                          {entry.created_by_name && (
+                            <span className="entry-list-item-creator">
+                              {" - "}
+                              {entry.created_by_name}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="entry-list-item-date">
+                          {formatDate(entry.date_created)}
+                        </div>
+                      </td>
+                      <td>
+                        <div className="entry-list-item-actions">
+                          <button
+                            className="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingEntry(entry);
+                            }}
+                          >
+                            <Pencil size={16} />
+                          </button>
+                          <button
+                            className="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(entry.id);
+                            }}
+                          >
+                            <Trash size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                   {selectedId === entry.id && (
                     <tr className="entry-list-table-row-detail">
                       <td colSpan={4}>{renderDetailPanel()}</td>
