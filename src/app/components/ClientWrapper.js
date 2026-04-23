@@ -8,6 +8,7 @@ import EntryList from './EntryList';
 import GroupedList from './GroupedList';
 import TodoList from './TodoList';
 import MembersList from './MembersList';
+import ArchiveList from './ArchiveList';
 import Forderbereiche from './stiftungen/Forderbereiche';
 import Eingabefristen from './stiftungen/Eingabefristen';
 
@@ -68,6 +69,7 @@ export default function ClientWrapper() {
           />
         )}
         {activeApp === 'p' && activeView === 'todo' && <TodoList />}
+        {activeApp === 'p' && activeView === 'archiv' && <ArchiveList />}
 
         {activeApp === 's' && activeView === 'forderbereiche' && <Forderbereiche />}
         {activeApp === 's' && activeView === 'eingabefristen' && <Eingabefristen />}

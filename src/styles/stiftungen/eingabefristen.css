@@ -37,14 +37,55 @@
 
 .eingabefristen-table td {
   padding: var(--space-4);
-  border-bottom: 1px solid var(--color-border);
   vertical-align: top;
-}
-
-.eingabefristen-table tbody tr:last-child td {
-  border-bottom: none;
 }
 
 .eingabefristen-table tbody tr:hover {
   background-color: var(--color-surface);
+}
+
+.eingabefristen-table tbody tr.eingabefristen-month-header:hover,
+.eingabefristen-table tbody tr.eingabefristen-year-header:hover {
+  background-color: transparent;
+}
+
+.eingabefristen-year-header th,
+.eingabefristen-month-header th {
+  padding: var(--space-4) var(--space-4) var(--space-2);
+  background-color: transparent;
+  border: none;
+  text-align: left;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 400;
+}
+
+.eingabefristen-year-header th {
+  padding-top: var(--space-5);
+}
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .eingabefristen {
+    overflow-x: auto;
+  }
+
+  .eingabefristen-table {
+    min-width: 560px;
+  }
+
+  .eingabefristen-table th,
+  .eingabefristen-table td {
+    padding: var(--space-2) var(--space-3);
+    font-size: 0.8125rem;
+  }
+
+  .eingabefristen-year-header th,
+  .eingabefristen-month-header th {
+    padding: var(--space-3) var(--space-3) var(--space-1);
+  }
+
+  .eingabefristen-year-header th {
+    padding-top: var(--space-4);
+  }
 }

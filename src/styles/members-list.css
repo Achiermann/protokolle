@@ -73,3 +73,30 @@
   color: var(--color-muted);
   font-size: 0.875rem;
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .members-list {
+    max-width: 100%;
+  }
+
+  .members-list-invite-row {
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .members-list-invite-row input,
+  .members-list-invite-row button {
+    width: 100%;
+  }
+
+  .members-list-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .members-list-table th,
+  .members-list-table td {
+    padding: var(--space-2) var(--space-3);
+  }
+}

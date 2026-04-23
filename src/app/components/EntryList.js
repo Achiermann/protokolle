@@ -9,6 +9,7 @@ import {
   MailMinus,
   Trash,
   Plus,
+  Archive,
 } from "lucide-react";
 import EntryForm from "./EntryForm";
 import "../../styles/entry-list.css";
@@ -194,6 +195,16 @@ export default function EntryList({
     }
   };
 
+  const handleArchive = async (id) => {
+    try {
+      await updateEntry(id, { archived: true });
+      if (selectedId === id) setSelectedId(null);
+      toast.success("Traktandum archiviert");
+    } catch (error) {
+      toast.error("Archivieren fehlgeschlagen");
+    }
+  };
+
   const isInPosteingang = (entry) => {
     return entry.in_posteingang || entry.topic === "posteingang";
   };
@@ -248,7 +259,7 @@ export default function EntryList({
     let result = [...entries];
 
     if (contentFilter === "with") {
-      result = result.filter((entry) => entry.content);
+      result = result.filter((entry) => entry.content && !entry.archived);
     } else if (contentFilter === "without") {
       result = result.filter((entry) => !entry.content);
     }
@@ -440,6 +451,16 @@ export default function EntryList({
               }}
             >
               <Pencil size={16} />
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleArchive(selectedEntry.id);
+              }}
+            >
+              <Archive size={16} />
             </button>
             <button
               type="button"
@@ -796,6 +817,15 @@ export default function EntryList({
                             }}
                           >
                             <Pencil size={16} />
+                          </button>
+                          <button
+                            className="secondary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleArchive(entry.id);
+                            }}
+                          >
+                            <Archive size={16} />
                           </button>
                           <button
                             className="secondary"

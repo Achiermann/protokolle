@@ -19,3 +19,23 @@
 .page-content {
   padding: var(--space-6) 0;
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .page-header {
+    padding: var(--space-4) 0;
+    margin-bottom: var(--space-4);
+  }
+
+  .page-title {
+    font-size: 1.5rem;
+  }
+
+  .page-description {
+    font-size: 0.875rem;
+  }
+
+  .page-content {
+    padding: var(--space-4) 0;
+  }
+}

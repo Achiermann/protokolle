@@ -96,3 +96,18 @@
   background: none;
   border: none;
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .workspace-page {
+    padding: var(--space-4);
+  }
+
+  .workspace-title {
+    font-size: 1.25rem;
+  }
+
+  .workspace-item {
+    padding: var(--space-3) var(--space-4);
+  }
+}

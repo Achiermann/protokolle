@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useEntriesStore } from '../stores/useEntriesStore';
-import { Pencil } from 'lucide-react';
+import { Pencil, Archive } from 'lucide-react';
 import toast from 'react-hot-toast';
 import '../../styles/entry-list.css';
 
@@ -15,6 +15,10 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState('');
+  const [members, setMembers] = useState([]);
+  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [todoInsertPos, setTodoInsertPos] = useState(null);
+  const contentTextareaRef = useRef(null);
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
@@ -42,6 +46,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
     const map = new Map();
     for (const entry of entries) {
       if (!entry.content) continue;
+      if (entry.archived) continue;
       const value = entry[field];
       if (!value) continue;
       if (!map.has(value)) map.set(value, []);
@@ -55,7 +60,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const selectedEntries = useMemo(() => {
     if (!selectedGroup) return [];
     return entries
-      .filter((e) => e.content && e[field] === selectedGroup)
+      .filter((e) => e.content && !e.archived && e[field] === selectedGroup)
       .sort(
         (a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime()
       );
@@ -87,6 +92,104 @@ export default function GroupedList({ field, title, emptyLabel }) {
 
   const handleCancelEdit = () => {
     setEditingId(null);
+  };
+
+  const wrapSelection = (before, after) => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = editDraft;
+    const selected = value.slice(start, end);
+    const next =
+      value.slice(0, start) + before + selected + after + value.slice(end);
+    setEditDraft(next);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = start + before.length + selected.length + after.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const handleBold = () => wrapSelection('**', '**');
+  const handleItalic = () => wrapSelection('*', '*');
+  const handleUnderline = () => wrapSelection('__', '__');
+
+  const loadMembers = async () => {
+    try {
+      const response = await fetch('/api/workspaces/members');
+      if (!response.ok) throw new Error('fail');
+      const data = await response.json();
+      setMembers(data.items || []);
+    } catch (error) {
+      toast.error('Mitglieder konnten nicht geladen werden');
+    }
+  };
+
+  const handleInsertTodo = async () => {
+    const textarea = contentTextareaRef.current;
+    if (!textarea) return;
+    if (members.length === 0) await loadMembers();
+
+    const pos = textarea.selectionStart;
+    const prefix = '/todo';
+    const next = editDraft.slice(0, pos) + prefix + editDraft.slice(pos);
+    setEditDraft(next);
+    setTodoInsertPos(pos);
+    setShowMemberDropdown(true);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const cursor = pos + prefix.length;
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const handleSelectMember = (member) => {
+    if (todoInsertPos === null) return;
+    const rawName = member.name || member.email.split('@')[0];
+    const nameTag = rawName.replace(/\s+/g, '_');
+    const replacement = `/todo@${nameTag} `;
+    const before = editDraft.slice(0, todoInsertPos);
+    const after = editDraft.slice(todoInsertPos + '/todo'.length);
+    const nextContent = before + replacement + after;
+    const cursor = todoInsertPos + replacement.length;
+    setEditDraft(nextContent);
+    setShowMemberDropdown(false);
+    setTodoInsertPos(null);
+    requestAnimationFrame(() => {
+      const textarea = contentTextareaRef.current;
+      if (!textarea) return;
+      textarea.focus();
+      textarea.setSelectionRange(cursor, cursor);
+    });
+  };
+
+  const handleCancelMemberDropdown = () => {
+    setShowMemberDropdown(false);
+    setTodoInsertPos(null);
+  };
+
+  const handleArchiveGroup = async (name) => {
+    const toArchive = entries.filter(
+      (e) => !e.archived && e[field] === name
+    );
+    if (toArchive.length === 0) return;
+    if (
+      !confirm(
+        `Alle ${toArchive.length} Traktanden in "${name}" archivieren?`
+      )
+    ) {
+      return;
+    }
+    try {
+      await Promise.all(
+        toArchive.map((e) => updateEntry(e.id, { archived: true }))
+      );
+      if (selectedGroup === name) setSelectedGroup(null);
+      toast.success('Traktanden archiviert');
+    } catch (error) {
+      toast.error('Archivieren fehlgeschlagen');
+    }
   };
 
   return (
@@ -134,7 +237,59 @@ export default function GroupedList({ field, title, emptyLabel }) {
                     </div>
                     {editingId === entry.id ? (
                       <>
+                        <div className="entry-list-detail-panel-content-toolbar">
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleBold}
+                          >
+                            <strong>B</strong>
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleItalic}
+                          >
+                            <em>I</em>
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleUnderline}
+                          >
+                            <u>U</u>
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleInsertTodo}
+                          >
+                            + ToDo
+                          </button>
+                        </div>
+                        {showMemberDropdown && (
+                          <div className="entry-list-detail-panel-member-dropdown">
+                            {members.map((m) => (
+                              <button
+                                key={m.id}
+                                type="button"
+                                className="secondary"
+                                onClick={() => handleSelectMember(m)}
+                              >
+                                {m.name || m.email}
+                              </button>
+                            ))}
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={handleCancelMemberDropdown}
+                            >
+                              Abbrechen
+                            </button>
+                          </div>
+                        )}
                         <textarea
+                          ref={contentTextareaRef}
                           className="entry-list-detail-panel-content-textarea"
                           value={editDraft}
                           onChange={(e) => setEditDraft(e.target.value)}
@@ -186,6 +341,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
             <tr>
               <th>{title}</th>
               <th>Anzahl</th>
+              <th>Aktionen</th>
             </tr>
           </thead>
           <tbody>
@@ -210,6 +366,20 @@ export default function GroupedList({ field, title, emptyLabel }) {
                 </td>
                 <td>
                   <div className="entry-list-item-date">{group.items.length}</div>
+                </td>
+                <td>
+                  <div className="entry-list-item-actions">
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleArchiveGroup(group.name);
+                      }}
+                    >
+                      <Archive size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

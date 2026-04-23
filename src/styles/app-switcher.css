@@ -34,3 +34,13 @@
   color: var(--color-brand);
   border-color: var(--color-line);
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .app-switcher {
+    top: var(--space-3);
+    left: var(--space-3);
+    right: auto;
+    z-index: 10;
+  }
+}

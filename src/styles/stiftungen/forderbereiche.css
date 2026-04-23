@@ -5,3 +5,10 @@
 .forderbereiche-header {
   margin-bottom: var(--space-5);
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .forderbereiche-header {
+    margin-bottom: var(--space-4);
+  }
+}

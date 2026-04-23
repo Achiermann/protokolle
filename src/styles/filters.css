@@ -39,3 +39,25 @@
 .filter-actions button {
   white-space: nowrap;
 }
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .filters-container {
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .filter-field {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .filter-actions {
+    width: 100%;
+  }
+
+  .filter-actions button {
+    width: 100%;
+  }
+}
