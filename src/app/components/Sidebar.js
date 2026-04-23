@@ -23,7 +23,7 @@ export default function Sidebar({ activeApp = 'p', activeView, onViewChange }) {
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
 
-  const title = activeApp === 's' ? '_stiftungen' : '_protokolle';
+  const title = activeApp === 's' ? 'stiftungen' : 'protokolle';
 
   const todoCount = useMemo(() => {
     const regex = /\/todo@\S+[ \t]+[^\n]+/g;

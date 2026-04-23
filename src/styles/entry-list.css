@@ -37,14 +37,12 @@
   font-weight: 600;
   color: var(--color-text);
   font-size: 0.875rem;
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .entry-list-table-th-sortable {
   cursor: pointer;
   user-select: none;
-  font-family: "Chivo Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .entry-list-table-th-sortable:hover {
