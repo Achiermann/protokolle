@@ -1,7 +1,7 @@
 'use client';
 
-import { Fragment, useEffect, useMemo, useState } from 'react';
-import toast from 'react-hot-toast';
+import { Fragment } from 'react';
+import { getFoerderungen, getOldestVerifiedAt } from '../../../data/foerderstellen';
 import '../../../styles/entry-list.css';
 import '../../../styles/stiftungen/eingabefristen.css';
 
@@ -20,62 +20,51 @@ const MONTHS_DE = [
   'Dezember',
 ];
 
-export default function Eingabefristen() {
-  // *** VARIABLES ***
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+function buildGrouped(items) {
+  const byYear = new Map();
+  const open = [];
 
-  const grouped = useMemo(() => {
-    const byYear = new Map();
-    const open = [];
-    for (const item of items) {
-      if (!item.einsendeschluss) {
-        open.push(item);
-        continue;
-      }
-      const [y, m] = item.einsendeschluss.split('-');
+  for (const item of items) {
+    const dates = Array.isArray(item.eingabefristen) ? item.eingabefristen : [];
+
+    if (dates.length === 0) {
+      open.push(item);
+      continue;
+    }
+
+    for (const d of dates) {
+      const [y, m] = d.split('-');
       if (!byYear.has(y)) byYear.set(y, new Map());
       const months = byYear.get(y);
       if (!months.has(m)) months.set(m, []);
-      months.get(m).push(item);
+      months.get(m).push({ ...item, einsendeschluss: d });
     }
-    const years = Array.from(byYear.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([year, months]) => ({
-        year,
-        months: Array.from(months.entries())
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([month, monthItems]) => ({
-            month,
-            items: monthItems
-              .slice()
-              .sort((a, b) => a.einsendeschluss.localeCompare(b.einsendeschluss)),
-          })),
-      }));
-    return { years, open };
-  }, [items]);
+  }
+
+  const years = Array.from(byYear.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([year, months]) => ({
+      year,
+      months: Array.from(months.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([month, monthItems]) => ({
+          month,
+          items: monthItems
+            .slice()
+            .sort((a, b) => a.einsendeschluss.localeCompare(b.einsendeschluss)),
+        })),
+    }));
+  return { years, open };
+}
+
+export default function Eingabefristen() {
+  // *** VARIABLES ***
+  const today = new Date().toISOString().slice(0, 10);
+  const items = getFoerderungen(today);
+  const oldestVerifiedAt = getOldestVerifiedAt();
+  const grouped = buildGrouped(items);
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch('/api/foerderungen');
-        const json = await res.json();
-        if (!res.ok) throw new Error(json?.error?.message || 'Request failed');
-        if (!cancelled) setItems(json.items || []);
-      } catch (err) {
-        toast.error(err.message || 'Fehler beim Laden');
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const formatDate = (iso) => {
     if (!iso) return 'Ganzjährig offen';
     const [y, m, d] = iso.split('-');
@@ -83,7 +72,7 @@ export default function Eingabefristen() {
   };
 
   const renderRow = (row) => (
-    <tr key={row.id}>
+    <tr key={`${row.id}-${row.einsendeschluss ?? 'open'}`}>
       <td>{formatDate(row.einsendeschluss)}</td>
       <td>{row.förderstelle || '—'}</td>
       <td>{row.förderformat || '—'}</td>
@@ -94,15 +83,16 @@ export default function Eingabefristen() {
     <div className="eingabefristen">
       <div className="eingabefristen-header">
         <h2>Eingabefristen</h2>
+        {oldestVerifiedAt && (
+          <span className="eingabefristen-stand">Stand {formatDate(oldestVerifiedAt)}</span>
+        )}
       </div>
 
-      {loading && <p className="eingabefristen-empty">Laden…</p>}
-
-      {!loading && items.length === 0 && (
+      {items.length === 0 && (
         <p className="eingabefristen-empty">Keine Eingabefristen gefunden.</p>
       )}
 
-      {!loading && items.length > 0 && (
+      {items.length > 0 && (
         <table className="eingabefristen-table">
           <thead>
             <tr>

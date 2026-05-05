@@ -15,6 +15,7 @@ export async function GET() {
     const workspaceId = cookieStore.get('workspace_id')?.value || null;
 
     let workspace = null;
+    let role = null;
     if (workspaceId) {
       const { data } = await supabase
         .schema('protokoll_app')
@@ -23,11 +24,28 @@ export async function GET() {
         .eq('id', workspaceId)
         .single();
       workspace = data;
+
+      const { data: membership } = await supabase
+        .schema('protokoll_app')
+        .from('workspace_members')
+        .select('role')
+        .eq('workspace_id', workspaceId)
+        .eq('user_id', user.id)
+        .single();
+      role = membership?.role || null;
     }
 
+    const { data: profile } = await supabase
+      .schema('protokoll_app')
+      .from('profiles')
+      .select('name')
+      .eq('id', user.id)
+      .single();
+
     return NextResponse.json({
-      user: { id: user.id, email: user.email },
+      user: { id: user.id, email: user.email, name: profile?.name || null },
       workspace,
+      role,
     });
   } catch (error) {
     return NextResponse.json(

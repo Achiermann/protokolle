@@ -12,6 +12,7 @@ export default function LoginForm() {
   const isResetMode = searchParams.get('reset') === 'true';
 
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function LoginForm() {
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, name }),
       });
 
       const data = await response.json();
@@ -186,6 +187,18 @@ export default function LoginForm() {
 
         {view === 'signup' && (
           <form className="login-form" onSubmit={handleSignup}>
+            <div className="login-field">
+              <label htmlFor="signup-name">Name</label>
+              <input
+                id="signup-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Vor- und Nachname"
+                required
+              />
+            </div>
+
             <div className="login-field">
               <label htmlFor="signup-email">E-Mail</label>
               <input

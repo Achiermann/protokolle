@@ -3,11 +3,11 @@ import { createSupabaseServerClient } from '@/db/supabase-server';
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
+    const { email, password, name } = await request.json();
 
-    if (!email || !password) {
+    if (!email || !password || !name?.trim()) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'E-Mail und Passwort sind erforderlich' } },
+        { error: { code: 'VALIDATION_ERROR', message: 'Name, E-Mail und Passwort sind erforderlich' } },
         { status: 400 }
       );
     }
@@ -29,12 +29,15 @@ export async function POST(request) {
       );
     }
 
-    // Create profile entry for email lookup
+    // Create profile entry for email/name lookup
     if (data.user?.id) {
       await supabase
         .schema('protokoll_app')
         .from('profiles')
-        .upsert([{ id: data.user.id, email: email.toLowerCase() }], { onConflict: 'id' });
+        .upsert(
+          [{ id: data.user.id, email: email.toLowerCase(), name: name.trim() }],
+          { onConflict: 'id' }
+        );
     }
 
     return NextResponse.json({ user: data.user }, { status: 201 });

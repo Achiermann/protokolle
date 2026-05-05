@@ -1,0 +1,47 @@
+.settings {
+  max-width: 700px;
+}
+
+.settings-header {
+  margin-bottom: var(--space-5);
+}
+
+.settings-section {
+  margin-bottom: var(--space-7);
+}
+
+.settings-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+  color: var(--color-text);
+}
+
+.settings-name-form {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+}
+
+.settings-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .settings {
+    max-width: 100%;
+  }
+
+  .settings-name-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-2);
+  }
+
+  .settings-name-form button {
+    width: 100%;
+  }
+}

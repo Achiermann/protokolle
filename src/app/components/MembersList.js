@@ -91,10 +91,6 @@ export default function MembersList() {
 
   return (
     <div className="members-list">
-      <div className="members-list-header">
-        <h2>Einstellungen</h2>
-      </div>
-
       <h3 className="members-list-section-title">Mitglieder</h3>
 
       <button

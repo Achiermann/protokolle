@@ -6,9 +6,94 @@
   margin-bottom: var(--space-5);
 }
 
+.forderbereiche-table {
+  width: 100%;
+  max-width: 720px;
+  border-collapse: collapse;
+  margin-bottom: var(--space-6);
+}
+
+.forderbereiche-table th {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.forderbereiche-table td {
+  padding: var(--space-2) var(--space-4);
+  vertical-align: top;
+  width: 50%;
+}
+
+.forderbereiche-pill {
+  padding: var(--space-1) var(--space-4);
+  font-size: 0.875rem;
+  background-color: var(--color-border-soft);
+  border-color: var(--color-border-soft);
+  color: var(--color-muted);
+}
+
+.forderbereiche-pill:hover {
+  background-color: var(--color-border-soft);
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+.forderbereiche-pill-active,
+.forderbereiche-pill-active:hover {
+  background-color: var(--color-brand);
+  border-color: var(--color-line);
+  color: var(--color-brand-contrast);
+}
+
+.forderbereiche-results {
+  margin-top: var(--space-6);
+}
+
+.forderbereiche-empty {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+}
+
+.forderbereiche-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.forderbereiche-list-item {
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+}
+
+.forderbereiche-list-item-name {
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+.forderbereiche-list-item-meta {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
 /* *** MOBILE *** */
 @media (max-width: 768px) {
-  .forderbereiche-header {
-    margin-bottom: var(--space-4);
+  .forderbereiche-table td {
+    padding: var(--space-2);
+  }
+
+  .forderbereiche-pill {
+    padding: var(--space-1) var(--space-3);
+    font-size: 0.8125rem;
   }
 }

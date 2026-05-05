@@ -7,7 +7,7 @@ import AppSwitcher from './AppSwitcher';
 import EntryList from './EntryList';
 import GroupedList from './GroupedList';
 import TodoList from './TodoList';
-import MembersList from './MembersList';
+import Settings from './Settings';
 import ArchiveList from './ArchiveList';
 import Forderbereiche from './stiftungen/Forderbereiche';
 import Eingabefristen from './stiftungen/Eingabefristen';
@@ -74,7 +74,7 @@ export default function ClientWrapper() {
         {activeApp === 's' && activeView === 'forderbereiche' && <Forderbereiche />}
         {activeApp === 's' && activeView === 'eingabefristen' && <Eingabefristen />}
 
-        {activeView === 'members' && <MembersList />}
+        {activeView === 'members' && <Settings />}
       </main>
     </div>
   );
