@@ -13,7 +13,8 @@ export async function POST(request) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/login?reset=true`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent('/login?reset=true')}`;
     console.log('[reset-password] redirectTo:', redirectTo);
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo,
