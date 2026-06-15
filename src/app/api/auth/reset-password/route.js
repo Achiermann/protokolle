@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase-server';
+import { NextResponse } from "next/server";
+import { createSupabaseAdminClient } from "@/db/supabase-admin";
+import { sendPasswordResetEmail } from "@/lib/mailer";
 
 export async function POST(request) {
   try {
@@ -7,33 +8,44 @@ export async function POST(request) {
 
     if (!email) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'E-Mail ist erforderlich' } },
-        { status: 400 }
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "E-Mail ist erforderlich",
+          },
+        },
+        { status: 400 },
       );
     }
 
-    const supabase = await createSupabaseServerClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent('/login?reset=true')}`;
-    console.log('[reset-password] redirectTo:', redirectTo);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "recovery",
+      email,
     });
 
+    // Don't reveal whether the email exists (no account enumeration).
     if (error) {
-      console.error('[reset-password] resetPasswordForEmail failed:', error);
-      return NextResponse.json(
-        { error: { code: 'RESET_ERROR', message: error.message, status: error.status, redirectTo } },
-        { status: 500 }
-      );
+      console.warn("[reset-password] generateLink failed:", error.message);
+      return NextResponse.json({ success: true });
+    }
+
+    const otp = data?.properties?.email_otp;
+    if (otp) {
+      await sendPasswordResetEmail(email, otp);
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('[reset-password] route crashed:', error);
+    console.error("[reset-password] route crashed:", error);
     return NextResponse.json(
-      { error: { code: 'SERVER_ERROR', message: error?.message || 'Passwort-Reset fehlgeschlagen' } },
-      { status: 500 }
+      {
+        error: {
+          code: "SERVER_ERROR",
+          message: "Passwort-Reset fehlgeschlagen",
+        },
+      },
+      { status: 500 },
     );
   }
 }

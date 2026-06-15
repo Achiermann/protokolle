@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase-server';
+import { NextResponse } from "next/server";
+import { createSupabaseAdminClient } from "@/db/supabase-admin";
+import { sendVerificationEmail } from "@/lib/mailer";
 
 export async function POST(request) {
   try {
@@ -7,44 +8,89 @@ export async function POST(request) {
 
     if (!email || !password || !name?.trim()) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'Name, E-Mail und Passwort sind erforderlich' } },
-        { status: 400 }
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Name, E-Mail und Passwort sind erforderlich",
+          },
+        },
+        { status: 400 },
       );
     }
 
     if (password.length < 8) {
       return NextResponse.json(
-        { error: { code: 'VALIDATION_ERROR', message: 'Passwort muss mindestens 8 Zeichen lang sein' } },
-        { status: 400 }
+        {
+          error: {
+            code: "VALIDATION_ERROR",
+            message: "Passwort muss mindestens 8 Zeichen lang sein",
+          },
+        },
+        { status: 400 },
       );
     }
 
-    const supabase = await createSupabaseServerClient();
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const admin = createSupabaseAdminClient();
+
+    // Create the (unconfirmed) user and generate a 6-digit OTP without sending
+    // Supabase's built-in email — we deliver our own via Resend.
+    const { data, error } = await admin.auth.admin.generateLink({
+      type: "signup",
+      email,
+      password,
+    });
 
     if (error) {
+      const exists = /already|registered|exist/i.test(error.message || "");
       return NextResponse.json(
-        { error: { code: 'SIGNUP_ERROR', message: error.message } },
-        { status: 400 }
+        {
+          error: {
+            code: "SIGNUP_ERROR",
+            message: exists
+              ? "Ein Konto mit dieser E-Mail existiert bereits"
+              : error.message,
+          },
+        },
+        { status: 400 },
+      );
+    }
+
+    const otp = data?.properties?.email_otp;
+    const userId = data?.user?.id;
+
+    if (!otp || !userId) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "SIGNUP_ERROR",
+            message: "Bestätigungscode konnte nicht erstellt werden",
+          },
+        },
+        { status: 500 },
       );
     }
 
     // Create profile entry for email/name lookup
-    if (data.user?.id) {
-      await supabase
-        .schema('protokoll_app')
-        .from('profiles')
-        .upsert(
-          [{ id: data.user.id, email: email.toLowerCase(), name: name.trim() }],
-          { onConflict: 'id' }
-        );
-    }
+    await admin
+      .schema("protokoll_app")
+      .from("profiles")
+      .upsert([{ id: userId, email: email.toLowerCase(), name: name.trim() }], {
+        onConflict: "id",
+      });
 
-    return NextResponse.json({ user: data.user }, { status: 201 });
+    await sendVerificationEmail(email, otp);
+
+    return NextResponse.json({ email }, { status: 201 });
   } catch (error) {
+    console.error("[signup] route crashed:", error);
     return NextResponse.json(
-      { error: { code: 'SERVER_ERROR', message: 'Registrierung fehlgeschlagen' } },
-      { status: 500 }
+      {
+        error: {
+          code: "SERVER_ERROR",
+          message: "Registrierung fehlgeschlagen",
+        },
+      },
+      { status: 500 },
     );
   }
 }

@@ -82,6 +82,19 @@ export const useAuthStore = create((set) => ({
     return true;
   },
 
+  verifyOtp: async ({ email, token, type }) => {
+    const response = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, token, type }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error?.message || "Code-Überprüfung fehlgeschlagen");
+    }
+    return data;
+  },
+
   updatePassword: async (password) => {
     const response = await fetch("/api/auth/update-password", {
       method: "POST",
