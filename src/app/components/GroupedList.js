@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { Pencil, Archive } from "lucide-react";
 import toast from "react-hot-toast";
+import RichTextEditor from "./RichTextEditor";
+import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/entry-list.css";
 
 export default function GroupedList({ field, title, emptyLabel }) {
@@ -18,9 +20,6 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
-  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-  const [todoInsertPos, setTodoInsertPos] = useState(null);
-  const contentTextareaRef = useRef(null);
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
@@ -98,76 +97,12 @@ export default function GroupedList({ field, title, emptyLabel }) {
     setEditingId(null);
   };
 
-  const wrapSelection = (before, after) => {
-    const textarea = contentTextareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = editDraft;
-    const selected = value.slice(start, end);
-    const next =
-      value.slice(0, start) + before + selected + after + value.slice(end);
-    setEditDraft(next);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = start + before.length + selected.length + after.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleBold = () => wrapSelection("**", "**");
-  const handleItalic = () => wrapSelection("*", "*");
-  const handleUnderline = () => wrapSelection("__", "__");
-
   const loadMembers = async () => {
     try {
       await fetchMembers();
     } catch (error) {
       toast.error("Mitglieder konnten nicht geladen werden");
     }
-  };
-
-  const handleInsertTodo = async () => {
-    const textarea = contentTextareaRef.current;
-    if (!textarea) return;
-    if (members.length === 0) await loadMembers();
-
-    const pos = textarea.selectionStart;
-    const prefix = "/todo";
-    const next = editDraft.slice(0, pos) + prefix + editDraft.slice(pos);
-    setEditDraft(next);
-    setTodoInsertPos(pos);
-    setShowMemberDropdown(true);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = pos + prefix.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleSelectMember = (member) => {
-    if (todoInsertPos === null) return;
-    const rawName = member.name || member.email.split("@")[0];
-    const nameTag = rawName.replace(/\s+/g, "_");
-    const replacement = `/todo@${nameTag} `;
-    const before = editDraft.slice(0, todoInsertPos);
-    const after = editDraft.slice(todoInsertPos + "/todo".length);
-    const nextContent = before + replacement + after;
-    const cursor = todoInsertPos + replacement.length;
-    setEditDraft(nextContent);
-    setShowMemberDropdown(false);
-    setTodoInsertPos(null);
-    requestAnimationFrame(() => {
-      const textarea = contentTextareaRef.current;
-      if (!textarea) return;
-      textarea.focus();
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleCancelMemberDropdown = () => {
-    setShowMemberDropdown(false);
-    setTodoInsertPos(null);
   };
 
   const handleArchiveGroup = async (name) => {
@@ -241,62 +176,12 @@ export default function GroupedList({ field, title, emptyLabel }) {
                     </div>
                     {editingId === entry.id ? (
                       <>
-                        <div className="entry-list-detail-panel-content-toolbar">
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={handleBold}
-                          >
-                            <strong>B</strong>
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={handleItalic}
-                          >
-                            <em>I</em>
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={handleUnderline}
-                          >
-                            <u>U</u>
-                          </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={handleInsertTodo}
-                          >
-                            + ToDo
-                          </button>
-                        </div>
-                        {showMemberDropdown && (
-                          <div className="entry-list-detail-panel-member-dropdown">
-                            {members.map((m) => (
-                              <button
-                                key={m.id}
-                                type="button"
-                                className="secondary"
-                                onClick={() => handleSelectMember(m)}
-                              >
-                                {m.name || m.email}
-                              </button>
-                            ))}
-                            <button
-                              type="button"
-                              className="secondary"
-                              onClick={handleCancelMemberDropdown}
-                            >
-                              Abbrechen
-                            </button>
-                          </div>
-                        )}
-                        <textarea
-                          ref={contentTextareaRef}
-                          className="entry-list-detail-panel-content-textarea"
+                        <RichTextEditor
                           value={editDraft}
-                          onChange={(e) => setEditDraft(e.target.value)}
+                          onChange={setEditDraft}
+                          members={members}
+                          onRequestMembers={loadMembers}
+                          placeholder="Sitzungsnotizen hier schreiben... Text markieren und B/I/U oder + ToDo klicken."
                         />
                         <div className="entry-list-detail-panel-content-actions">
                           <button
@@ -318,9 +203,14 @@ export default function GroupedList({ field, title, emptyLabel }) {
                     ) : (
                       <>
                         {entry.content && (
-                          <p className="grouped-list-traktanden-content">
-                            {entry.content}
-                          </p>
+                          <div
+                            className="grouped-list-traktanden-content"
+                            dangerouslySetInnerHTML={{
+                              __html: decorateTodos(
+                                sanitizeHtml(entry.content),
+                              ),
+                            }}
+                          />
                         )}
                         <button
                           type="button"

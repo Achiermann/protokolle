@@ -1,6 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Chivo+Mono:wght@400;500;600;700&display=swap");
-@import url('https://fonts.googleapis.com/css2?family=BJCree:wght@400;500;600;700&family=Nabla&family=Playwrite+NZ+Guides&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=BJCree:wght@400;500;600;700&family=Nabla&family=Playwrite+NZ+Guides&display=swap");
 /* ================================
    DESIGN TOKENS
    ================================ */
@@ -20,6 +20,16 @@
   --color-error: #d33;
   --color-success: #2a8a3e;
   --color-title: #ff8a96;
+
+  /* Highlight marker colours — pastel */
+  --marker-yellow: #fef3c7;
+  --marker-green: #d1fae5;
+  --marker-blue: #dbeafe;
+  --marker-pink: #fce7f3;
+
+  /* Todo line backgrounds */
+  --marker-to-do: #ffe8d6;
+  --marker-done: #d6f5dd;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -104,7 +114,8 @@ a:hover {
 button,
 input,
 textarea,
-select {
+select,
+[contenteditable="true"] {
   font-family: inherit;
   font-size: inherit;
   line-height: inherit;
@@ -163,7 +174,8 @@ button.secondary:hover {
 
 input,
 textarea,
-select {
+select,
+[contenteditable="true"] {
   padding: var(--space-3) var(--space-4);
   border: 1.5px solid var(--color-border-soft);
   border-radius: var(--radius-sm);
@@ -189,7 +201,8 @@ textarea {
 
 input:focus,
 textarea:focus,
-select:focus {
+select:focus,
+[contenteditable="true"]:focus {
   outline: none;
   border-color: var(--color-line);
 }
@@ -199,6 +212,49 @@ label {
   margin-bottom: var(--space-2);
   font-weight: 500;
   color: var(--color-text);
+}
+
+/* Highlight markers in rich-text content */
+mark {
+  background-color: transparent;
+  color: inherit;
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+mark.marker-yellow {
+  background-color: var(--marker-yellow);
+}
+
+mark.marker-green {
+  background-color: var(--marker-green);
+}
+
+mark.marker-blue {
+  background-color: var(--marker-blue);
+}
+
+mark.marker-pink {
+  background-color: var(--marker-pink);
+}
+
+/* Todo / done lines in rich-text content */
+.todo-line,
+.done-line {
+  border-radius: var(--radius-sm);
+  padding: 0 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.todo-line {
+  background-color: var(--marker-to-do);
+}
+
+.done-line {
+  background-color: var(--marker-done);
 }
 
 /* ================================
@@ -252,7 +308,8 @@ label {
 
   input,
   textarea,
-  select {
+  select,
+  [contenteditable="true"] {
     padding: var(--space-2) var(--space-3);
   }
 }

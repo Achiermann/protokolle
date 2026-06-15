@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo } from 'react';
-import { RotateCcw } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useEntriesStore } from '../stores/useEntriesStore';
-import '../../styles/todo-list.css';
+import { useEffect, useMemo } from "react";
+import { RotateCcw } from "lucide-react";
+import toast from "react-hot-toast";
+import { useEntriesStore } from "../stores/useEntriesStore";
+import { createTodoRegex } from "../../lib/richText";
+import "../../styles/todo-list.css";
 
 export default function TodoList() {
   // *** VARIABLES ***
@@ -19,15 +20,15 @@ export default function TodoList() {
   }, [fetchEntries]);
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString("de-DE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
   const getMemberColorClass = (name) => {
-    if (!name) return 'todo-list-item-member-circle-none';
+    if (!name) return "todo-list-item-member-circle-none";
     let hash = 0;
     for (let i = 0; i < name.length; i++) {
       hash = (hash * 31 + name.charCodeAt(i)) | 0;
@@ -38,7 +39,7 @@ export default function TodoList() {
 
   const todos = useMemo(() => {
     const out = [];
-    const regex = /\/(todo|done)@(\S+)[ \t]+([^\n]+)/g;
+    const regex = createTodoRegex();
     for (const entry of entries) {
       if (!entry.content) continue;
       let match;
@@ -49,8 +50,8 @@ export default function TodoList() {
           entryId: entry.id,
           matchStart: match.index,
           prefix: `/${match[1]}`,
-          isDone: match[1] === 'done',
-          assignee: match[2].replace(/_/g, ' '),
+          isDone: match[1] === "done",
+          assignee: match[2].replace(/_/g, " "),
           title: match[3].trim(),
           topic: entry.topic,
           project: entry.project,
@@ -61,17 +62,14 @@ export default function TodoList() {
     return out;
   }, [entries]);
 
-  const activeTodos = useMemo(
-    () => todos.filter((t) => !t.isDone),
-    [todos],
-  );
+  const activeTodos = useMemo(() => todos.filter((t) => !t.isDone), [todos]);
   const doneTodos = useMemo(() => todos.filter((t) => t.isDone), [todos]);
 
   const toggleDone = async (todo) => {
     const entry = entries.find((e) => e.id === todo.entryId);
     if (!entry || !entry.content) return;
     const content = entry.content;
-    const replacement = todo.isDone ? '/todo' : '/done';
+    const replacement = todo.isDone ? "/todo" : "/done";
     const newContent =
       content.slice(0, todo.matchStart) +
       replacement +
@@ -79,7 +77,7 @@ export default function TodoList() {
     try {
       await updateEntry(todo.entryId, { content: newContent });
     } catch (error) {
-      toast.error('Aktualisierung fehlgeschlagen');
+      toast.error("Aktualisierung fehlgeschlagen");
     }
   };
 
@@ -133,7 +131,7 @@ export default function TodoList() {
                 </td>
                 <td>
                   <div className="todo-list-item-todo">
-                    {todo.topic || todo.project || '-'}
+                    {todo.topic || todo.project || "-"}
                   </div>
                 </td>
                 <td>
@@ -181,7 +179,7 @@ export default function TodoList() {
                   </td>
                   <td>
                     <div className="todo-list-item-todo">
-                      {todo.topic || todo.project || '-'}
+                      {todo.topic || todo.project || "-"}
                     </div>
                   </td>
                   <td>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import toast from "react-hot-toast";
@@ -13,6 +13,8 @@ import {
   Archive,
 } from "lucide-react";
 import EntryForm from "./EntryForm";
+import RichTextEditor from "./RichTextEditor";
+import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/entry-list.css";
 import "../../styles/filters.css";
 
@@ -29,8 +31,6 @@ export default function EntryList({
   const members = useWorkspacesStore((state) => state.members);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
 
-  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
-  const [todoInsertPos, setTodoInsertPos] = useState(null);
   const [filterTopicProject, setFilterTopicProject] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
@@ -39,7 +39,6 @@ export default function EntryList({
   const [selectedId, setSelectedId] = useState(null);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [contentDraft, setContentDraft] = useState("");
-  const contentTextareaRef = useRef(null);
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
 
@@ -79,76 +78,12 @@ export default function EntryList({
     }
   };
 
-  const wrapSelection = (before, after) => {
-    const textarea = contentTextareaRef.current;
-    if (!textarea) return;
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = contentDraft;
-    const selected = value.slice(start, end);
-    const next =
-      value.slice(0, start) + before + selected + after + value.slice(end);
-    setContentDraft(next);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = start + before.length + selected.length + after.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleBold = () => wrapSelection("**", "**");
-  const handleItalic = () => wrapSelection("*", "*");
-  const handleUnderline = () => wrapSelection("__", "__");
-
   const loadMembers = async () => {
     try {
       await fetchMembers();
     } catch (error) {
       toast.error("Mitglieder konnten nicht geladen werden");
     }
-  };
-
-  const handleInsertTodo = async () => {
-    const textarea = contentTextareaRef.current;
-    if (!textarea) return;
-    if (members.length === 0) await loadMembers();
-
-    const pos = textarea.selectionStart;
-    const prefix = "/todo";
-    const next = contentDraft.slice(0, pos) + prefix + contentDraft.slice(pos);
-    setContentDraft(next);
-    setTodoInsertPos(pos);
-    setShowMemberDropdown(true);
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const cursor = pos + prefix.length;
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleSelectMember = (member) => {
-    if (todoInsertPos === null) return;
-    const rawName = member.name || member.email.split("@")[0];
-    const nameTag = rawName.replace(/\s+/g, "_");
-    const replacement = `/todo@${nameTag} `;
-    const before = contentDraft.slice(0, todoInsertPos);
-    const after = contentDraft.slice(todoInsertPos + "/todo".length);
-    const nextContent = before + replacement + after;
-    const cursor = todoInsertPos + replacement.length;
-    setContentDraft(nextContent);
-    setShowMemberDropdown(false);
-    setTodoInsertPos(null);
-    requestAnimationFrame(() => {
-      const textarea = contentTextareaRef.current;
-      if (!textarea) return;
-      textarea.focus();
-      textarea.setSelectionRange(cursor, cursor);
-    });
-  };
-
-  const handleCancelMemberDropdown = () => {
-    setShowMemberDropdown(false);
-    setTodoInsertPos(null);
   };
 
   const handleCancelEdit = () => {
@@ -328,55 +263,12 @@ export default function EntryList({
     return (
       <div className="entry-list-detail-panel">
         <div className="entry-list-detail-panel-content">
-          <div className="entry-list-detail-panel-content-toolbar">
-            <button type="button" className="secondary" onClick={handleBold}>
-              <strong>B</strong>
-            </button>
-            <button type="button" className="secondary" onClick={handleItalic}>
-              <em>I</em>
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleUnderline}
-            >
-              <u>U</u>
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleInsertTodo}
-            >
-              + ToDo
-            </button>
-          </div>
-          {showMemberDropdown && (
-            <div className="entry-list-detail-panel-member-dropdown">
-              {members.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  className="secondary"
-                  onClick={() => handleSelectMember(m)}
-                >
-                  {m.name || m.email}
-                </button>
-              ))}
-              <button
-                type="button"
-                className="secondary"
-                onClick={handleCancelMemberDropdown}
-              >
-                Abbrechen
-              </button>
-            </div>
-          )}
-          <textarea
-            ref={contentTextareaRef}
-            className="entry-list-detail-panel-content-textarea"
+          <RichTextEditor
             value={contentDraft}
-            onChange={(e) => setContentDraft(e.target.value)}
-            placeholder="Sitzungsnotizen hier schreiben... Text markieren (oder Cursor auf Zeile setzen) und + ToDo klicken."
+            onChange={setContentDraft}
+            members={members}
+            onRequestMembers={loadMembers}
+            placeholder="Sitzungsnotizen hier schreiben... Text markieren und B/I/U oder + ToDo klicken."
           />
           <div className="entry-list-detail-panel-content-actions">
             <button
@@ -478,63 +370,12 @@ export default function EntryList({
           </div>
           {isEditingContent ? (
             <>
-              <div className="entry-list-detail-panel-content-toolbar">
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={handleBold}
-                >
-                  <strong>B</strong>
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={handleItalic}
-                >
-                  <em>I</em>
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={handleUnderline}
-                >
-                  <u>U</u>
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={handleInsertTodo}
-                >
-                  + ToDo
-                </button>
-              </div>
-              {showMemberDropdown && (
-                <div className="entry-list-detail-panel-member-dropdown">
-                  {members.map((m) => (
-                    <button
-                      key={m.id}
-                      type="button"
-                      className="secondary"
-                      onClick={() => handleSelectMember(m)}
-                    >
-                      {m.name || m.email}
-                    </button>
-                  ))}
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={handleCancelMemberDropdown}
-                  >
-                    Abbrechen
-                  </button>
-                </div>
-              )}
-              <textarea
-                ref={contentTextareaRef}
-                className="entry-list-detail-panel-content-textarea"
+              <RichTextEditor
                 value={contentDraft}
-                onChange={(e) => setContentDraft(e.target.value)}
-                placeholder="Sitzungsnotizen hier schreiben... Text markieren (oder Cursor auf Zeile setzen) und + ToDo klicken."
+                onChange={setContentDraft}
+                members={members}
+                onRequestMembers={loadMembers}
+                placeholder="Sitzungsnotizen hier schreiben... Text markieren und B/I/U oder + ToDo klicken."
               />
               <div className="entry-list-detail-panel-content-actions">
                 <button
@@ -555,13 +396,20 @@ export default function EntryList({
             </>
           ) : (
             <div className="edit-hover-wrapper">
-              <p className="entry-list-detail-panel-content-text">
-                {selectedEntry.content || (
+              {selectedEntry.content ? (
+                <div
+                  className="entry-list-detail-panel-content-text"
+                  dangerouslySetInnerHTML={{
+                    __html: decorateTodos(sanitizeHtml(selectedEntry.content)),
+                  }}
+                />
+              ) : (
+                <p className="entry-list-detail-panel-content-text">
                   <span className="entry-list-detail-panel-content-empty">
                     Noch kein Inhalt.
                   </span>
-                )}
-              </p>
+                </p>
+              )}
               <button
                 type="button"
                 className="secondary edit-hover-button"

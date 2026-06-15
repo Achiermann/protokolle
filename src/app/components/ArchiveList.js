@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { useEntriesStore } from '../stores/useEntriesStore';
-import toast from 'react-hot-toast';
-import { ArchiveRestore, Trash } from 'lucide-react';
-import '../../styles/entry-list.css';
+import React, { useEffect, useMemo, useState } from "react";
+import { useEntriesStore } from "../stores/useEntriesStore";
+import toast from "react-hot-toast";
+import { ArchiveRestore, Trash } from "lucide-react";
+import { sanitizeHtml, decorateTodos } from "../../lib/richText";
+import "../../styles/entry-list.css";
 
 export default function ArchiveList() {
   // *** VARIABLES ***
@@ -27,18 +28,18 @@ export default function ArchiveList() {
         .sort(
           (a, b) =>
             new Date(b.date_created).getTime() -
-            new Date(a.date_created).getTime()
+            new Date(a.date_created).getTime(),
         ),
-    [entries]
+    [entries],
   );
 
   const selectedEntry = useMemo(
     () => archivedEntries.find((e) => e.id === selectedId) || null,
-    [archivedEntries, selectedId]
+    [archivedEntries, selectedId],
   );
 
   const getTopicColorClass = (topic) => {
-    if (!topic) return '';
+    if (!topic) return "";
     let hash = 0;
     for (let i = 0; i < topic.length; i++) {
       hash = (hash * 31 + topic.charCodeAt(i)) | 0;
@@ -47,10 +48,10 @@ export default function ArchiveList() {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString("de-DE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
@@ -66,22 +67,22 @@ export default function ArchiveList() {
     try {
       await updateEntry(id, { archived: false });
       if (selectedId === id) setSelectedId(null);
-      toast.success('Traktandum wiederhergestellt');
+      toast.success("Traktandum wiederhergestellt");
     } catch (error) {
-      toast.error('Wiederherstellen fehlgeschlagen');
+      toast.error("Wiederherstellen fehlgeschlagen");
     }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Bist du sicher, dass du dieses Traktandum löschen willst?')) {
+    if (!confirm("Bist du sicher, dass du dieses Traktandum löschen willst?")) {
       return;
     }
     try {
       await deleteEntry(id);
       if (selectedId === id) setSelectedId(null);
-      toast.success('Traktandum gelöscht');
+      toast.success("Traktandum gelöscht");
     } catch (error) {
-      toast.error('Traktandum konnte nicht gelöscht werden');
+      toast.error("Traktandum konnte nicht gelöscht werden");
     }
   };
 
@@ -89,16 +90,13 @@ export default function ArchiveList() {
     if (!selectedEntry) return null;
     return (
       <div className="entry-list-detail-panel">
-        <div
-          className="entry-list-detail-panel-top"
-          onClick={handleClosePanel}
-        >
+        <div className="entry-list-detail-panel-top" onClick={handleClosePanel}>
           <div className="entry-list-detail-panel-header">
             <h3 className="entry-list-detail-panel-title">
               {selectedEntry.item_title}
               {selectedEntry.created_by_name && (
                 <span className="entry-list-item-creator">
-                  {' - '}
+                  {" - "}
                   {selectedEntry.created_by_name}
                 </span>
               )}
@@ -108,7 +106,9 @@ export default function ArchiveList() {
           <div className="entry-list-detail-panel-meta">
             {selectedEntry.topic && (
               <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">Thema</span>
+                <span className="entry-list-detail-panel-meta-label">
+                  Thema
+                </span>
                 <span>{selectedEntry.topic}</span>
               </span>
             )}
@@ -153,13 +153,20 @@ export default function ArchiveList() {
           <div className="entry-list-detail-panel-content-header">
             <span className="entry-list-detail-panel-meta-label">Inhalt</span>
           </div>
-          <p className="entry-list-detail-panel-content-text">
-            {selectedEntry.content || (
+          {selectedEntry.content ? (
+            <div
+              className="entry-list-detail-panel-content-text"
+              dangerouslySetInnerHTML={{
+                __html: decorateTodos(sanitizeHtml(selectedEntry.content)),
+              }}
+            />
+          ) : (
+            <p className="entry-list-detail-panel-content-text">
               <span className="entry-list-detail-panel-content-empty">
                 Noch kein Inhalt.
               </span>
-            )}
-          </p>
+            </p>
+          )}
         </div>
       </div>
     );
@@ -200,11 +207,11 @@ export default function ArchiveList() {
                     <td>
                       <div
                         className={
-                          'entry-list-item-topic ' +
+                          "entry-list-item-topic " +
                           getTopicColorClass(entry.topic || entry.project)
                         }
                       >
-                        {entry.topic || entry.project || '-'}
+                        {entry.topic || entry.project || "-"}
                       </div>
                     </td>
                     <td>
@@ -212,7 +219,7 @@ export default function ArchiveList() {
                         {entry.item_title}
                         {entry.created_by_name && (
                           <span className="entry-list-item-creator">
-                            {' - '}
+                            {" - "}
                             {entry.created_by_name}
                           </span>
                         )}
