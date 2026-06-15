@@ -1,22 +1,30 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import toast from 'react-hot-toast';
-import '../../styles/login.css';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { useAuthStore } from "../stores/useAuthStore";
+import "../../styles/login.css";
 
 export default function LoginForm() {
   // *** VARIABLES ***
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isResetMode = searchParams.get('reset') === 'true';
 
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
+  const signup = useAuthStore((state) => state.signup);
+  const login = useAuthStore((state) => state.login);
+  const requestPasswordReset = useAuthStore(
+    (state) => state.requestPasswordReset,
+  );
+  const verifyOtp = useAuthStore((state) => state.verifyOtp);
+  const updatePassword = useAuthStore((state) => state.updatePassword);
+
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const [view, setView] = useState(isResetMode ? 'update-password' : 'login');
+  const [view, setView] = useState("login");
 
   // *** FUNCTIONS/HANDLERS ***
   const handleSignup = async (e) => {
@@ -24,31 +32,25 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
+      await signup({ email, password, name });
+      toast.success("Wir haben dir einen Bestätigungscode geschickt");
+      setCode("");
+      setView("verify-signup");
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const data = await response.json();
+  const handleVerifySignup = async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Registrierung fehlgeschlagen');
-      }
-
-      // If email confirmation is required, Supabase won't auto-login
-      if (data.user?.identities?.length === 0) {
-        toast.error('Ein Konto mit dieser E-Mail existiert bereits');
-        return;
-      }
-
-      if (data.user?.confirmed_at || data.user?.email_confirmed_at) {
-        toast.success('Konto erstellt – du wirst angemeldet');
-        router.push('/workspace');
-      } else {
-        toast.success('Bestätigungslink wurde an deine E-Mail gesendet');
-        setView('login');
-      }
+    try {
+      await verifyOtp({ email, token: code.trim(), type: "signup" });
+      toast.success("E-Mail bestätigt – du wirst angemeldet");
+      router.push("/workspace");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -61,19 +63,9 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Anmeldung fehlgeschlagen');
-      }
-
-      toast.success('Erfolgreich angemeldet');
-      router.push('/workspace');
+      await login({ email, password });
+      toast.success("Erfolgreich angemeldet");
+      router.push("/workspace");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -86,19 +78,11 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Passwort-Reset fehlgeschlagen');
-      }
-
-      toast.success('Reset-Link wurde an deine E-Mail gesendet');
-      setView('login');
+      await requestPasswordReset(email);
+      toast.success("Wenn ein Konto existiert, wurde ein Code gesendet");
+      setCode("");
+      setNewPassword("");
+      setView("verify-reset");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -106,24 +90,15 @@ export default function LoginForm() {
     }
   };
 
-  const handleUpdatePassword = async (e) => {
+  const handleVerifyReset = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/update-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: newPassword }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Passwort-Update fehlgeschlagen');
-      }
-
-      toast.success('Passwort erfolgreich aktualisiert');
-      router.push('/workspace');
+      await verifyOtp({ email, token: code.trim(), type: "recovery" });
+      await updatePassword(newPassword);
+      toast.success("Passwort erfolgreich aktualisiert");
+      router.push("/workspace");
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -136,7 +111,7 @@ export default function LoginForm() {
       <div className="login-container card">
         <h1 className="login-title">Protokoll App</h1>
 
-        {view === 'login' && (
+        {view === "login" && (
           <form className="login-form" onSubmit={handleLogin}>
             <div className="login-field">
               <label htmlFor="email">E-Mail</label>
@@ -162,22 +137,26 @@ export default function LoginForm() {
               />
             </div>
 
-            <button type="submit" className="primary login-submit" disabled={loading}>
-              {loading ? 'Anmelden...' : 'Anmelden'}
+            <button
+              type="submit"
+              className="primary login-submit"
+              disabled={loading}
+            >
+              {loading ? "Anmelden..." : "Anmelden"}
             </button>
 
             <div className="login-links">
               <button
                 type="button"
                 className="login-link-button"
-                onClick={() => setView('reset')}
+                onClick={() => setView("reset")}
               >
                 Passwort vergessen?
               </button>
               <button
                 type="button"
                 className="login-link-button"
-                onClick={() => setView('signup')}
+                onClick={() => setView("signup")}
               >
                 Konto erstellen
               </button>
@@ -185,7 +164,7 @@ export default function LoginForm() {
           </form>
         )}
 
-        {view === 'signup' && (
+        {view === "signup" && (
           <form className="login-form" onSubmit={handleSignup}>
             <div className="login-field">
               <label htmlFor="signup-name">Name</label>
@@ -224,24 +203,67 @@ export default function LoginForm() {
               />
             </div>
 
-            <button type="submit" className="primary login-submit" disabled={loading}>
-              {loading ? 'Wird erstellt...' : 'Konto erstellen'}
+            <button
+              type="submit"
+              className="primary login-submit"
+              disabled={loading}
+            >
+              {loading ? "Wird erstellt..." : "Konto erstellen"}
             </button>
 
             <button
               type="button"
               className="login-link-button"
-              onClick={() => setView('login')}
+              onClick={() => setView("login")}
             >
               Bereits ein Konto? Anmelden
             </button>
           </form>
         )}
 
-        {view === 'reset' && (
+        {view === "verify-signup" && (
+          <form className="login-form" onSubmit={handleVerifySignup}>
+            <p className="login-description">
+              Gib den 6-stelligen Code ein, den wir an {email} gesendet haben.
+            </p>
+
+            <div className="login-field">
+              <label htmlFor="signup-code">Bestätigungscode</label>
+              <input
+                id="signup-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="primary login-submit"
+              disabled={loading}
+            >
+              {loading ? "Wird geprüft..." : "Bestätigen"}
+            </button>
+
+            <button
+              type="button"
+              className="login-link-button"
+              onClick={() => setView("login")}
+            >
+              Zurück zur Anmeldung
+            </button>
+          </form>
+        )}
+
+        {view === "reset" && (
           <form className="login-form" onSubmit={handleResetRequest}>
             <p className="login-description">
-              Gib deine E-Mail-Adresse ein, um einen Reset-Link zu erhalten.
+              Gib deine E-Mail-Adresse ein, um einen Code zu erhalten.
             </p>
 
             <div className="login-field">
@@ -256,30 +278,49 @@ export default function LoginForm() {
               />
             </div>
 
-            <button type="submit" className="primary login-submit" disabled={loading}>
-              {loading ? 'Wird gesendet...' : 'Reset-Link senden'}
+            <button
+              type="submit"
+              className="primary login-submit"
+              disabled={loading}
+            >
+              {loading ? "Wird gesendet..." : "Code senden"}
             </button>
 
             <button
               type="button"
               className="login-link-button"
-              onClick={() => setView('login')}
+              onClick={() => setView("login")}
             >
               Zurück zur Anmeldung
             </button>
           </form>
         )}
 
-        {view === 'update-password' && (
-          <form className="login-form" onSubmit={handleUpdatePassword}>
+        {view === "verify-reset" && (
+          <form className="login-form" onSubmit={handleVerifyReset}>
             <p className="login-description">
-              Gib dein neues Passwort ein.
+              Gib den Code aus der E-Mail und dein neues Passwort ein.
             </p>
 
             <div className="login-field">
-              <label htmlFor="new-password">Neues Passwort</label>
+              <label htmlFor="reset-code">Code</label>
               <input
-                id="new-password"
+                id="reset-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                placeholder="123456"
+                maxLength={6}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label htmlFor="reset-new-password">Neues Passwort</label>
+              <input
+                id="reset-new-password"
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -289,8 +330,20 @@ export default function LoginForm() {
               />
             </div>
 
-            <button type="submit" className="primary login-submit" disabled={loading}>
-              {loading ? 'Wird gespeichert...' : 'Passwort speichern'}
+            <button
+              type="submit"
+              className="primary login-submit"
+              disabled={loading}
+            >
+              {loading ? "Wird gespeichert..." : "Passwort speichern"}
+            </button>
+
+            <button
+              type="button"
+              className="login-link-button"
+              onClick={() => setView("login")}
+            >
+              Zurück zur Anmeldung
             </button>
           </form>
         )}
