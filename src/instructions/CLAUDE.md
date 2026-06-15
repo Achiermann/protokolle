@@ -51,14 +51,13 @@ Next is pre installed in this project.
 - Do not import Supabase client in any React component.
 - If any doc conflicts with this one, follow `DECISIONS.md`.
 - **MCP first**: Before selecting any external SDK/library/service, **enumerate available MCP servers/tools** and prefer an MCP integration when it provides the required capability. Only use a non-MCP library if no suitable MCP is available or it lacks required features; document the rationale.
-- **Commit discipline**: **Always commit directly to a new branch** in GitHub for each cohesive change. Do not commit to `main`/`trunk`. Create a descriptive branch (see naming below) and push commits incrementally.
+- **Commit discipline**: **Commit directly to `main`.** This is a solo project — no branch/PR workflow. Make cohesive commits and push to `main`.
 
-### Branch naming & commits
+### Commits
 
-- Branch: `feat/<scope>-<short-slug>` or `chore/<scope>-<short-slug>` or `fix/<scope>-<short-slug>`
-  - e.g., `feat/events-api-pagination`, `fix/ui-focus-ring`, `chore/ci-vitest`.
 - Commit messages: Conventional Commits (`feat:`, `fix:`, `docs:`, `chore:`, etc.) with a concise imperative subject and a short body when useful.
-- After pushing the first commit on a new branch, **open a PR** targeting `main` with a clear title/description.
+- Push directly to `main` (`git add -A && git commit && git push`). Branches and PRs are optional and not required for solo work.
+- The git repo root is `my-app/` (the real `.git`). Do not run `git init` or commit from `my-app/src/`.
 
 ## Rendering
 
