@@ -2,7 +2,17 @@ import { Resend } from "resend";
 
 // Server-only. Sends transactional OTP emails through Resend. The runtime app
 // sends its own mail here; Supabase's built-in mailer is disabled.
-const resend = new Resend(process.env.RESEND_API_KEY);
+//
+// Lazily construct the client so importing this module never requires the API
+// key. Constructing `new Resend(undefined)` throws "Missing API key", which
+// would crash `next build` when it evaluates this module during page-data
+// collection. With lazy init the key is only needed at send time (runtime).
+let _resend;
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error("RESEND_API_KEY is not set");
+  return (_resend ??= new Resend(key));
+}
 
 const APP_NAME = "Protokoll App";
 
@@ -18,7 +28,7 @@ function otpEmailHtml(intro, code) {
 }
 
 async function sendOtp({ to, subject, intro, code }) {
-  const { error } = await resend.emails.send({
+  const { error } = await getResend().emails.send({
     from: process.env.RESEND_FROM,
     to,
     subject,
