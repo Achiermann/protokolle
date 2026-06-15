@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
+import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import toast from "react-hot-toast";
 import {
   Pencil,
@@ -25,8 +26,9 @@ export default function EntryList({
   const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
+  const members = useWorkspacesStore((state) => state.members);
+  const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
 
-  const [members, setMembers] = useState([]);
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [todoInsertPos, setTodoInsertPos] = useState(null);
   const [filterTopicProject, setFilterTopicProject] = useState("");
@@ -100,10 +102,7 @@ export default function EntryList({
 
   const loadMembers = async () => {
     try {
-      const response = await fetch("/api/workspaces/members");
-      if (!response.ok) throw new Error("fail");
-      const data = await response.json();
-      setMembers(data.items || []);
+      await fetchMembers();
     } catch (error) {
       toast.error("Mitglieder konnten nicht geladen werden");
     }
@@ -116,8 +115,7 @@ export default function EntryList({
 
     const pos = textarea.selectionStart;
     const prefix = "/todo";
-    const next =
-      contentDraft.slice(0, pos) + prefix + contentDraft.slice(pos);
+    const next = contentDraft.slice(0, pos) + prefix + contentDraft.slice(pos);
     setContentDraft(next);
     setTodoInsertPos(pos);
     setShowMemberDropdown(true);
@@ -405,10 +403,7 @@ export default function EntryList({
     if (!selectedEntry) return null;
     return (
       <div className="entry-list-detail-panel">
-        <div
-          className="entry-list-detail-panel-top"
-          onClick={handleClosePanel}
-        >
+        <div className="entry-list-detail-panel-top" onClick={handleClosePanel}>
           <div className="entry-list-detail-panel-header">
             <h3 className="entry-list-detail-panel-title">
               {selectedEntry.item_title}
@@ -424,7 +419,9 @@ export default function EntryList({
           <div className="entry-list-detail-panel-meta">
             {selectedEntry.topic && (
               <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">Thema</span>
+                <span className="entry-list-detail-panel-meta-label">
+                  Thema
+                </span>
                 <span>{selectedEntry.topic}</span>
               </span>
             )}

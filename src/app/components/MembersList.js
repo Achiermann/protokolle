@@ -1,37 +1,29 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { UserPlus, Trash } from 'lucide-react';
-import toast from 'react-hot-toast';
-import '../../styles/members-list.css';
+import { useState, useEffect } from "react";
+import { UserPlus, Trash } from "lucide-react";
+import toast from "react-hot-toast";
+import { useWorkspacesStore } from "../stores/useWorkspacesStore";
+import "../../styles/members-list.css";
 
 export default function MembersList() {
   // *** VARIABLES ***
-  const [members, setMembers] = useState([]);
-  const [callerRole, setCallerRole] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [inviteEmail, setInviteEmail] = useState('');
+  const members = useWorkspacesStore((state) => state.members);
+  const callerRole = useWorkspacesStore((state) => state.callerRole);
+  const loading = useWorkspacesStore((state) => state.loadingMembers);
+  const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
+  const inviteMember = useWorkspacesStore((state) => state.inviteMember);
+  const removeMember = useWorkspacesStore((state) => state.removeMember);
+  const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
-    fetchMembers();
-  }, []);
-
-  const fetchMembers = async () => {
-    try {
-      const response = await fetch('/api/workspaces/members');
-      if (!response.ok) throw new Error('Laden fehlgeschlagen');
-      const data = await response.json();
-      setMembers(data.items || []);
-      setCallerRole(data.callerRole);
-    } catch (error) {
-      toast.error('Mitglieder konnten nicht geladen werden');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchMembers().catch(() =>
+      toast.error("Mitglieder konnten nicht geladen werden"),
+    );
+  }, [fetchMembers]);
 
   const handleInvite = async (e) => {
     e.preventDefault();
@@ -39,22 +31,10 @@ export default function MembersList() {
 
     setInviting(true);
     try {
-      const response = await fetch('/api/workspaces/invite', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail.trim() }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || 'Einladung fehlgeschlagen');
-      }
-
-      toast.success('Mitglied hinzugefügt');
-      setInviteEmail('');
+      await inviteMember(inviteEmail.trim());
+      toast.success("Mitglied hinzugefügt");
+      setInviteEmail("");
       setShowInviteForm(false);
-      fetchMembers();
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -63,30 +43,19 @@ export default function MembersList() {
   };
 
   const handleRemove = async (memberId) => {
-    if (!confirm('Mitglied wirklich entfernen?')) return;
+    if (!confirm("Mitglied wirklich entfernen?")) return;
 
     try {
-      const response = await fetch('/api/workspaces/members', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ member_id: memberId }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error?.message || 'Entfernen fehlgeschlagen');
-      }
-
-      toast.success('Mitglied entfernt');
-      fetchMembers();
+      await removeMember(memberId);
+      toast.success("Mitglied entfernt");
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   const getRoleLabel = (role) => {
-    if (role === 'owner') return 'Besitzer';
-    return 'Mitglied';
+    if (role === "owner") return "Besitzer";
+    return "Mitglied";
   };
 
   return (
@@ -113,7 +82,7 @@ export default function MembersList() {
               required
             />
             <button type="submit" className="primary" disabled={inviting}>
-              {inviting ? 'Wird eingeladen...' : 'Einladen'}
+              {inviting ? "Wird eingeladen..." : "Einladen"}
             </button>
           </div>
           <p className="members-list-invite-hint">
@@ -136,7 +105,7 @@ export default function MembersList() {
             <tr>
               <th>E-Mail</th>
               <th>Rolle</th>
-              {callerRole === 'owner' && <th>Aktionen</th>}
+              {callerRole === "owner" && <th>Aktionen</th>}
             </tr>
           </thead>
           <tbody>
@@ -154,9 +123,9 @@ export default function MembersList() {
                     {getRoleLabel(member.role)}
                   </div>
                 </td>
-                {callerRole === 'owner' && (
+                {callerRole === "owner" && (
                   <td>
-                    {member.role !== 'owner' && (
+                    {member.role !== "owner" && (
                       <button
                         className="secondary"
                         onClick={() => handleRemove(member.id)}

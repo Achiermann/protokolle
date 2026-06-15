@@ -1,93 +1,66 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
-import '../../styles/workspace-selector.css';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { useWorkspacesStore } from "../stores/useWorkspacesStore";
+import { useAuthStore } from "../stores/useAuthStore";
+import "../../styles/workspace-selector.css";
 
 export default function WorkspaceSelector() {
   // *** VARIABLES ***
   const router = useRouter();
-  const [workspaces, setWorkspaces] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const workspaces = useWorkspacesStore((state) => state.workspaces);
+  const loading = useWorkspacesStore((state) => state.loadingWorkspaces);
+  const fetchWorkspaces = useWorkspacesStore((state) => state.fetchWorkspaces);
+  const createWorkspace = useWorkspacesStore((state) => state.createWorkspace);
+  const selectWorkspace = useWorkspacesStore((state) => state.selectWorkspace);
+  const logout = useAuthStore((state) => state.logout);
   const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState('');
+  const [newName, setNewName] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
-    fetchWorkspaces();
-  }, []);
-
-  const fetchWorkspaces = async () => {
-    try {
-      const response = await fetch('/api/workspaces');
-      if (!response.ok) throw new Error('Laden fehlgeschlagen');
-      const data = await response.json();
-      setWorkspaces(data.items || []);
-
-      if ((data.items || []).length === 0) {
-        setShowCreateForm(true);
-      }
-    } catch (error) {
-      toast.error('Workspaces konnten nicht geladen werden');
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchWorkspaces()
+      .then((items) => {
+        if (items.length === 0) setShowCreateForm(true);
+      })
+      .catch(() => toast.error("Workspaces konnten nicht geladen werden"));
+  }, [fetchWorkspaces]);
 
   const handleSelect = async (workspaceId) => {
     try {
-      const response = await fetch('/api/workspaces/select', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workspace_id: workspaceId }),
-      });
-
-      if (!response.ok) throw new Error('Auswahl fehlgeschlagen');
-
-      router.push('/');
+      await selectWorkspace(workspaceId);
+      router.push("/");
     } catch (error) {
-      toast.error('Workspace konnte nicht ausgewählt werden');
+      toast.error("Workspace konnte nicht ausgewählt werden");
     }
   };
 
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!newName.trim()) {
-      toast.error('Name ist erforderlich');
+      toast.error("Name ist erforderlich");
       return;
     }
 
     setCreating(true);
     try {
-      const response = await fetch('/api/workspaces', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newName.trim() }),
-      });
-
-      if (!response.ok) throw new Error('Erstellen fehlgeschlagen');
-
-      const data = await response.json();
-      toast.success('Workspace erstellt');
+      const item = await createWorkspace(newName.trim());
+      toast.success("Workspace erstellt");
 
       // Auto-select the newly created workspace
-      await handleSelect(data.item.id);
+      await handleSelect(item.id);
     } catch (error) {
-      toast.error('Workspace konnte nicht erstellt werden');
+      toast.error("Workspace konnte nicht erstellt werden");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/login');
-    } catch (error) {
-      toast.error('Abmeldung fehlgeschlagen');
-    }
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -141,7 +114,7 @@ export default function WorkspaceSelector() {
               />
             </div>
             <button type="submit" className="primary" disabled={creating}>
-              {creating ? 'Wird erstellt...' : 'Workspace erstellen'}
+              {creating ? "Wird erstellt..." : "Workspace erstellen"}
             </button>
           </form>
         )}

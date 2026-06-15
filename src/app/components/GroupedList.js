@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useEntriesStore } from '../stores/useEntriesStore';
-import { Pencil, Archive } from 'lucide-react';
-import toast from 'react-hot-toast';
-import '../../styles/entry-list.css';
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useEntriesStore } from "../stores/useEntriesStore";
+import { useWorkspacesStore } from "../stores/useWorkspacesStore";
+import { Pencil, Archive } from "lucide-react";
+import toast from "react-hot-toast";
+import "../../styles/entry-list.css";
 
 export default function GroupedList({ field, title, emptyLabel }) {
   // *** VARIABLES ***
@@ -12,10 +13,11 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const loading = useEntriesStore((state) => state.loading);
   const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
+  const members = useWorkspacesStore((state) => state.members);
+  const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
   const [selectedGroup, setSelectedGroup] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [editDraft, setEditDraft] = useState('');
-  const [members, setMembers] = useState([]);
+  const [editDraft, setEditDraft] = useState("");
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [todoInsertPos, setTodoInsertPos] = useState(null);
   const contentTextareaRef = useRef(null);
@@ -26,7 +28,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
   }, [fetchEntries]);
 
   const getTopicColorClass = (value) => {
-    if (!value) return '';
+    if (!value) return "";
     let hash = 0;
     for (let i = 0; i < value.length; i++) {
       hash = (hash * 31 + value.charCodeAt(i)) | 0;
@@ -35,10 +37,10 @@ export default function GroupedList({ field, title, emptyLabel }) {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('de-DE', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
+    return new Date(dateString).toLocaleDateString("de-DE", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
     });
   };
 
@@ -62,7 +64,9 @@ export default function GroupedList({ field, title, emptyLabel }) {
     return entries
       .filter((e) => e.content && !e.archived && e[field] === selectedGroup)
       .sort(
-        (a, b) => new Date(b.date_created).getTime() - new Date(a.date_created).getTime()
+        (a, b) =>
+          new Date(b.date_created).getTime() -
+          new Date(a.date_created).getTime(),
       );
   }, [entries, field, selectedGroup]);
 
@@ -77,16 +81,16 @@ export default function GroupedList({ field, title, emptyLabel }) {
 
   const handleEditClick = (entry) => {
     setEditingId(entry.id);
-    setEditDraft(entry.content || '');
+    setEditDraft(entry.content || "");
   };
 
   const handleSaveEdit = async (id) => {
     try {
       await updateEntry(id, { content: editDraft });
       setEditingId(null);
-      toast.success('Inhalt aktualisiert');
+      toast.success("Inhalt aktualisiert");
     } catch (error) {
-      toast.error('Inhalt konnte nicht aktualisiert werden');
+      toast.error("Inhalt konnte nicht aktualisiert werden");
     }
   };
 
@@ -111,18 +115,15 @@ export default function GroupedList({ field, title, emptyLabel }) {
     });
   };
 
-  const handleBold = () => wrapSelection('**', '**');
-  const handleItalic = () => wrapSelection('*', '*');
-  const handleUnderline = () => wrapSelection('__', '__');
+  const handleBold = () => wrapSelection("**", "**");
+  const handleItalic = () => wrapSelection("*", "*");
+  const handleUnderline = () => wrapSelection("__", "__");
 
   const loadMembers = async () => {
     try {
-      const response = await fetch('/api/workspaces/members');
-      if (!response.ok) throw new Error('fail');
-      const data = await response.json();
-      setMembers(data.items || []);
+      await fetchMembers();
     } catch (error) {
-      toast.error('Mitglieder konnten nicht geladen werden');
+      toast.error("Mitglieder konnten nicht geladen werden");
     }
   };
 
@@ -132,7 +133,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
     if (members.length === 0) await loadMembers();
 
     const pos = textarea.selectionStart;
-    const prefix = '/todo';
+    const prefix = "/todo";
     const next = editDraft.slice(0, pos) + prefix + editDraft.slice(pos);
     setEditDraft(next);
     setTodoInsertPos(pos);
@@ -146,11 +147,11 @@ export default function GroupedList({ field, title, emptyLabel }) {
 
   const handleSelectMember = (member) => {
     if (todoInsertPos === null) return;
-    const rawName = member.name || member.email.split('@')[0];
-    const nameTag = rawName.replace(/\s+/g, '_');
+    const rawName = member.name || member.email.split("@")[0];
+    const nameTag = rawName.replace(/\s+/g, "_");
     const replacement = `/todo@${nameTag} `;
     const before = editDraft.slice(0, todoInsertPos);
-    const after = editDraft.slice(todoInsertPos + '/todo'.length);
+    const after = editDraft.slice(todoInsertPos + "/todo".length);
     const nextContent = before + replacement + after;
     const cursor = todoInsertPos + replacement.length;
     setEditDraft(nextContent);
@@ -170,25 +171,21 @@ export default function GroupedList({ field, title, emptyLabel }) {
   };
 
   const handleArchiveGroup = async (name) => {
-    const toArchive = entries.filter(
-      (e) => !e.archived && e[field] === name
-    );
+    const toArchive = entries.filter((e) => !e.archived && e[field] === name);
     if (toArchive.length === 0) return;
     if (
-      !confirm(
-        `Alle ${toArchive.length} Traktanden in "${name}" archivieren?`
-      )
+      !confirm(`Alle ${toArchive.length} Traktanden in "${name}" archivieren?`)
     ) {
       return;
     }
     try {
       await Promise.all(
-        toArchive.map((e) => updateEntry(e.id, { archived: true }))
+        toArchive.map((e) => updateEntry(e.id, { archived: true })),
       );
       if (selectedGroup === name) setSelectedGroup(null);
-      toast.success('Traktanden archiviert');
+      toast.success("Traktanden archiviert");
     } catch (error) {
-      toast.error('Archivieren fehlgeschlagen');
+      toast.error("Archivieren fehlgeschlagen");
     }
   };
 
@@ -211,16 +208,23 @@ export default function GroupedList({ field, title, emptyLabel }) {
           </div>
 
           <div className="entry-list-detail-panel-content">
-            <span className="entry-list-detail-panel-meta-label">Traktanden</span>
+            <span className="entry-list-detail-panel-meta-label">
+              Traktanden
+            </span>
             {selectedEntries.length === 0 ? (
               <p className="entry-list-detail-panel-content-empty">
                 Noch keine Traktanden.
               </p>
             ) : (
               <div className="grouped-list-traktanden">
-                {selectedEntries.map((entry) =>
-                (
-                <div key={entry.id} className={'grouped-list-traktanden-section ' + (entry.item_title === "posteingang" ? `posteingang` : ``)}>
+                {selectedEntries.map((entry) => (
+                  <div
+                    key={entry.id}
+                    className={
+                      "grouped-list-traktanden-section " +
+                      (entry.item_title === "posteingang" ? `posteingang` : ``)
+                    }
+                  >
                     <div className="grouped-list-traktanden-section-header">
                       <strong className="grouped-list-traktanden-title">
                         {entry.item_title}
@@ -295,10 +299,18 @@ export default function GroupedList({ field, title, emptyLabel }) {
                           onChange={(e) => setEditDraft(e.target.value)}
                         />
                         <div className="entry-list-detail-panel-content-actions">
-                          <button type="button" className="primary" onClick={() => handleSaveEdit(entry.id)}>
+                          <button
+                            type="button"
+                            className="primary"
+                            onClick={() => handleSaveEdit(entry.id)}
+                          >
                             Speichern
                           </button>
-                          <button type="button" className="secondary" onClick={handleCancelEdit}>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={handleCancelEdit}
+                          >
                             Abbrechen
                           </button>
                         </div>
@@ -350,22 +362,24 @@ export default function GroupedList({ field, title, emptyLabel }) {
                 key={group.name}
                 className={
                   selectedGroup === group.name
-                    ? 'entry-list-table-row entry-list-table-row-selected'
-                    : 'entry-list-table-row'
+                    ? "entry-list-table-row entry-list-table-row-selected"
+                    : "entry-list-table-row"
                 }
                 onClick={() => handleRowClick(group.name)}
               >
                 <td>
                   <div
                     className={
-                      'entry-list-item-topic ' + getTopicColorClass(group.name)
+                      "entry-list-item-topic " + getTopicColorClass(group.name)
                     }
                   >
                     {group.name}
                   </div>
                 </td>
                 <td>
-                  <div className="entry-list-item-date">{group.items.length}</div>
+                  <div className="entry-list-item-date">
+                    {group.items.length}
+                  </div>
                 </td>
                 <td>
                   <div className="entry-list-item-actions">
