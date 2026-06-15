@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import {
   ListTodo,
   Tag,
-  Folder,
   Settings,
   LogOut,
   Archive,
@@ -87,14 +86,6 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             >
               <Tag size={20} />
               Themen
-            </button>
-
-            <button
-              className={`sidebar-button ${activeView === "projekte" ? "active" : ""}`}
-              onClick={() => handleViewChange("projekte")}
-            >
-              <Folder size={20} />
-              Projekte
             </button>
 
             <button

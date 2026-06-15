@@ -14,23 +14,13 @@ export default function EntryForm({ onCancel, entry }) {
   const [formData, setFormData] = useState({
     item_title: entry?.item_title || "",
     topic: entry?.topic || "",
-    project: entry?.project || "",
   });
   const [isNewTopic, setIsNewTopic] = useState(false);
-  const [isNewProject, setIsNewProject] = useState(false);
 
   const existingTopics = useMemo(() => {
     const set = new Set();
     for (const e of entries) {
       if (e.topic) set.add(e.topic);
-    }
-    return Array.from(set).sort((a, b) => a.localeCompare(b, "de"));
-  }, [entries]);
-
-  const existingProjects = useMemo(() => {
-    const set = new Set();
-    for (const e of entries) {
-      if (e.project) set.add(e.project);
     }
     return Array.from(set).sort((a, b) => a.localeCompare(b, "de"));
   }, [entries]);
@@ -52,17 +42,6 @@ export default function EntryForm({ onCancel, entry }) {
     }
   };
 
-  const handleProjectSelect = (e) => {
-    const value = e.target.value;
-    if (value === "__new__") {
-      setIsNewProject(true);
-      setFormData((prev) => ({ ...prev, project: "" }));
-    } else {
-      setIsNewProject(false);
-      setFormData((prev) => ({ ...prev, project: value }));
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -71,8 +50,8 @@ export default function EntryForm({ onCancel, entry }) {
       return;
     }
 
-    if (!formData.topic.trim() && !formData.project.trim()) {
-      toast.error("Thema oder Projekt ist erforderlich");
+    if (!formData.topic.trim()) {
+      toast.error("Thema ist erforderlich");
       return;
     }
 
@@ -81,14 +60,12 @@ export default function EntryForm({ onCancel, entry }) {
         await updateEntry(entry.id, {
           item_title: formData.item_title,
           topic: formData.topic || null,
-          project: formData.project || null,
         });
         toast.success("Traktandum aktualisiert");
       } else {
         await addEntry({
           item_title: formData.item_title,
           topic: formData.topic || null,
-          project: formData.project || null,
           content: null,
           members: [],
         });
@@ -98,7 +75,6 @@ export default function EntryForm({ onCancel, entry }) {
       setFormData({
         item_title: "",
         topic: "",
-        project: "",
       });
       if (onCancel) onCancel();
     } catch (error) {
@@ -154,35 +130,6 @@ export default function EntryForm({ onCancel, entry }) {
             </select>
           )}
         </div>
-
-        <div className="entry-form-field">
-          <label htmlFor="project">Projekt</label>
-          {isNewProject ? (
-            <input
-              type="text"
-              id="project"
-              name="project"
-              value={formData.project}
-              onChange={handleChange}
-              placeholder="Neues Projekt eingeben..."
-              autoFocus
-            />
-          ) : (
-            <select
-              id="project"
-              value={formData.project}
-              onChange={handleProjectSelect}
-            >
-              <option value="">– Projekt wählen –</option>
-              {existingProjects.map((p) => (
-                <option key={p} value={p}>
-                  {p}
-                </option>
-              ))}
-              <option value="__new__">Neues Projekt</option>
-            </select>
-          )}
-        </div>
       </div>
 
       <div className="entry-form-actions">
@@ -196,7 +143,6 @@ export default function EntryForm({ onCancel, entry }) {
             setFormData({
               item_title: "",
               topic: "",
-              project: "",
             });
             if (onCancel) onCancel();
           }}

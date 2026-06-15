@@ -11,7 +11,7 @@ Traktandum: "Who will make the finances for this job?"
 Andreas agrees"
 
 There will be a list of all agenda items "Traktanden" on a front page. 
-The agenda items can be filtered and or sorted by date, topic or project.
+The agenda items can be filtered and or sorted by date or topic.
 So each item when created keeps a current date date, and a topic can be added. 
 Topics can be added via a dropdown containing previous created topics, or as a new one that can
 be created on the spot.

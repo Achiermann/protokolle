@@ -54,7 +54,6 @@ export default function TodoList() {
           assignee: match[2].replace(/_/g, " "),
           title: match[3].trim(),
           topic: entry.topic,
-          project: entry.project,
           date: entry.date_created,
         });
       }
@@ -111,7 +110,7 @@ export default function TodoList() {
               <th className="todo-list-table-th-check"></th>
               <th>Für</th>
               <th>ToDo</th>
-              <th>Thema / Projekt</th>
+              <th>Thema</th>
               <th>Datum</th>
             </tr>
           </thead>
@@ -130,9 +129,7 @@ export default function TodoList() {
                   <div className="todo-list-item-title">{todo.title}</div>
                 </td>
                 <td>
-                  <div className="todo-list-item-todo">
-                    {todo.topic || todo.project || "-"}
-                  </div>
+                  <div className="todo-list-item-todo">{todo.topic || "-"}</div>
                 </td>
                 <td>
                   <div className="todo-list-item-date">
@@ -156,7 +153,7 @@ export default function TodoList() {
                 <th className="todo-list-table-th-check"></th>
                 <th>Für</th>
                 <th>ToDo</th>
-                <th>Thema / Projekt</th>
+                <th>Thema</th>
                 <th>Datum</th>
               </tr>
             </thead>
@@ -179,7 +176,7 @@ export default function TodoList() {
                   </td>
                   <td>
                     <div className="todo-list-item-todo">
-                      {todo.topic || todo.project || "-"}
+                      {todo.topic || "-"}
                     </div>
                   </td>
                   <td>

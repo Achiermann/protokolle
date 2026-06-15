@@ -31,7 +31,7 @@ export default function EntryList({
   const members = useWorkspacesStore((state) => state.members);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
 
-  const [filterTopicProject, setFilterTopicProject] = useState("");
+  const [filterTopic, setFilterTopic] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [sortBy, setSortBy] = useState("date");
@@ -143,7 +143,7 @@ export default function EntryList({
   };
 
   const handleClearFilters = () => {
-    setFilterTopicProject("");
+    setFilterTopic("");
     setFilterDateFrom("");
     setFilterDateTo("");
     setSortBy("date");
@@ -161,8 +161,7 @@ export default function EntryList({
 
   const getSortValue = (entry, column) => {
     if (column === "title") return (entry.item_title || "").toLowerCase();
-    if (column === "topic")
-      return (entry.topic || entry.project || "").toLowerCase();
+    if (column === "topic") return (entry.topic || "").toLowerCase();
     return new Date(entry.date_created).getTime();
   };
 
@@ -197,12 +196,11 @@ export default function EntryList({
       result = result.filter((entry) => !entry.content);
     }
 
-    if (filterTopicProject) {
-      const searchTerm = filterTopicProject.toLowerCase();
+    if (filterTopic) {
+      const searchTerm = filterTopic.toLowerCase();
       result = result.filter(
         (entry) =>
-          (entry.topic && entry.topic.toLowerCase().includes(searchTerm)) ||
-          (entry.project && entry.project.toLowerCase().includes(searchTerm)),
+          entry.topic && entry.topic.toLowerCase().includes(searchTerm),
       );
     }
 
@@ -231,7 +229,7 @@ export default function EntryList({
   }, [
     entries,
     contentFilter,
-    filterTopicProject,
+    filterTopic,
     filterDateFrom,
     filterDateTo,
     sortBy,
@@ -246,7 +244,7 @@ export default function EntryList({
       if (isInPosteingang(entry)) {
         posteingang.push(entry);
       } else {
-        const group = entry.topic || entry.project || "ohne thema";
+        const group = entry.topic || "ohne thema";
         if (!map.has(group)) map.set(group, []);
         map.get(group).push(entry);
       }
@@ -315,14 +313,6 @@ export default function EntryList({
                   Thema
                 </span>
                 <span>{selectedEntry.topic}</span>
-              </span>
-            )}
-            {selectedEntry.project && (
-              <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">
-                  Projekt
-                </span>
-                <span>{selectedEntry.project}</span>
               </span>
             )}
             <span className="entry-list-detail-panel-meta-item">
@@ -442,13 +432,13 @@ export default function EntryList({
       ) : (
         <div className="filters-container">
           <div className="filter-field">
-            <label htmlFor="filter-topic-project">Thema / Projekt</label>
+            <label htmlFor="filter-topic">Thema</label>
             <input
               type="text"
-              id="filter-topic-project"
-              value={filterTopicProject}
-              onChange={(e) => setFilterTopicProject(e.target.value)}
-              placeholder="Nach Thema oder Projekt filtern..."
+              id="filter-topic"
+              value={filterTopic}
+              onChange={(e) => setFilterTopic(e.target.value)}
+              placeholder="Nach Thema filtern..."
             />
           </div>
 
@@ -601,7 +591,7 @@ export default function EntryList({
                   className="entry-list-table-th-sortable"
                   onClick={() => handleSort("topic")}
                 >
-                  Thema / Projekt{sortIndicator("topic")}
+                  Thema{sortIndicator("topic")}
                 </th>
                 <th
                   className="entry-list-table-th-sortable"
@@ -630,10 +620,10 @@ export default function EntryList({
                         <div
                           className={
                             "entry-list-item-topic " +
-                            getTopicColorClass(entry.topic || entry.project)
+                            getTopicColorClass(entry.topic)
                           }
                         >
-                          {entry.topic || entry.project || "-"}
+                          {entry.topic || "-"}
                         </div>
                       </td>
                       <td>

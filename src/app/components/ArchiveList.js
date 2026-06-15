@@ -112,14 +112,6 @@ export default function ArchiveList() {
                 <span>{selectedEntry.topic}</span>
               </span>
             )}
-            {selectedEntry.project && (
-              <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">
-                  Projekt
-                </span>
-                <span>{selectedEntry.project}</span>
-              </span>
-            )}
             <span className="entry-list-detail-panel-meta-item">
               <span className="entry-list-detail-panel-meta-label">Datum</span>
               <span>{formatDate(selectedEntry.date_created)}</span>
@@ -190,7 +182,7 @@ export default function ArchiveList() {
         <table className="entry-list-table">
           <thead>
             <tr>
-              <th>Thema / Projekt</th>
+              <th>Thema</th>
               <th>Traktanden</th>
               <th>Datum</th>
               <th>Aktionen</th>
@@ -208,10 +200,10 @@ export default function ArchiveList() {
                       <div
                         className={
                           "entry-list-item-topic " +
-                          getTopicColorClass(entry.topic || entry.project)
+                          getTopicColorClass(entry.topic)
                         }
                       >
-                        {entry.topic || entry.project || "-"}
+                        {entry.topic || "-"}
                       </div>
                     </td>
                     <td>

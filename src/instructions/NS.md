@@ -2,13 +2,14 @@ ONLY follow the following instructions if explicitly told:
 
 <!-- .1 Task -->
 
-In the app, right now the users are stored in supabase auth directly.
-since this is the protokolle app and all data should be stored in the schema "protokoll_app" 
-there is also a table "users" where all users should be stored to.
+THEMEN / PROJEKTE
 
-no users in supabase auth, unless you highly recommend to go this way. but the big disatvantage about this is, that all users for all apps (which live in the same supabase project) will then be stored there and i might lose track over stuff.
+right now we have "themen" and "projekte" in the app. they appear when
+- a user opens up a traktandum
+- as secions in the sidebar
+- in the db (schedule "protokoll_app")
 
-USE THE SUPABASE MCP FOR THIS TASK
+i want you to entirely merge them to just "themen" so every project moves to themen and there is no more "projekte" anymore in the whole app.
 
 <!-- .2 Disclaimer -->
 
