@@ -116,7 +116,6 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             </button>
           </>
         )}
-
         <div className="sidebar-footer">
           {activeApp === "p" && (
             <button
