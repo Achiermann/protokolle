@@ -18,6 +18,19 @@ import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/entry-list.css";
 import "../../styles/filters.css";
 
+// Builds a lowercased plain-text blob of an entry's searchable fields
+// (title, topic, notes, creator). HTML in the notes is stripped to text so
+// the word filter matches visible content, not markup.
+const getSearchableText = (entry) => {
+  const content = entry.content
+    ? entry.content.replace(/<[^>]*>/g, " ").replace(/&[a-z]+;|&#\d+;/gi, " ")
+    : "";
+  return [entry.item_title, entry.topic, entry.created_by_name, content]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+};
+
 export default function EntryList({
   contentFilter,
   title = "Alle Traktanden",
@@ -31,7 +44,7 @@ export default function EntryList({
   const members = useWorkspacesStore((state) => state.members);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
 
-  const [filterTopic, setFilterTopic] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo] = useState("");
   const [sortBy, setSortBy] = useState("date");
@@ -143,7 +156,7 @@ export default function EntryList({
   };
 
   const handleClearFilters = () => {
-    setFilterTopic("");
+    setFilterSearch("");
     setFilterDateFrom("");
     setFilterDateTo("");
     setSortBy("date");
@@ -196,11 +209,10 @@ export default function EntryList({
       result = result.filter((entry) => !entry.content);
     }
 
-    if (filterTopic) {
-      const searchTerm = filterTopic.toLowerCase();
-      result = result.filter(
-        (entry) =>
-          entry.topic && entry.topic.toLowerCase().includes(searchTerm),
+    if (filterSearch.trim()) {
+      const searchTerm = filterSearch.trim().toLowerCase();
+      result = result.filter((entry) =>
+        getSearchableText(entry).includes(searchTerm),
       );
     }
 
@@ -229,7 +241,7 @@ export default function EntryList({
   }, [
     entries,
     contentFilter,
-    filterTopic,
+    filterSearch,
     filterDateFrom,
     filterDateTo,
     sortBy,
@@ -416,60 +428,66 @@ export default function EntryList({
 
   return (
     <div className="entry-list">
-      <div className="entry-list-header">
-        <h2>{title}</h2>
-      </div>
-
       {contentFilter === "without" ? (
-        <button
-          type="button"
-          className="entry-list-new-button"
-          onClick={() => setShowEntryForm(true)}
-        >
-          <Plus size={18} />
-          Neues Traktandum
-        </button>
+        <>
+          <div className="entry-list-header">
+            <h2>{title}</h2>
+          </div>
+          <button
+            type="button"
+            className="entry-list-new-button"
+            onClick={() => setShowEntryForm(true)}
+          >
+            <Plus size={18} />
+            Neues Traktandum
+          </button>
+        </>
       ) : (
-        <div className="filters-container">
-          <div className="filter-field">
-            <label htmlFor="filter-topic">Thema</label>
-            <input
-              type="text"
-              id="filter-topic"
-              value={filterTopic}
-              onChange={(e) => setFilterTopic(e.target.value)}
-              placeholder="Nach Thema filtern..."
-            />
+        <div className="entry-list-toolbar">
+          <div className="entry-list-header">
+            <h2>{title}</h2>
           </div>
+          <div className="filters-container">
+            <div className="filter-field">
+              <label htmlFor="filter-search">Suche</label>
+              <input
+                type="text"
+                id="filter-search"
+                value={filterSearch}
+                onChange={(e) => setFilterSearch(e.target.value)}
+                placeholder="Nach Begriff filtern..."
+              />
+            </div>
 
-          <div className="filter-field">
-            <label htmlFor="filter-date-from">Datum von</label>
-            <input
-              type="date"
-              id="filter-date-from"
-              value={filterDateFrom}
-              onChange={(e) => setFilterDateFrom(e.target.value)}
-            />
-          </div>
+            <div className="filter-field">
+              <label htmlFor="filter-date-from">Datum von</label>
+              <input
+                type="date"
+                id="filter-date-from"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+              />
+            </div>
 
-          <div className="filter-field">
-            <label htmlFor="filter-date-to">Datum bis</label>
-            <input
-              type="date"
-              id="filter-date-to"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-            />
-          </div>
+            <div className="filter-field">
+              <label htmlFor="filter-date-to">Datum bis</label>
+              <input
+                type="date"
+                id="filter-date-to"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+              />
+            </div>
 
-          <div className="filter-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={handleClearFilters}
-            >
-              Filter zurücksetzen
-            </button>
+            <div className="filter-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={handleClearFilters}
+              >
+                Filter zurücksetzen
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -611,11 +629,10 @@ export default function EntryList({
             <tbody>
               {filteredAndSortedEntries.map((entry) => (
                 <React.Fragment key={entry.id}>
-                  {selectedId !== entry.id && (
-                    <tr
-                      className="entry-list-table-row"
-                      onClick={() => handleRowClick(entry)}
-                    >
+                  <tr
+                    className="entry-list-table-row"
+                    onClick={() => handleRowClick(entry)}
+                  >
                       <td>
                         <div
                           className={
@@ -673,8 +690,7 @@ export default function EntryList({
                           </button>
                         </div>
                       </td>
-                    </tr>
-                  )}
+                  </tr>
                   {selectedId === entry.id && (
                     <tr className="entry-list-table-row-detail">
                       <td colSpan={4}>{renderDetailPanel()}</td>

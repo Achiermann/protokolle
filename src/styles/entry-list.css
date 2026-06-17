@@ -2,8 +2,37 @@
   width: 100%;
 }
 
+/* List view: let the sticky toolbar sit flush at the very top instead of the
+   default top padding that .main-content > * applies */
+.entry-list:has(> .entry-list-toolbar) {
+  padding-top: 0;
+}
+
 .entry-list-header {
   margin-bottom: var(--space-5);
+}
+
+/* Sticky toolbar — title + filters pinned to the top of the main content */
+.entry-list-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  /* TEMP debug colour — so the full-bleed + rounded-corner clipping is visible */
+  background-color: var(--color-surface);
+  /* full-bleed sideways over the main-content padding so the rounded top corners
+     come from .main-content's overflow + border-radius clip. No negative top
+     margin: .main-content has no top padding, so top:0 already pins flush. */
+  margin: 0 calc(-1 * var(--space-6)) var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  box-shadow: 0 6px 12px -8px rgb(0 0 0 / 0.18);
+}
+
+.entry-list-toolbar .entry-list-header {
+  margin-bottom: var(--space-2);
+}
+
+.entry-list-toolbar .filters-container {
+  margin-bottom: 0;
 }
 
 .entry-list-new-button {
@@ -19,25 +48,27 @@
 
 .entry-list-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  padding: var(--space-3) var(--space-4);
 }
 
 .entry-list-table thead {
-  background-color: var(--color-surface);
+  background-color: transparent;
 }
 
 .entry-list-table th {
   padding: var(--space-2) var(--space-4);
-  border-bottom: 2px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   text-align: left;
-  font-weight: 600;
+  font-weight: 500;
   color: var(--color-text);
   font-size: 0.875rem;
   letter-spacing: 0.05em;
+  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
 }
 
 .entry-list-table-th-sortable {
@@ -46,24 +77,28 @@
 }
 
 .entry-list-table-th-sortable:hover {
-  color: var(--color-brand);
-  background-color: var(--color-line);
+  color: var(--color-muted);
 }
 
 .entry-list-table td {
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 
-.entry-list-table tbody tr:first-child td {
-  padding-top: 20px;
+/* Rows are simple sections divided by a bottom border */
+.entry-list-table-row td {
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
-.entry-list-table tbody tr:hover {
-  background-color: var(--color-surface);
+.entry-list-table-row:last-child td {
+  border-bottom: none;
+}
+
+.entry-list-table-row:hover td {
+  background-color: #fafafa;
 }
 
 .entry-list-item-title {
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 400;
   color: var(--color-text);
 }
@@ -75,93 +110,63 @@
 
 .entry-list-item-topic {
   font-size: 1rem;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--color-text);
   display: inline;
-  padding: 0 var(--space-1);
+  padding: 0.15em var(--space-2);
+  border-radius: 0;
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
 
+/* Mimic the inspector's monospace font on the topic text — JetBrains Mono has
+   a true 600 weight, so the medium-bold actually renders */
+.main-content .entry-list-item-topic {
+  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+}
+
+/* Muted, dusty text tones on flat pastel fills. Fills are drawn from the
+   editor's highlight-marker family (the "fillings" we once defined); the ones
+   with a marker equivalent reference those variables directly. */
 .entry-list-item-topic-c0 {
-  background: linear-gradient(
-    transparent 55%,
-    #fef3c7 55%,
-    #fef3c7 92%,
-    transparent 92%
-  );
+  color: #a8478f; /* dusty pink */
+  background-color: var(--marker-pink);
 }
 .entry-list-item-topic-c1 {
-  background: linear-gradient(
-    transparent 55%,
-    #fce7f3 55%,
-    #fce7f3 92%,
-    transparent 92%
-  );
+  color: #8a54a6; /* muted purple */
+  background-color: #f3e8ff;
 }
 .entry-list-item-topic-c2 {
-  background: linear-gradient(
-    transparent 55%,
-    #dbeafe 55%,
-    #dbeafe 92%,
-    transparent 92%
-  );
+  color: #6a5cb0; /* muted violet */
+  background-color: #ede9fe;
 }
 .entry-list-item-topic-c3 {
-  background: linear-gradient(
-    transparent 55%,
-    #d1fae5 55%,
-    #d1fae5 92%,
-    transparent 92%
-  );
+  color: #4b6cb0; /* dusty blue */
+  background-color: var(--marker-blue);
 }
 .entry-list-item-topic-c4 {
-  background: linear-gradient(
-    transparent 55%,
-    #ede9fe 55%,
-    #ede9fe 92%,
-    transparent 92%
-  );
+  color: #3d8893; /* muted teal */
+  background-color: #cffafe;
 }
 .entry-list-item-topic-c5 {
-  background: linear-gradient(
-    transparent 55%,
-    #ffedd5 55%,
-    #ffedd5 92%,
-    transparent 92%
-  );
+  color: #4a9162; /* muted green */
+  background-color: var(--marker-green);
 }
 .entry-list-item-topic-c6 {
-  background: linear-gradient(
-    transparent 55%,
-    #cffafe 55%,
-    #cffafe 92%,
-    transparent 92%
-  );
+  color: #7c9148; /* muted lime */
+  background-color: #ecfccb;
 }
 .entry-list-item-topic-c7 {
-  background: linear-gradient(
-    transparent 55%,
-    #fee2e2 55%,
-    #fee2e2 92%,
-    transparent 92%
-  );
+  color: #9e8a45; /* muted gold */
+  background-color: var(--marker-yellow);
 }
 .entry-list-item-topic-c8 {
-  background: linear-gradient(
-    transparent 55%,
-    #e0e7ff 55%,
-    #e0e7ff 92%,
-    transparent 92%
-  );
+  color: #b56b45; /* muted terracotta */
+  background-color: var(--marker-to-do);
 }
 .entry-list-item-topic-c9 {
-  background: linear-gradient(
-    transparent 55%,
-    #fef9c3 55%,
-    #fef9c3 92%,
-    transparent 92%
-  );
+  color: #b4515e; /* dusty red */
+  background-color: #fee2e2;
 }
 
 .grouped-list-traktanden {
@@ -208,7 +213,7 @@
 
 .grouped-list-traktanden-title {
   display: block;
-  font-size: 0.9375rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-text);
 }
@@ -233,12 +238,12 @@
 }
 
 .entry-list-open-item-title {
-  font-size: 0.875rem;
+  font-size: 1rem;
   color: var(--color-text);
 }
 
 .entry-list-open-item-title-input {
-  font-size: 0.875rem;
+  font-size: 1.1rem;
   color: var(--color-text);
   border: none;
   border-bottom: 1.5px solid var(--color-brand);
@@ -250,7 +255,7 @@
 
 .entry-list-open-item button {
   padding: var(--space-1) var(--space-2);
-  font-size: 0.75rem;
+  font-size: 1.1rem;
   flex-shrink: 0;
 }
 
@@ -295,7 +300,7 @@
 
 .entry-list-detail-panel {
   background-color: var(--color-surface);
-  border: 1.5px solid var(--color-border);
+  border: none;
   border-radius: var(--radius-lg);
   padding: var(--space-5);
   margin-bottom: var(--space-5);
@@ -344,7 +349,7 @@
 }
 
 .entry-list-detail-panel-title {
-  font-size: 1.125rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -497,7 +502,7 @@
 }
 
 .entry-list-detail-panel-content-text {
-  font-size: 0.9375rem;
+  font-size: 1rem;
   color: var(--color-text);
   white-space: pre-wrap;
   line-height: 1.6;
@@ -543,7 +548,7 @@
 }
 
 .grouped-list-traktanden .entry-list-detail-panel-title {
-  font-size: 0.875rem;
+  font-size: 1rem;
 }
 
 .grouped-list-traktanden .entry-list-detail-panel-meta {

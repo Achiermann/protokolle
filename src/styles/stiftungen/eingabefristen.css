@@ -24,8 +24,8 @@
 .eingabefristen-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background-color: transparent;
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }

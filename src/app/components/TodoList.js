@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { createTodoRegex } from "../../lib/richText";
 import "../../styles/todo-list.css";
+// Member names reuse the entry-list topic highlighter marker.
+import "../../styles/entry-list.css";
 
 export default function TodoList() {
   // *** VARIABLES ***
@@ -27,14 +29,28 @@ export default function TodoList() {
     });
   };
 
+  // Normalise to a single key so different casings of the same person map to
+  // the same colour and the same display label.
+  const normalizeMemberKey = (name) => (name || "").trim().toLowerCase();
+
+  // Display label: every name starts with a capital letter.
+  const formatMemberName = (name) =>
+    normalizeMemberKey(name)
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+  // Reuse the same highlighter marker the entry-list topics use.
   const getMemberColorClass = (name) => {
-    if (!name) return "todo-list-item-member-circle-none";
+    const key = normalizeMemberKey(name);
+    if (!key) return "";
     let hash = 0;
-    for (let i = 0; i < name.length; i++) {
-      hash = (hash * 31 + name.charCodeAt(i)) | 0;
+    for (let i = 0; i < key.length; i++) {
+      hash = (hash * 31 + key.charCodeAt(i)) | 0;
     }
     const index = Math.abs(hash) % 10;
-    return `todo-list-item-member-circle-${index}`;
+    return `entry-list-item-topic-c${index}`;
   };
 
   const todos = useMemo(() => {
@@ -80,14 +96,17 @@ export default function TodoList() {
     }
   };
 
-  const renderMemberCell = (todo) => (
-    <div className="todo-list-item-member">
+  const renderMemberCell = (todo) => {
+    const name = formatMemberName(todo.assignee);
+    if (!name) return <span className="todo-list-item-date">-</span>;
+    return (
       <span
-        className={`todo-list-item-member-circle ${getMemberColorClass(todo.assignee)}`}
-      />
-      {todo.assignee}
-    </div>
-  );
+        className={`entry-list-item-topic ${getMemberColorClass(todo.assignee)}`}
+      >
+        {name}
+      </span>
+    );
+  };
 
   return (
     <div className="todo-list">

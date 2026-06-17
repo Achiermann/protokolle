@@ -9,8 +9,8 @@
 .todo-list-table {
   width: 100%;
   border-collapse: collapse;
-  background-color: var(--color-bg);
-  border: 1px solid var(--color-border);
+  background-color: transparent;
+  border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
@@ -50,57 +50,6 @@
   white-space: pre-wrap;
 }
 
-.todo-list-item-member {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.todo-list-item-member-circle {
-  display: inline-block;
-  width: 0.75rem;
-  height: 0.75rem;
-  border-radius: 50%;
-  flex-shrink: 0;
-  background-color: transparent;
-}
-
-.todo-list-item-member-circle-0 {
-  background-color: #fde2e4;
-}
-.todo-list-item-member-circle-1 {
-  background-color: #e2f0cb;
-}
-.todo-list-item-member-circle-2 {
-  background-color: #cde7f0;
-}
-.todo-list-item-member-circle-3 {
-  background-color: #fff1ba;
-}
-.todo-list-item-member-circle-4 {
-  background-color: #e4d4f4;
-}
-.todo-list-item-member-circle-5 {
-  background-color: #ffd6a5;
-}
-.todo-list-item-member-circle-6 {
-  background-color: #d4f4dd;
-}
-.todo-list-item-member-circle-7 {
-  background-color: #f4d4e4;
-}
-.todo-list-item-member-circle-8 {
-  background-color: #c9e4de;
-}
-.todo-list-item-member-circle-9 {
-  background-color: #f0d9c4;
-}
-.todo-list-item-member-circle-none {
-  background-color: transparent;
-}
-
 .todo-list-item-date {
   font-size: 0.875rem;
   color: var(--color-muted);
@@ -125,13 +74,15 @@
 }
 
 .todo-list-table-td-check input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
   width: 1.1rem;
   height: 1.1rem;
   padding: 0;
-  border: 1.5px solid var(--color-border-soft);
-  border-radius: var(--radius-sm);
+  border: 2px solid #000;
+  border-radius: 0;
+  background-color: var(--color-bg);
   cursor: pointer;
-  accent-color: var(--color-line);
 }
 
 .todo-list-table-td-check button {

@@ -5,15 +5,16 @@
   display: flex;
   gap: var(--space-2);
   z-index: 10;
+  margin: 10px;
 }
 
 .app-switcher-button {
   width: 2.25rem;
   height: 2.25rem;
   padding: 0;
-  border: 1.5px solid var(--color-line);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-bg);
+  border: none;
+  border-radius: var(--radius-btn);
+  background-color: var(--btn-bg);
   color: var(--color-text);
   font-weight: 600;
   font-size: 1rem;
@@ -24,9 +25,8 @@
 }
 
 .app-switcher-button:hover {
-  background-color: var(--color-brand);
+  background-color: var(--btn-bg-hover);
   color: var(--color-brand-contrast);
-  border-color: var(--color-line);
 }
 
 .app-switcher-button.active {
