@@ -98,7 +98,7 @@
 }
 
 .entry-list-item-title {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-weight: 400;
   color: var(--color-text);
 }
@@ -109,7 +109,7 @@
 }
 
 .entry-list-item-topic {
-  font-size: 1rem;
+  font-size: .8rem;
   font-weight: 600;
   color: var(--color-text);
   display: inline;
