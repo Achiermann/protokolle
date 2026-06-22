@@ -13,6 +13,15 @@ const MARKER_COLORS = [
   { className: "marker-pink", label: "Pink markieren" },
 ];
 
+// Custom undo/redo. The editor mixes execCommand edits (typing, B/I/U) with
+// direct-DOM edits (highlight, todo); the browser's native history only tracks
+// the former, so native undo desyncs and corrupts after a highlight. Instead we
+// snapshot the whole editor on each committed change and restore on ⌘Z / ⌘⇧Z.
+// Rapid typing is coalesced into one step: a snapshot is committed after this
+// pause, and always before a format/highlight/todo action.
+const TYPING_DEBOUNCE_MS = 400;
+const MAX_HISTORY = 200;
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -23,6 +32,16 @@ export default function RichTextEditor({
   // *** VARIABLES ***
   const editorRef = useRef(null);
   const markerRef = useRef(null);
+  // undo/redo: stacks of { html, caret } snapshots. `present` is the last
+  // committed state; `timer` debounces a typing burst; `applying` suppresses the
+  // input events our own programmatic edits fire.
+  const historyRef = useRef({
+    undo: [],
+    redo: [],
+    present: null,
+    timer: null,
+    applying: false,
+  });
   const [showMemberDropdown, setShowMemberDropdown] = useState(false);
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [activeColor, setActiveColor] = useState(MARKER_COLORS[0].className);
@@ -33,6 +52,7 @@ export default function RichTextEditor({
   useEffect(() => {
     if (editorRef.current) {
       editorRef.current.innerHTML = decorateTodos(sanitizeHtml(value || ""));
+      historyRef.current.present = snapshot();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -53,21 +73,151 @@ export default function RichTextEditor({
     if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
   };
 
+  // *** UNDO / REDO ***
+  // Caret as a character offset from the editor start, so it survives the
+  // innerHTML replacement a restore does. Range.toString() counts only text-node
+  // characters, matching the text-node walk in setCaret.
+  const getCaret = () => {
+    const editor = editorRef.current;
+    if (!editor) return null;
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    const range = sel.getRangeAt(0);
+    if (!editor.contains(range.endContainer)) return null;
+    const pre = range.cloneRange();
+    pre.selectNodeContents(editor);
+    pre.setEnd(range.endContainer, range.endOffset);
+    return pre.toString().length;
+  };
+
+  const setCaret = (offset) => {
+    const editor = editorRef.current;
+    if (!editor || offset == null) return;
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+    let remaining = offset;
+    let node;
+    let placed = false;
+    while ((node = walker.nextNode())) {
+      const len = node.nodeValue.length;
+      if (remaining <= len) {
+        range.setStart(node, remaining);
+        placed = true;
+        break;
+      }
+      remaining -= len;
+    }
+    if (placed) {
+      range.collapse(true);
+    } else {
+      range.selectNodeContents(editor);
+      range.collapse(false);
+    }
+    sel.removeAllRanges();
+    sel.addRange(range);
+  };
+
+  const snapshot = () => ({
+    html: editorRef.current ? editorRef.current.innerHTML : "",
+    caret: getCaret(),
+  });
+
+  // Record the current DOM as a new step: the previous `present` becomes an undo
+  // target. No-op when nothing actually changed, so spurious steps never pile up.
+  const commit = () => {
+    const h = historyRef.current;
+    const cur = snapshot();
+    if (h.present && h.present.html === cur.html) return;
+    if (h.present) h.undo.push(h.present);
+    if (h.undo.length > MAX_HISTORY) h.undo.shift();
+    h.present = cur;
+    h.redo = [];
+  };
+
+  // Commit a pending typing burst immediately (before an undo or a structural
+  // edit) so the burst lands as its own step.
+  const flushTyping = () => {
+    const h = historyRef.current;
+    if (h.timer) {
+      clearTimeout(h.timer);
+      h.timer = null;
+      commit();
+    }
+  };
+
+  const scheduleTypingCommit = () => {
+    const h = historyRef.current;
+    if (h.timer) clearTimeout(h.timer);
+    h.timer = setTimeout(() => {
+      h.timer = null;
+      commit();
+    }, TYPING_DEBOUNCE_MS);
+  };
+
+  const restore = (state) => {
+    const editor = editorRef.current;
+    if (!editor || !state) return;
+    const h = historyRef.current;
+    h.applying = true;
+    editor.innerHTML = state.html;
+    setCaret(state.caret);
+    h.applying = false;
+    emitChange();
+  };
+
+  const undo = () => {
+    const h = historyRef.current;
+    flushTyping();
+    if (h.undo.length === 0) return;
+    h.redo.push(h.present);
+    h.present = h.undo.pop();
+    restore(h.present);
+  };
+
+  const redo = () => {
+    const h = historyRef.current;
+    if (h.redo.length === 0) return;
+    h.undo.push(h.present);
+    h.present = h.redo.pop();
+    restore(h.present);
+  };
+
+  // Wrap a structural edit (B/I/U, highlight, todo) so it commits as one undo
+  // step. `applying` keeps the input events execCommand fires from also being
+  // logged as a typing burst.
+  const runWithHistory = (mutator) => {
+    const h = historyRef.current;
+    flushTyping();
+    h.applying = true;
+    mutator();
+    h.applying = false;
+    commit();
+    emitChange();
+  };
+
+  // Typing path: propagate the value and (debounced) commit a history step.
+  // Skipped while our own programmatic edits are running.
+  const handleInput = () => {
+    if (historyRef.current.applying) return;
+    scheduleTypingCommit();
+    emitChange();
+  };
+
   // execCommand is deprecated but remains the only dependency-free way to apply
   // bold/italic/underline to the current selection across browsers. No rich-text
   // MCP/library is available, so it is preferred over adding an editor dependency.
-  const format = (command) => {
-    document.execCommand(command, false, null);
-    emitChange();
-  };
+  const format = (command) =>
+    runWithHistory(() => document.execCommand(command, false, null));
 
   const handleBold = () => format("bold");
   const handleItalic = () => format("italic");
   const handleUnderline = () => format("underline");
 
   // Keyboard shortcuts (Cmd on Mac, Ctrl elsewhere): B/I/U formatting and
-  // undo/redo. Undo/redo use the browser's native edit history, so they cover
-  // typing and B/I/U but not the direct-DOM highlight/todo edits.
+  // undo/redo. Undo/redo run our own snapshot history (see above) so they cover
+  // every edit — typing, B/I/U, highlight and todo — consistently.
   const handleKeyDown = (e) => {
     if (!e.metaKey && !e.ctrlKey) return;
     const key = e.key.toLowerCase();
@@ -82,8 +232,11 @@ export default function RichTextEditor({
       format("underline");
     } else if (key === "z") {
       e.preventDefault();
-      document.execCommand(e.shiftKey ? "redo" : "undo", false, null);
-      emitChange();
+      if (e.shiftKey) redo();
+      else undo();
+    } else if (key === "y") {
+      e.preventDefault();
+      redo();
     }
   };
 
@@ -105,6 +258,42 @@ export default function RichTextEditor({
     parent.removeChild(mark);
   };
 
+  // The nearest <mark> ancestor of `node` within the editor, if any.
+  const closestMark = (node) => {
+    const editor = editorRef.current;
+    let n = node;
+    while (n && n !== editor) {
+      if (n.nodeType === 1 && n.tagName === "MARK") return n;
+      n = n.parentNode;
+    }
+    return null;
+  };
+
+  // Every text node the range touches, in document order. Walking the text
+  // nodes in place — rather than range.extractContents() — is what keeps the
+  // highlight inline: block wrappers (the <div> line breaks contentEditable
+  // inserts on Enter) are left untouched, so a multi-line selection no longer
+  // gets stuffed into one inline <mark> and rendered as full-width colour bars.
+  const collectSelectedTextNodes = (range) => {
+    const editor = editorRef.current;
+    const root = range.commonAncestorContainer;
+    if (root.nodeType === 3) return editor.contains(root) ? [root] : [];
+    const nodes = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(n) {
+        if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
+        return range.intersectsNode(n)
+          ? NodeFilter.FILTER_ACCEPT
+          : NodeFilter.FILTER_REJECT;
+      },
+    });
+    let n;
+    while ((n = walker.nextNode())) {
+      if (editor.contains(n)) nodes.push(n);
+    }
+    return nodes;
+  };
+
   // Highlight the selection with `className`. If it is already highlighted in
   // that same colour, the highlight is removed (toggle); a different colour
   // recolours it instead.
@@ -116,6 +305,8 @@ export default function RichTextEditor({
     const range = selection.getRangeAt(0);
     if (!editor.contains(range.commonAncestorContainer)) return;
 
+    // Re-clicking inside a single highlighted phrase toggles it off (same
+    // colour) or recolours the whole phrase (different colour).
     const enclosing = getEnclosingMark(range);
     if (enclosing) {
       const current = MARKER_COLORS.find((c) =>
@@ -126,34 +317,49 @@ export default function RichTextEditor({
       } else {
         enclosing.className = className; // different colour → recolour
       }
-      emitChange();
+      selection.removeAllRanges();
       return;
     }
 
-    // Unmarked (or mixed) selection: drop any fully-selected nested marks, then
-    // wrap the cleaned contents in a single new mark.
-    const frag = range.extractContents();
-    frag.querySelectorAll("mark").forEach(unwrap);
-    const mark = document.createElement("mark");
-    mark.className = className;
-    mark.appendChild(frag);
-    range.insertNode(mark);
+    // Wrap exactly the selected text in each text node it spans, leaving the
+    // surrounding block structure alone. Offsets are read up front; only the
+    // boundary nodes are partially covered, every node between them fully.
+    const { startContainer, startOffset, endContainer, endOffset } = range;
+    collectSelectedTextNodes(range).forEach((node) => {
+      const from = node === startContainer ? startOffset : 0;
+      const to = node === endContainer ? endOffset : node.nodeValue.length;
+      if (to <= from) return;
+      // A fully-covered text node that already *is* a single-colour mark is
+      // recoloured in place, so re-highlighting never nests <mark>s.
+      const parentMark = closestMark(node);
+      if (
+        parentMark &&
+        from === 0 &&
+        to === node.nodeValue.length &&
+        parentMark.childNodes.length === 1
+      ) {
+        parentMark.className = className;
+        return;
+      }
+      const sub = document.createRange();
+      sub.setStart(node, from);
+      sub.setEnd(node, to);
+      const mark = document.createElement("mark");
+      mark.className = className;
+      sub.surroundContents(mark);
+    });
     selection.removeAllRanges();
-    const next = document.createRange();
-    next.selectNodeContents(mark);
-    selection.addRange(next);
-    emitChange();
   };
 
   const handleApplyActiveColor = () => {
     setShowColorDropdown(false);
-    applyColor(activeColor);
+    runWithHistory(() => applyColor(activeColor));
   };
 
   const handlePickColor = (className) => {
     setActiveColor(className);
     setShowColorDropdown(false);
-    applyColor(className);
+    runWithHistory(() => applyColor(className));
   };
 
   const handleToggleColorDropdown = () => setShowColorDropdown((v) => !v);
@@ -192,7 +398,6 @@ export default function RichTextEditor({
       selection.removeAllRanges();
       selection.addRange(next);
     }
-    emitChange();
   };
 
   const handleInsertTodo = async () => {
@@ -203,7 +408,7 @@ export default function RichTextEditor({
   const handleSelectMember = (member) => {
     const rawName = member.name || member.email.split("@")[0];
     const nameTag = rawName.replace(/\s+/g, "_");
-    insertTodoTag(`/todo@${nameTag} `);
+    runWithHistory(() => insertTodoTag(`/todo@${nameTag} `));
     setShowMemberDropdown(false);
   };
 
@@ -316,7 +521,7 @@ export default function RichTextEditor({
         role="textbox"
         aria-multiline="true"
         data-placeholder={placeholder}
-        onInput={emitChange}
+        onInput={handleInput}
         onKeyDown={handleKeyDown}
       />
     </>
