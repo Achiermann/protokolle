@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ListTodo,
   Tag,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useEntriesSync } from "../hooks/useEntriesSync";
 import { createTodoCountRegex } from "../../lib/richText";
 import "../../styles/sidebar.css";
 
@@ -19,9 +20,12 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   // *** VARIABLES ***
   const [isOpen, setIsOpen] = useState(false);
   const entries = useEntriesStore((state) => state.entries);
-  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
+
+  // Single source of truth for keeping the entries cache warm: the Sidebar is
+  // mounted for the whole session, so one poller here serves every view.
+  useEntriesSync();
 
   const title = activeApp === "s" ? "stiftungen" : "protokolle";
 
@@ -37,10 +41,6 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   }, [entries]);
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const handleViewChange = (view) => {
     onViewChange(view);
     setIsOpen(false);

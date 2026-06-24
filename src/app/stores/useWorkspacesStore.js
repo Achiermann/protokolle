@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { useEntriesStore } from "./useEntriesStore";
 
 export const useWorkspacesStore = create((set, get) => ({
   // *** VARIABLES ***
@@ -54,6 +55,9 @@ export const useWorkspacesStore = create((set, get) => ({
         body: JSON.stringify({ workspace_id: workspaceId }),
       });
       if (!response.ok) throw new Error("Auswahl fehlgeschlagen");
+      // Entries are scoped per workspace; drop the cache so the next view
+      // loads the newly selected workspace's entries fresh.
+      useEntriesStore.getState().resetEntries();
       return true;
     } catch (error) {
       set({ error: error.message });

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import toast from "react-hot-toast";
@@ -38,7 +38,6 @@ export default function EntryList({
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
   const loading = useEntriesStore((state) => state.loading);
-  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const members = useWorkspacesStore((state) => state.members);
@@ -56,10 +55,6 @@ export default function EntryList({
   const [editingEntry, setEditingEntry] = useState(null);
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const selectedEntry = useMemo(
     () => entries.find((e) => e.id === selectedId) || null,
     [entries, selectedId],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { Pencil, Archive } from "lucide-react";
@@ -13,7 +13,6 @@ export default function GroupedList({ field, title, emptyLabel }) {
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
   const loading = useEntriesStore((state) => state.loading);
-  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const members = useWorkspacesStore((state) => state.members);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
@@ -22,10 +21,6 @@ export default function GroupedList({ field, title, emptyLabel }) {
   const [editDraft, setEditDraft] = useState("");
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const getTopicColorClass = (value) => {
     if (!value) return "";
     let hash = 0;

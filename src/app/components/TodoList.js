@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { RotateCcw } from "lucide-react";
 import toast from "react-hot-toast";
 import { useEntriesStore } from "../stores/useEntriesStore";
@@ -13,14 +13,9 @@ export default function TodoList() {
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
   const loading = useEntriesStore((state) => state.loading);
-  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("de-DE", {
       year: "numeric",

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import toast from "react-hot-toast";
 import { ArchiveRestore, Trash } from "lucide-react";
@@ -11,16 +11,11 @@ export default function ArchiveList() {
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
   const loading = useEntriesStore((state) => state.loading);
-  const fetchEntries = useEntriesStore((state) => state.fetchEntries);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const [selectedId, setSelectedId] = useState(null);
 
   // *** FUNCTIONS/HANDLERS ***
-  useEffect(() => {
-    fetchEntries();
-  }, [fetchEntries]);
-
   const archivedEntries = useMemo(
     () =>
       [...entries]
