@@ -25,9 +25,12 @@ const MAX_HISTORY = 200;
 export default function RichTextEditor({
   value,
   onChange,
-  members,
-  onRequestMembers,
+  members = [],
+  onRequestMembers = () => {},
   placeholder,
+  // The + ToDo affordance only makes sense in entry notes (where todos are
+  // authored). Comments reuse this editor with it hidden.
+  showTodoButton = true,
 }) {
   // *** VARIABLES ***
   const editorRef = useRef(null);
@@ -96,7 +99,11 @@ export default function RichTextEditor({
     const sel = window.getSelection();
     if (!sel) return;
     const range = document.createRange();
-    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT, null);
+    const walker = document.createTreeWalker(
+      editor,
+      NodeFilter.SHOW_TEXT,
+      null,
+    );
     let remaining = offset;
     let node;
     let placed = false;
@@ -215,10 +222,71 @@ export default function RichTextEditor({
   const handleItalic = () => format("italic");
   const handleUnderline = () => format("underline");
 
+  // Pressing Enter inside a highlight should start a fresh, unhighlighted line —
+  // otherwise the <mark> carries onto the next line and even an empty line break
+  // ends up highlighted. Pull everything from the caret to the end of the mark
+  // out of it, drop the mark if it is left empty, then let a normal paragraph
+  // break happen at the now-unmarked caret. Only handles a collapsed caret
+  // inside a mark; everything else falls through to native Enter. Returns true
+  // when it handled the key.
+  const exitMarkOnNewLine = () => {
+    const editor = editorRef.current;
+    if (!editor) return false;
+    const selection = window.getSelection();
+    if (!selection || !selection.rangeCount) return false;
+    const range = selection.getRangeAt(0);
+    if (!range.collapsed) return false;
+
+    let mark = range.startContainer;
+    while (mark && mark !== editor) {
+      if (mark.nodeType === 1 && mark.tagName === "MARK") break;
+      mark = mark.parentNode;
+    }
+    if (!mark || mark === editor || mark.tagName !== "MARK") return false;
+
+    runWithHistory(() => {
+      const parent = mark.parentNode;
+      const afterMark = mark.nextSibling;
+
+      // Move the part of the mark from the caret onward out, unmarked.
+      const tail = document.createRange();
+      tail.setStart(range.startContainer, range.startOffset);
+      tail.setEnd(mark, mark.childNodes.length);
+      const tailContent = tail.extractContents();
+      const firstTail = tailContent.firstChild;
+      parent.insertBefore(tailContent, afterMark);
+
+      // The mark is empty when the caret sat at its very start.
+      if (!mark.textContent) parent.removeChild(mark);
+
+      const caret = document.createRange();
+      if (firstTail) {
+        caret.setStartBefore(firstTail);
+      } else if (afterMark && afterMark.parentNode === parent) {
+        caret.setStartBefore(afterMark);
+      } else {
+        caret.selectNodeContents(parent);
+        caret.collapse(false);
+      }
+      caret.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(caret);
+
+      document.execCommand("insertParagraph");
+    });
+    return true;
+  };
+
   // Keyboard shortcuts (Cmd on Mac, Ctrl elsewhere): B/I/U formatting and
   // undo/redo. Undo/redo run our own snapshot history (see above) so they cover
   // every edit — typing, B/I/U, highlight and todo — consistently.
   const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+      if (exitMarkOnNewLine()) {
+        e.preventDefault();
+        return;
+      }
+    }
     if (!e.metaKey && !e.ctrlKey) return;
     const key = e.key.toLowerCase();
     if (key === "b") {
@@ -481,16 +549,18 @@ export default function RichTextEditor({
             </div>
           )}
         </div>
-        <button
-          type="button"
-          className="secondary"
-          onMouseDown={keepSelection}
-          onClick={handleInsertTodo}
-        >
-          + ToDo
-        </button>
+        {showTodoButton && (
+          <button
+            type="button"
+            className="secondary"
+            onMouseDown={keepSelection}
+            onClick={handleInsertTodo}
+          >
+            + ToDo
+          </button>
+        )}
       </div>
-      {showMemberDropdown && (
+      {showTodoButton && showMemberDropdown && (
         <div className="entry-list-detail-panel-member-dropdown">
           {members.map((m) => (
             <button

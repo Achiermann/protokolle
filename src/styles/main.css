@@ -109,6 +109,19 @@ h6 {
   color: var(--color-text);
 }
 
+/* Single source of truth for all table column-header typography.
+   Prototype: the entry-list-table header. Structural rules (padding,
+   borders) stay on each table's own th selector. */
+.table-header-cell {
+  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace !important;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-text);
+  letter-spacing: 0.05em;
+  text-align: left;
+  text-transform: none;
+}
+
 a {
   color: var(--color-text);
   text-decoration: underline;

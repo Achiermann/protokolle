@@ -49,7 +49,6 @@ export default function Forderbereiche() {
 
   const kantonOptions = buildKantonOptions(items);
   const filtered = applyFilters(items, activeKantons, activeProjekte);
-  const maxRows = Math.max(kantonOptions.length, PROJEKTE_OPTIONS.length);
 
   // *** FUNCTIONS/HANDLERS ***
   const toggle = (set, value, setter) => {
@@ -65,46 +64,42 @@ export default function Forderbereiche() {
         <h2>Förderbereiche</h2>
       </div>
 
-      <table className="forderbereiche-table">
-        <thead>
-          <tr>
-            <th>Kanton</th>
-            <th>Projekte</th>
-          </tr>
-        </thead>
-        <tbody>
-          {Array.from({ length: maxRows }).map((_, i) => (
-            <tr key={i}>
-              <td>
-                {kantonOptions[i] && (
-                  <button
-                    type="button"
-                    className={`forderbereiche-pill ${
-                      activeKantons.has(kantonOptions[i]) ? 'forderbereiche-pill-active' : ''
-                    }`}
-                    onClick={() => toggle(activeKantons, kantonOptions[i], setActiveKantons)}
-                  >
-                    {kantonOptions[i]}
-                  </button>
-                )}
-              </td>
-              <td>
-                {PROJEKTE_OPTIONS[i] && (
-                  <button
-                    type="button"
-                    className={`forderbereiche-pill ${
-                      activeProjekte.has(PROJEKTE_OPTIONS[i]) ? 'forderbereiche-pill-active' : ''
-                    }`}
-                    onClick={() => toggle(activeProjekte, PROJEKTE_OPTIONS[i], setActiveProjekte)}
-                  >
-                    {PROJEKTE_OPTIONS[i]}
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <div className="forderbereiche-table">
+        <div className="forderbereiche-headings">
+          <span>Kanton</span>
+          <span>Projekte</span>
+        </div>
+        <div className="forderbereiche-grid">
+          <div className="forderbereiche-col">
+            {kantonOptions.map((kanton) => (
+              <button
+                key={kanton}
+                type="button"
+                className={`forderbereiche-tile ${
+                  activeKantons.has(kanton) ? 'forderbereiche-tile-active' : ''
+                }`}
+                onClick={() => toggle(activeKantons, kanton, setActiveKantons)}
+              >
+                {kanton}
+              </button>
+            ))}
+          </div>
+          <div className="forderbereiche-col">
+            {PROJEKTE_OPTIONS.map((projekt) => (
+              <button
+                key={projekt}
+                type="button"
+                className={`forderbereiche-tile ${
+                  activeProjekte.has(projekt) ? 'forderbereiche-tile-active' : ''
+                }`}
+                onClick={() => toggle(activeProjekte, projekt, setActiveProjekte)}
+              >
+                {projekt}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
       <div className="forderbereiche-results">
         {filtered.length === 0 && (

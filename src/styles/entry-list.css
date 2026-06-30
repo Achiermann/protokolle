@@ -63,12 +63,6 @@
 .entry-list-table th {
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border);
-  text-align: left;
-  font-weight: 500;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  letter-spacing: 0.05em;
-  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
 }
 
 .entry-list-table-th-sortable {
@@ -98,7 +92,7 @@
 }
 
 .entry-list-item-title {
-  font-size: 1.0rem;
+  font-size: 1rem;
   font-weight: 400;
   color: var(--color-text);
 }
@@ -109,7 +103,7 @@
 }
 
 .entry-list-item-topic {
-  font-size: .8rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--color-text);
   display: inline;
@@ -122,7 +116,8 @@
 /* Mimic the inspector's monospace font on the topic text — JetBrains Mono has
    a true 600 weight, so the medium-bold actually renders */
 .main-content .entry-list-item-topic {
-  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+  font-family:
+    "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
 }
 
 /* Muted, dusty text tones on flat pastel fills. Fills are drawn from the
@@ -216,6 +211,15 @@
   font-size: 1.1rem;
   font-weight: 800;
   color: var(--color-text);
+}
+
+/* In "Offene Traktanden" the group title is a topic, so it is shown as the same
+   chip as entry topics. The compound selector only hits those titles (which also
+   carry entry-list-item-topic), leaving the entry-title headers untouched. */
+.grouped-list-traktanden-title.entry-list-item-topic {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .grouped-list-traktanden

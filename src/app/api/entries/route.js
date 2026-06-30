@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
+import { reconcileEntryTodos } from "@/lib/todoSync";
 
 // GET /api/entries
 export async function GET() {
@@ -130,6 +131,19 @@ export async function POST(request) {
 
     if (error) {
       throw error;
+    }
+
+    // Turn any /todo markers in the new notes into todo rows. Non-fatal: a
+    // failed sync must not fail entry creation.
+    try {
+      await reconcileEntryTodos(supabase, {
+        entryId: data.id,
+        workspaceId,
+        content: data.content,
+        dateCreated: data.date_created,
+      });
+    } catch (syncError) {
+      console.error("Todo sync failed on entry create:", syncError);
     }
 
     const { data: profile } = await supabase

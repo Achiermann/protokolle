@@ -13,6 +13,7 @@ import {
   Archive,
 } from "lucide-react";
 import EntryForm from "./EntryForm";
+import TodoForm from "./TodoForm";
 import RichTextEditor from "./RichTextEditor";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/entry-list.css";
@@ -52,6 +53,7 @@ export default function EntryList({
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [contentDraft, setContentDraft] = useState("");
   const [showEntryForm, setShowEntryForm] = useState(false);
+  const [showTodoForm, setShowTodoForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
 
   // *** FUNCTIONS/HANDLERS ***
@@ -436,6 +438,14 @@ export default function EntryList({
             <Plus size={18} />
             Neues Traktandum
           </button>
+          <button
+            type="button"
+            className="entry-list-new-button"
+            onClick={() => setShowTodoForm(true)}
+          >
+            <Plus size={18} />
+            Neues ToDo
+          </button>
         </>
       ) : (
         <div className="entry-list-toolbar">
@@ -511,7 +521,9 @@ export default function EntryList({
           <div className="grouped-list-traktanden">
             {groupedEntries.map((group) => (
               <div key={group.name} className="grouped-list-traktanden-section">
-                <strong className="grouped-list-traktanden-title">
+                <strong
+                  className={`grouped-list-traktanden-title entry-list-item-topic ${getTopicColorClass(group.name)}`}
+                >
                   {group.name}
                 </strong>
                 {group.items.map((entry) => (
@@ -601,24 +613,24 @@ export default function EntryList({
             <thead>
               <tr>
                 <th
-                  className="entry-list-table-th-sortable"
+                  className="entry-list-table-th-sortable table-header-cell"
                   onClick={() => handleSort("topic")}
                 >
                   Thema{sortIndicator("topic")}
                 </th>
                 <th
-                  className="entry-list-table-th-sortable"
+                  className="entry-list-table-th-sortable table-header-cell"
                   onClick={() => handleSort("title")}
                 >
                   Traktanden{sortIndicator("title")}
                 </th>
                 <th
-                  className="entry-list-table-th-sortable"
+                  className="entry-list-table-th-sortable table-header-cell"
                   onClick={() => handleSort("date")}
                 >
                   Datum{sortIndicator("date")}
                 </th>
-                <th>Aktionen</th>
+                <th className="table-header-cell">Aktionen</th>
               </tr>
             </thead>
             <tbody>
@@ -628,63 +640,63 @@ export default function EntryList({
                     className="entry-list-table-row"
                     onClick={() => handleRowClick(entry)}
                   >
-                      <td>
-                        <div
-                          className={
-                            "entry-list-item-topic " +
-                            getTopicColorClass(entry.topic)
-                          }
+                    <td>
+                      <div
+                        className={
+                          "entry-list-item-topic " +
+                          getTopicColorClass(entry.topic)
+                        }
+                      >
+                        {entry.topic || "-"}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="entry-list-item-title">
+                        {entry.item_title}
+                        {entry.created_by_name && (
+                          <span className="entry-list-item-creator">
+                            {" - "}
+                            {entry.created_by_name}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="entry-list-item-date">
+                        {formatDate(entry.date_created)}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="entry-list-item-actions">
+                        <button
+                          className="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingEntry(entry);
+                          }}
                         >
-                          {entry.topic || "-"}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="entry-list-item-title">
-                          {entry.item_title}
-                          {entry.created_by_name && (
-                            <span className="entry-list-item-creator">
-                              {" - "}
-                              {entry.created_by_name}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="entry-list-item-date">
-                          {formatDate(entry.date_created)}
-                        </div>
-                      </td>
-                      <td>
-                        <div className="entry-list-item-actions">
-                          <button
-                            className="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setEditingEntry(entry);
-                            }}
-                          >
-                            <Pencil size={16} />
-                          </button>
-                          <button
-                            className="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleArchive(entry.id);
-                            }}
-                          >
-                            <Archive size={16} />
-                          </button>
-                          <button
-                            className="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(entry.id);
-                            }}
-                          >
-                            <Trash size={16} />
-                          </button>
-                        </div>
-                      </td>
+                          <Pencil size={16} />
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleArchive(entry.id);
+                          }}
+                        >
+                          <Archive size={16} />
+                        </button>
+                        <button
+                          className="secondary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(entry.id);
+                          }}
+                        >
+                          <Trash size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                   {selectedId === entry.id && (
                     <tr className="entry-list-table-row-detail">
@@ -718,6 +730,17 @@ export default function EntryList({
               entry={editingEntry}
               onCancel={() => setEditingEntry(null)}
             />
+          </div>
+        </div>
+      )}
+
+      {showTodoForm && (
+        <div
+          className="entry-form-overlay"
+          onClick={() => setShowTodoForm(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <TodoForm onCancel={() => setShowTodoForm(false)} />
           </div>
         </div>
       )}

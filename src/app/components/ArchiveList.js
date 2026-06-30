@@ -177,10 +177,10 @@ export default function ArchiveList() {
         <table className="entry-list-table">
           <thead>
             <tr>
-              <th>Thema</th>
-              <th>Traktanden</th>
-              <th>Datum</th>
-              <th>Aktionen</th>
+              <th className="table-header-cell">Thema</th>
+              <th className="table-header-cell">Traktanden</th>
+              <th className="table-header-cell">Datum</th>
+              <th className="table-header-cell">Aktionen</th>
             </tr>
           </thead>
           <tbody>

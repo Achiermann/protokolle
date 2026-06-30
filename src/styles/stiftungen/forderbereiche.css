@@ -7,48 +7,80 @@
 }
 
 .forderbereiche-table {
-  width: 100%;
-  max-width: 720px;
-  border-collapse: collapse;
-  margin-bottom: var(--space-6);
+  width: 80%;
+  margin: 0 0 var(--space-6);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: rgb(239, 246, 255);
 }
 
-.forderbereiche-table th {
-  padding: var(--space-3) var(--space-4);
-  text-align: left;
+/* Column labels above the square */
+.forderbereiche-headings {
+  display: flex;
+  margin-bottom: var(--space-2);
+}
+
+.forderbereiche-headings span {
+  flex: 1 1 0;
+  padding: 0 var(--space-2);
+  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
   font-weight: 600;
   font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted);
-  border-bottom: 1px solid var(--color-border-soft);
-}
-
-.forderbereiche-table td {
-  padding: var(--space-2) var(--space-4);
-  vertical-align: top;
-  width: 50%;
-}
-
-.forderbereiche-pill {
-  padding: var(--space-1) var(--space-4);
-  font-size: 0.875rem;
-  background-color: var(--color-border-soft);
-  border-color: var(--color-border-soft);
   color: var(--color-muted);
 }
 
-.forderbereiche-pill:hover {
-  background-color: var(--color-border-soft);
-  border-color: var(--color-border);
-  color: var(--color-text);
+/* One big square, divided into tiles */
+.forderbereiche-grid {
+  display: flex;
+  height: 300px;
+  background-color: rgb(100, 185, 255);
+  /* border: 1px solid var(--color-border-soft); */
 }
 
-.forderbereiche-pill-active,
-.forderbereiche-pill-active:hover {
-  background-color: var(--color-brand);
-  border-color: var(--color-line);
-  color: var(--color-brand-contrast);
+.forderbereiche-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tiles mirror the entry-list topic badge:
+   unselected = .entry-list-item-topic-c3 (dusty blue),
+   selected   = .entry-list-item-topic-c0 (dusty pink).
+   Like the badge, no borders — only border-radius stays 0. */
+.forderbereiche-tile {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background-color: var(--marker-blue);
+  color: #4b6cb0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-align: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+/* Mirror .main-content .entry-list-item-topic so the badge's monospace
+   font wins over the global .main-content * font-family rule */
+.main-content .forderbereiche-tile {
+  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+}
+
+.forderbereiche-tile:hover:not(.forderbereiche-tile-active) {
+  background-color: #c5ddf8;
+}
+
+.forderbereiche-tile-active,
+.forderbereiche-tile-active:hover {
+  background-color: var(--marker-pink);
+  color: #a8478f;
 }
 
 .forderbereiche-results {
@@ -72,7 +104,7 @@
 .forderbereiche-list-item {
   padding: var(--space-3) var(--space-4);
   background-color: var(--color-bg);
-  border: 1px solid var(--color-border-soft);
+  /* border: 1px solid var(--color-border-soft); */
   border-radius: var(--radius);
 }
 
@@ -88,12 +120,7 @@
 
 /* *** MOBILE *** */
 @media (max-width: 768px) {
-  .forderbereiche-table td {
-    padding: var(--space-2);
-  }
-
-  .forderbereiche-pill {
-    padding: var(--space-1) var(--space-3);
-    font-size: 0.8125rem;
+  .forderbereiche-tile {
+    padding: var(--space-1) var(--space-2);
   }
 }

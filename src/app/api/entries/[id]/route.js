@@ -1,32 +1,33 @@
-import { NextResponse } from 'next/server';
-import { createSupabaseServerClient } from '@/db/supabase-server';
-import { cookies } from 'next/headers';
+import { NextResponse } from "next/server";
+import { createSupabaseServerClient } from "@/db/supabase-server";
+import { cookies } from "next/headers";
+import { reconcileEntryTodos } from "@/lib/todoSync";
 
 // GET /api/entries/:id
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
     const cookieStore = await cookies();
-    const workspaceId = cookieStore.get('workspace_id')?.value;
+    const workspaceId = cookieStore.get("workspace_id")?.value;
 
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
-      .schema('protokoll_app')
-      .from('entries')
-      .select('*')
-      .eq('id', id)
-      .eq('workspace_id', workspaceId)
+      .schema("protokoll_app")
+      .from("entries")
+      .select("*")
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
       .single();
 
     if (error || !data) {
       return NextResponse.json(
         {
           error: {
-            code: 'NOT_FOUND',
-            message: 'Entry not found',
+            code: "NOT_FOUND",
+            message: "Entry not found",
           },
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -35,11 +36,11 @@ export async function GET(request, { params }) {
     return NextResponse.json(
       {
         error: {
-          code: 'FETCH_ERROR',
-          message: error.message || 'Failed to fetch entry',
+          code: "FETCH_ERROR",
+          message: error.message || "Failed to fetch entry",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -50,18 +51,18 @@ export async function PATCH(request, { params }) {
     const { id } = await params;
     const body = await request.json();
     const cookieStore = await cookies();
-    const workspaceId = cookieStore.get('workspace_id')?.value;
+    const workspaceId = cookieStore.get("workspace_id")?.value;
 
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
-      .schema('protokoll_app')
-      .from('entries')
+      .schema("protokoll_app")
+      .from("entries")
       .update({
         ...body,
         updated_at: new Date().toISOString(),
       })
-      .eq('id', id)
-      .eq('workspace_id', workspaceId)
+      .eq("id", id)
+      .eq("workspace_id", workspaceId)
       .select()
       .single();
 
@@ -69,12 +70,27 @@ export async function PATCH(request, { params }) {
       return NextResponse.json(
         {
           error: {
-            code: 'NOT_FOUND',
-            message: 'Entry not found',
+            code: "NOT_FOUND",
+            message: "Entry not found",
           },
         },
-        { status: 404 }
+        { status: 404 },
       );
+    }
+
+    // Re-sync todos whenever the notes changed. Non-fatal: a failed sync must
+    // not fail the entry update.
+    if ("content" in body) {
+      try {
+        await reconcileEntryTodos(supabase, {
+          entryId: data.id,
+          workspaceId,
+          content: data.content,
+          dateCreated: data.date_created,
+        });
+      } catch (syncError) {
+        console.error("Todo sync failed on entry update:", syncError);
+      }
     }
 
     return NextResponse.json({ item: data });
@@ -82,11 +98,11 @@ export async function PATCH(request, { params }) {
     return NextResponse.json(
       {
         error: {
-          code: 'UPDATE_ERROR',
-          message: error.message || 'Failed to update entry',
+          code: "UPDATE_ERROR",
+          message: error.message || "Failed to update entry",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -96,25 +112,25 @@ export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
     const cookieStore = await cookies();
-    const workspaceId = cookieStore.get('workspace_id')?.value;
+    const workspaceId = cookieStore.get("workspace_id")?.value;
 
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase
-      .schema('protokoll_app')
-      .from('entries')
+      .schema("protokoll_app")
+      .from("entries")
       .delete()
-      .eq('id', id)
-      .eq('workspace_id', workspaceId);
+      .eq("id", id)
+      .eq("workspace_id", workspaceId);
 
     if (error) {
       return NextResponse.json(
         {
           error: {
-            code: 'NOT_FOUND',
-            message: 'Entry not found',
+            code: "NOT_FOUND",
+            message: "Entry not found",
           },
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -123,11 +139,11 @@ export async function DELETE(request, { params }) {
     return NextResponse.json(
       {
         error: {
-          code: 'DELETE_ERROR',
-          message: error.message || 'Failed to delete entry',
+          code: "DELETE_ERROR",
+          message: error.message || "Failed to delete entry",
         },
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

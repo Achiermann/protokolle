@@ -96,16 +96,16 @@ export default function Eingabefristen() {
         <table className="eingabefristen-table">
           <thead>
             <tr>
-              <th>Eingabefrist</th>
-              <th>Förderstelle</th>
-              <th>Förderformat</th>
+              <th className="table-header-cell">Eingabefrist</th>
+              <th className="table-header-cell">Förderstelle</th>
+              <th className="table-header-cell">Förderformat</th>
             </tr>
           </thead>
           <tbody>
             {grouped.years.map((yearGroup) => (
               <Fragment key={yearGroup.year}>
                 <tr className="eingabefristen-year-header">
-                  <th colSpan={3}>
+                  <th colSpan={3} className="table-header-cell">
                     <span className="entry-list-item-topic entry-list-item-topic-c4">
                       {yearGroup.year}
                     </span>
@@ -114,7 +114,7 @@ export default function Eingabefristen() {
                 {yearGroup.months.map((g) => (
                   <Fragment key={`${yearGroup.year}-${g.month}`}>
                     <tr className="eingabefristen-month-header">
-                      <th colSpan={3}>
+                      <th colSpan={3} className="table-header-cell">
                         <span className="entry-list-item-topic entry-list-item-topic-c2">
                           {MONTHS_DE[parseInt(g.month, 10) - 1]}
                         </span>
@@ -128,7 +128,7 @@ export default function Eingabefristen() {
             {grouped.open.length > 0 && (
               <Fragment>
                 <tr className="eingabefristen-month-header">
-                  <th colSpan={3}>
+                  <th colSpan={3} className="table-header-cell">
                     <span className="entry-list-item-topic entry-list-item-topic-c2">
                       Ganzjährig offen
                     </span>

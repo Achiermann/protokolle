@@ -103,9 +103,9 @@ export default function MembersList() {
         <table className="members-list-table">
           <thead>
             <tr>
-              <th>E-Mail</th>
-              <th>Rolle</th>
-              {callerRole === "owner" && <th>Aktionen</th>}
+              <th className="table-header-cell">E-Mail</th>
+              <th className="table-header-cell">Rolle</th>
+              {callerRole === "owner" && <th className="table-header-cell">Aktionen</th>}
             </tr>
           </thead>
           <tbody>

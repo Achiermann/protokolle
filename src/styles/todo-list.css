@@ -6,6 +6,19 @@
   margin-bottom: var(--space-5);
 }
 
+.todo-list-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family:
+    JetBrains Mono,
+    Menlo,
+    Monaco,
+    SF Mono,
+    Courier New,
+    monospace;
+}
+
 .todo-list-table {
   width: 100%;
   border-collapse: collapse;
@@ -13,21 +26,30 @@
   border: none;
   border-radius: var(--radius-lg);
   overflow: hidden;
+  /* Fixed layout so all three bucket tables share identical column widths
+     regardless of their own content (the "Offen" layout is the reference). */
+  table-layout: fixed;
+  margin-bottom: var(--space-6);
+}
+
+/* Column widths, applied to every bucket table via the shared class. The "ToDo"
+   column (3) is left unset so it absorbs the remaining width. */
+.todo-list-table th:nth-child(2),
+.todo-list-table th:nth-child(4) {
+  width: 9rem;
+}
+
+.todo-list-table th:nth-child(5) {
+  width: 7.5rem;
 }
 
 .todo-list-table thead {
-  background-color: var(--color-surface);
-  border-bottom: 2px solid var(--color-border);
+  background-color: transparent;
 }
 
 .todo-list-table th {
-  padding: var(--space-4);
-  text-align: left;
-  font-weight: 600;
-  color: var(--color-text);
-  font-size: 0.875rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
 }
 
 .todo-list-table td {
@@ -39,15 +61,9 @@
 }
 
 .todo-list-item-title {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 400;
   color: var(--color-text);
-}
-
-.todo-list-item-todo {
-  font-size: 0.875rem;
-  color: var(--color-text);
-  white-space: pre-wrap;
 }
 
 .todo-list-item-date {
@@ -66,9 +82,44 @@
   margin-top: var(--space-6);
 }
 
+/* Clickable rows unfold the comment panel, mirroring the entry list. */
+.todo-list-table-row {
+  cursor: pointer;
+}
+
+.todo-list-item-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.todo-list-item-title-icon {
+  flex-shrink: 0;
+  color: rgb(0, 0, 0);
+}
+
+.todo-list-table-row-detail td {
+  padding: 0;
+}
+
+.todo-list-table-row-detail .entry-list-detail-panel {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: var(--space-2) var(--space-4);
+}
+
 .todo-list-table-th-check,
 .todo-list-table-td-check {
-  width: 1px;
+  width: 3.25rem;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.todo-list-table-th-actions,
+.todo-list-table-td-actions {
+  width: 3.5rem;
   white-space: nowrap;
   text-align: center;
 }
@@ -85,13 +136,22 @@
   cursor: pointer;
 }
 
-.todo-list-table-td-check button {
-  padding: var(--space-1) var(--space-2);
+/* Give the check/action buttons the exact 1.1rem footprint of the checkbox so
+   every row keeps the same height (identical columns => identical row height). */
+.todo-list-table-td-check button,
+.todo-list-table-td-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  padding: 0;
+  box-sizing: border-box;
+  vertical-align: middle;
 }
 
-.todo-list-row-done .todo-list-item-title {
-  text-decoration: line-through;
-  color: var(--color-muted);
+.todo-list-table-td-check input[type="checkbox"] {
+  vertical-align: middle;
 }
 
 /* *** MOBILE *** */

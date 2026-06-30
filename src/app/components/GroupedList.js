@@ -236,9 +236,9 @@ export default function GroupedList({ field, title, emptyLabel }) {
         <table className="entry-list-table">
           <thead>
             <tr>
-              <th>{title}</th>
-              <th>Anzahl</th>
-              <th>Aktionen</th>
+              <th className="table-header-cell">{title}</th>
+              <th className="table-header-cell">Anzahl</th>
+              <th className="table-header-cell">Aktionen</th>
             </tr>
           </thead>
           <tbody>

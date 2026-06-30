@@ -1,21 +1,50 @@
 "use client";
 
-import { useMemo } from "react";
-import { RotateCcw } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  RotateCcw,
+  MessageSquareCheck,
+  Pencil,
+  Trash,
+  Plus,
+} from "lucide-react";
 import toast from "react-hot-toast";
-import { useEntriesStore } from "../stores/useEntriesStore";
-import { createTodoRegex } from "../../lib/richText";
+import { useTodosStore } from "../stores/useTodosStore";
+import RichTextEditor from "./RichTextEditor";
+import TodoForm from "./TodoForm";
+import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/todo-list.css";
-// Member names reuse the entry-list topic highlighter marker.
+// Member names and the comment panel reuse entry-list styling.
 import "../../styles/entry-list.css";
+
+// A comment counts as present only when it has visible text (an empty editor can
+// emit stray markup like <br>). This drives the "in Bearbeitung" bucket and the
+// message icon.
+const commentText = (comment) =>
+  (comment || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/&[a-z]+;|&#\d+;/gi, " ")
+    .trim();
+const hasComment = (todo) => commentText(todo.comment).length > 0;
 
 export default function TodoList() {
   // *** VARIABLES ***
-  const entries = useEntriesStore((state) => state.entries);
-  const loading = useEntriesStore((state) => state.loading);
-  const updateEntry = useEntriesStore((state) => state.updateEntry);
+  const todos = useTodosStore((state) => state.todos);
+  const loading = useTodosStore((state) => state.loading);
+  const ensureTodos = useTodosStore((state) => state.ensureTodos);
+  const updateTodo = useTodosStore((state) => state.updateTodo);
+  const deleteTodo = useTodosStore((state) => state.deleteTodo);
+
+  const [selectedId, setSelectedId] = useState(null);
+  const [commentDraft, setCommentDraft] = useState("");
+  const [isEditingComment, setIsEditingComment] = useState(false);
+  const [showTodoForm, setShowTodoForm] = useState(false);
 
   // *** FUNCTIONS/HANDLERS ***
+  useEffect(() => {
+    ensureTodos();
+  }, [ensureTodos]);
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString("de-DE", {
       year: "numeric",
@@ -48,46 +77,83 @@ export default function TodoList() {
     return `entry-list-item-topic-c${index}`;
   };
 
-  const todos = useMemo(() => {
-    const out = [];
-    const regex = createTodoRegex();
-    for (const entry of entries) {
-      if (!entry.content) continue;
-      let match;
-      regex.lastIndex = 0;
-      while ((match = regex.exec(entry.content)) !== null) {
-        out.push({
-          id: `${entry.id}-${match.index}`,
-          entryId: entry.id,
-          matchStart: match.index,
-          prefix: `/${match[1]}`,
-          isDone: match[1] === "done",
-          assignee: match[2].replace(/_/g, " "),
-          title: match[3].trim(),
-          topic: entry.topic,
-          date: entry.date_created,
-        });
-      }
+  // Identical hash to EntryList.getTopicColorClass so a topic shows the same
+  // colour chip here as it does in the entry list.
+  const getTopicColorClass = (topic) => {
+    if (!topic) return "";
+    let hash = 0;
+    for (let i = 0; i < topic.length; i++) {
+      hash = (hash * 31 + topic.charCodeAt(i)) | 0;
     }
-    return out;
-  }, [entries]);
+    return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
+  };
 
-  const activeTodos = useMemo(() => todos.filter((t) => !t.isDone), [todos]);
-  const doneTodos = useMemo(() => todos.filter((t) => t.isDone), [todos]);
+  // "Offen" holds every open todo (commented or not); commented ones just show
+  // the message icon. "Erledigt" holds the done ones.
+  const openTodos = useMemo(() => todos.filter((t) => !t.done), [todos]);
+  const doneTodos = useMemo(() => todos.filter((t) => t.done), [todos]);
 
-  const toggleDone = async (todo) => {
-    const entry = entries.find((e) => e.id === todo.entryId);
-    if (!entry || !entry.content) return;
-    const content = entry.content;
-    const replacement = todo.isDone ? "/todo" : "/done";
-    const newContent =
-      content.slice(0, todo.matchStart) +
-      replacement +
-      content.slice(todo.matchStart + todo.prefix.length);
+  const handleTitleClick = (todo) => {
+    if (selectedId === todo.id) {
+      setSelectedId(null);
+      setIsEditingComment(false);
+    } else {
+      setSelectedId(todo.id);
+      setCommentDraft(todo.comment || "");
+      // A commented todo unfolds to its read view (with an edit button); an
+      // uncommented one opens straight into the editor.
+      setIsEditingComment(!hasComment(todo));
+    }
+  };
+
+  const handleEditComment = (todo) => {
+    setCommentDraft(todo.comment || "");
+    setIsEditingComment(true);
+  };
+
+  const handleToggleDone = async (todo) => {
     try {
-      await updateEntry(todo.entryId, { content: newContent });
+      await updateTodo(todo.id, { done: !todo.done });
     } catch (error) {
       toast.error("Aktualisierung fehlgeschlagen");
+    }
+  };
+
+  const handleDelete = async (todo) => {
+    if (!confirm("ToDo wirklich löschen?")) return;
+    try {
+      await deleteTodo(todo.id);
+      if (selectedId === todo.id) setSelectedId(null);
+      toast.success("ToDo gelöscht");
+    } catch (error) {
+      toast.error("ToDo konnte nicht gelöscht werden");
+    }
+  };
+
+  const handleSaveComment = async () => {
+    try {
+      const updated = await updateTodo(selectedId, { comment: commentDraft });
+      // Stay unfolded showing the saved comment as read text; if it was cleared
+      // there is nothing to read, so collapse.
+      if (updated && hasComment(updated)) {
+        setIsEditingComment(false);
+      } else {
+        setSelectedId(null);
+        setIsEditingComment(false);
+      }
+      toast.success("Kommentar gespeichert");
+    } catch (error) {
+      toast.error("Kommentar konnte nicht gespeichert werden");
+    }
+  };
+
+  const handleCancelComment = (todo) => {
+    // Back to read view if there is a saved comment to show, else collapse.
+    if (hasComment(todo)) {
+      setIsEditingComment(false);
+    } else {
+      setSelectedId(null);
+      setIsEditingComment(false);
     }
   };
 
@@ -103,106 +169,190 @@ export default function TodoList() {
     );
   };
 
+  const renderCommentPanel = (todo) => (
+    <div className="entry-list-detail-panel">
+      <div className="entry-list-detail-panel-content">
+        {isEditingComment ? (
+          <>
+            <RichTextEditor
+              key={todo.id}
+              value={todo.comment || ""}
+              onChange={setCommentDraft}
+              showTodoButton={false}
+              placeholder="Kommentar schreiben..."
+            />
+            <div className="entry-list-detail-panel-content-actions">
+              <button
+                type="button"
+                className="primary"
+                onClick={handleSaveComment}
+              >
+                Speichern
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => handleCancelComment(todo)}
+              >
+                Abbrechen
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="edit-hover-wrapper">
+            <div
+              className="entry-list-detail-panel-content-text"
+              dangerouslySetInnerHTML={{
+                __html: decorateTodos(sanitizeHtml(todo.comment)),
+              }}
+            />
+            <button
+              type="button"
+              className="secondary edit-hover-button"
+              onClick={() => handleEditComment(todo)}
+            >
+              <Pencil size={16} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // One table for each bucket. The "done" variant swaps the toggle checkbox for
+  // a restore button; every row's title unfolds its comment panel.
+  const renderTodoTable = (list, variant) => (
+    <table className="todo-list-table">
+      <thead>
+        <tr>
+          <th className="todo-list-table-th-check table-header-cell"></th>
+          <th className="table-header-cell">Für</th>
+          <th className="table-header-cell">ToDo</th>
+          <th className="table-header-cell">Thema</th>
+          <th className="table-header-cell">Datum</th>
+          <th className="todo-list-table-th-actions table-header-cell"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {list.map((todo) => (
+          <React.Fragment key={todo.id}>
+            <tr
+              className="todo-list-table-row"
+              onClick={() => handleTitleClick(todo)}
+            >
+              <td
+                className="todo-list-table-td-check"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {variant === "done" ? (
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => handleToggleDone(todo)}
+                    title="Zurück zu offen"
+                  >
+                    <RotateCcw size={14} />
+                  </button>
+                ) : (
+                  <input
+                    type="checkbox"
+                    checked={false}
+                    onChange={() => handleToggleDone(todo)}
+                  />
+                )}
+              </td>
+              <td>{renderMemberCell(todo)}</td>
+              <td>
+                <div className="todo-list-item-title-wrap">
+                  {hasComment(todo) && (
+                    <MessageSquareCheck
+                      size={16}
+                      className="todo-list-item-title-icon"
+                    />
+                  )}
+                  <span className="todo-list-item-title">{todo.title}</span>
+                </div>
+              </td>
+              <td>
+                <div
+                  className={`entry-list-item-topic ${getTopicColorClass(todo.topic)}`}
+                >
+                  {todo.topic || "-"}
+                </div>
+              </td>
+              <td>
+                <div className="todo-list-item-date">
+                  {formatDate(todo.date_created)}
+                </div>
+              </td>
+              <td
+                className="todo-list-table-td-actions"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => handleDelete(todo)}
+                  title="ToDo löschen"
+                >
+                  <Trash size={14} />
+                </button>
+              </td>
+            </tr>
+            {selectedId === todo.id && (
+              <tr className="todo-list-table-row-detail">
+                <td colSpan={6}>{renderCommentPanel(todo)}</td>
+              </tr>
+            )}
+          </React.Fragment>
+        ))}
+      </tbody>
+    </table>
+  );
+
   return (
     <div className="todo-list">
+      <button
+        type="button"
+        className="entry-list-new-button"
+        onClick={() => setShowTodoForm(true)}
+      >
+        <Plus size={18} />
+        Neues ToDo
+      </button>
+
       <div className="todo-list-header">
-        <h2>ToDo</h2>
+        <h2>Offen</h2>
       </div>
 
       {loading && <p>ToDos werden geladen...</p>}
 
-      {!loading && activeTodos.length === 0 && (
+      {!loading && todos.length === 0 && (
         <div className="todo-list-empty">
           <p>Noch keine ToDos.</p>
         </div>
       )}
 
-      {!loading && activeTodos.length > 0 && (
-        <table className="todo-list-table">
-          <thead>
-            <tr>
-              <th className="todo-list-table-th-check"></th>
-              <th>Für</th>
-              <th>ToDo</th>
-              <th>Thema</th>
-              <th>Datum</th>
-            </tr>
-          </thead>
-          <tbody>
-            {activeTodos.map((todo) => (
-              <tr key={todo.id}>
-                <td className="todo-list-table-td-check">
-                  <input
-                    type="checkbox"
-                    checked={false}
-                    onChange={() => toggleDone(todo)}
-                  />
-                </td>
-                <td>{renderMemberCell(todo)}</td>
-                <td>
-                  <div className="todo-list-item-title">{todo.title}</div>
-                </td>
-                <td>
-                  <div className="todo-list-item-todo">{todo.topic || "-"}</div>
-                </td>
-                <td>
-                  <div className="todo-list-item-date">
-                    {formatDate(todo.date)}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      {!loading && openTodos.length > 0 && renderTodoTable(openTodos, "open")}
 
       {!loading && doneTodos.length > 0 && (
         <>
           <div className="todo-list-header todo-list-header-done">
             <h2>Erledigt</h2>
           </div>
-          <table className="todo-list-table">
-            <thead>
-              <tr>
-                <th className="todo-list-table-th-check"></th>
-                <th>Für</th>
-                <th>ToDo</th>
-                <th>Thema</th>
-                <th>Datum</th>
-              </tr>
-            </thead>
-            <tbody>
-              {doneTodos.map((todo) => (
-                <tr key={todo.id} className="todo-list-row-done">
-                  <td className="todo-list-table-td-check">
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => toggleDone(todo)}
-                      title="Zurück zu offen"
-                    >
-                      <RotateCcw size={16} />
-                    </button>
-                  </td>
-                  <td>{renderMemberCell(todo)}</td>
-                  <td>
-                    <div className="todo-list-item-title">{todo.title}</div>
-                  </td>
-                  <td>
-                    <div className="todo-list-item-todo">
-                      {todo.topic || "-"}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="todo-list-item-date">
-                      {formatDate(todo.date)}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {renderTodoTable(doneTodos, "done")}
         </>
+      )}
+
+      {showTodoForm && (
+        <div
+          className="entry-form-overlay"
+          onClick={() => setShowTodoForm(false)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <TodoForm onCancel={() => setShowTodoForm(false)} />
+          </div>
+        </div>
       )}
     </div>
   );
