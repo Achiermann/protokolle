@@ -27,7 +27,6 @@ Constraints: Follow `CLAUDE.md` and `STYLE-GUIDE.md`. JS only, CSS Modules only.
 
 ### Git workflow (every task)
 
-1. Create branch: `feat|fix|chore/<scope>-<short-slug>`.
+1. Work directly on `main` — no branches, no PRs.
 2. Make the change in small commits using Conventional Commits.
-3. Push branch immediately after the first commit.
-4. Open a PR to `main` with a brief summary and checklist.
+3. Push to `main` after committing (`git add -A && git commit && git push`).

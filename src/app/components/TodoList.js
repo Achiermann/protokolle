@@ -7,6 +7,8 @@ import {
   Pencil,
   Trash,
   Plus,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTodosStore } from "../stores/useTodosStore";
@@ -14,8 +16,9 @@ import RichTextEditor from "./RichTextEditor";
 import TodoForm from "./TodoForm";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/todo-list.css";
-// Member names and the comment panel reuse entry-list styling.
+// Member names, the comment panel, toolbar and filters reuse entry-list styling.
 import "../../styles/entry-list.css";
+import "../../styles/filters.css";
 
 // A comment counts as present only when it has visible text (an empty editor can
 // emit stray markup like <br>). This drives the "in Bearbeitung" bucket and the
@@ -26,6 +29,26 @@ const commentText = (comment) =>
     .replace(/&[a-z]+;|&#\d+;/gi, " ")
     .trim();
 const hasComment = (todo) => commentText(todo.comment).length > 0;
+
+// Lowercased plain-text blob of a todo's searchable fields (title, assignee,
+// topic, comment). Mirrors EntryList.getSearchableText so the word filter
+// behaves the same in both lists.
+const getSearchableText = (todo) =>
+  [todo.title, todo.assignee, todo.topic, commentText(todo.comment)]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+// Normalise to a single key so different casings of the same person map to
+// the same colour and the same display label.
+const normalizeMemberKey = (name) => (name || "").trim().toLowerCase();
+
+const getSortValue = (todo, column) => {
+  if (column === "assignee") return normalizeMemberKey(todo.assignee);
+  if (column === "title") return (todo.title || "").toLowerCase();
+  if (column === "topic") return (todo.topic || "").toLowerCase();
+  return new Date(todo.date_created).getTime();
+};
 
 export default function TodoList() {
   // *** VARIABLES ***
@@ -39,6 +62,12 @@ export default function TodoList() {
   const [commentDraft, setCommentDraft] = useState("");
   const [isEditingComment, setIsEditingComment] = useState(false);
   const [showTodoForm, setShowTodoForm] = useState(false);
+  const [showDone, setShowDone] = useState(false);
+  const [filterSearch, setFilterSearch] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
+  const [sortBy, setSortBy] = useState("date");
+  const [sortDir, setSortDir] = useState("desc");
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
@@ -52,10 +81,6 @@ export default function TodoList() {
       day: "2-digit",
     });
   };
-
-  // Normalise to a single key so different casings of the same person map to
-  // the same colour and the same display label.
-  const normalizeMemberKey = (name) => (name || "").trim().toLowerCase();
 
   // Display label: every name starts with a capital letter.
   const formatMemberName = (name) =>
@@ -88,10 +113,72 @@ export default function TodoList() {
     return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
   };
 
+  const handleClearFilters = () => {
+    setFilterSearch("");
+    setFilterDateFrom("");
+    setFilterDateTo("");
+    setSortBy("date");
+    setSortDir("desc");
+  };
+
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortDir(sortDir === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(column);
+      setSortDir(column === "date" ? "desc" : "asc");
+    }
+  };
+
+  const sortIndicator = (column) => {
+    if (sortBy !== column) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  };
+
+  // Filters and sorting apply to the whole list before it is split into the
+  // "Offen" and "Erledigt" buckets, so both tables share one state.
+  const filteredAndSortedTodos = useMemo(() => {
+    let result = [...todos];
+
+    if (filterSearch.trim()) {
+      const searchTerm = filterSearch.trim().toLowerCase();
+      result = result.filter((todo) =>
+        getSearchableText(todo).includes(searchTerm),
+      );
+    }
+
+    if (filterDateFrom) {
+      const fromDate = new Date(filterDateFrom);
+      result = result.filter((todo) => new Date(todo.date_created) >= fromDate);
+    }
+
+    if (filterDateTo) {
+      const toDate = new Date(filterDateTo);
+      toDate.setHours(23, 59, 59, 999);
+      result = result.filter((todo) => new Date(todo.date_created) <= toDate);
+    }
+
+    result.sort((a, b) => {
+      const valA = getSortValue(a, sortBy);
+      const valB = getSortValue(b, sortBy);
+      if (valA < valB) return sortDir === "asc" ? -1 : 1;
+      if (valA > valB) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [todos, filterSearch, filterDateFrom, filterDateTo, sortBy, sortDir]);
+
   // "Offen" holds every open todo (commented or not); commented ones just show
   // the message icon. "Erledigt" holds the done ones.
-  const openTodos = useMemo(() => todos.filter((t) => !t.done), [todos]);
-  const doneTodos = useMemo(() => todos.filter((t) => t.done), [todos]);
+  const openTodos = useMemo(
+    () => filteredAndSortedTodos.filter((t) => !t.done),
+    [filteredAndSortedTodos],
+  );
+  const doneTodos = useMemo(
+    () => filteredAndSortedTodos.filter((t) => t.done),
+    [filteredAndSortedTodos],
+  );
 
   const handleTitleClick = (todo) => {
     if (selectedId === todo.id) {
@@ -226,10 +313,30 @@ export default function TodoList() {
       <thead>
         <tr>
           <th className="todo-list-table-th-check table-header-cell"></th>
-          <th className="table-header-cell">Für</th>
-          <th className="table-header-cell">ToDo</th>
-          <th className="table-header-cell">Thema</th>
-          <th className="table-header-cell">Datum</th>
+          <th
+            className="entry-list-table-th-sortable table-header-cell"
+            onClick={() => handleSort("assignee")}
+          >
+            Für{sortIndicator("assignee")}
+          </th>
+          <th
+            className="entry-list-table-th-sortable table-header-cell"
+            onClick={() => handleSort("title")}
+          >
+            ToDo{sortIndicator("title")}
+          </th>
+          <th
+            className="entry-list-table-th-sortable table-header-cell"
+            onClick={() => handleSort("topic")}
+          >
+            Thema{sortIndicator("topic")}
+          </th>
+          <th
+            className="entry-list-table-th-sortable table-header-cell"
+            onClick={() => handleSort("date")}
+          >
+            Datum{sortIndicator("date")}
+          </th>
           <th className="todo-list-table-th-actions table-header-cell"></th>
         </tr>
       </thead>
@@ -321,8 +428,52 @@ export default function TodoList() {
         Neues ToDo
       </button>
 
-      <div className="todo-list-header">
-        <h2>Offen</h2>
+      <div className="entry-list-toolbar">
+        <div className="todo-list-header">
+          <h2>Offen</h2>
+        </div>
+        <div className="filters-container">
+          <div className="filter-field">
+            <label htmlFor="todo-filter-search">Suche</label>
+            <input
+              type="text"
+              id="todo-filter-search"
+              value={filterSearch}
+              onChange={(e) => setFilterSearch(e.target.value)}
+              placeholder="Nach Begriff filtern..."
+            />
+          </div>
+
+          <div className="filter-field">
+            <label htmlFor="todo-filter-date-from">Datum von</label>
+            <input
+              type="date"
+              id="todo-filter-date-from"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-field">
+            <label htmlFor="todo-filter-date-to">Datum bis</label>
+            <input
+              type="date"
+              id="todo-filter-date-to"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+            />
+          </div>
+
+          <div className="filter-actions">
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleClearFilters}
+            >
+              Filter zurücksetzen
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading && <p>ToDos werden geladen...</p>}
@@ -333,14 +484,24 @@ export default function TodoList() {
         </div>
       )}
 
+      {!loading && todos.length > 0 && filteredAndSortedTodos.length === 0 && (
+        <div className="todo-list-empty">
+          <p>Keine ToDos entsprechen deinen Filtern.</p>
+        </div>
+      )}
+
       {!loading && openTodos.length > 0 && renderTodoTable(openTodos, "open")}
 
       {!loading && doneTodos.length > 0 && (
         <>
-          <div className="todo-list-header todo-list-header-done">
-            <h2>Erledigt</h2>
+          <div
+            className="todo-list-header todo-list-header-done"
+            onClick={() => setShowDone(!showDone)}
+          >
+            <h2>Erledigt ({doneTodos.length})</h2>
+            {showDone ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
-          {renderTodoTable(doneTodos, "done")}
+          {showDone && renderTodoTable(doneTodos, "done")}
         </>
       )}
 
