@@ -1,9 +1,24 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import toast from "react-hot-toast";
+import {
+  DndContext,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   Pencil,
   MailPlus,
@@ -32,6 +47,31 @@ const getSearchableText = (entry) => {
     .toLowerCase();
 };
 
+// Sortable wrapper for one Posteingang block (card + its unfolded editor move
+// as one). `children` is a render prop receiving the drag listeners/attributes
+// so they can be attached to the card row only — holding inside the editor
+// panel must never start a drag.
+function SortablePosteingangItem({ id, children }) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(isDragging && { position: "relative", zIndex: 2, opacity: 0.75 }),
+  };
+  return (
+    <div ref={setNodeRef} style={style}>
+      {children({ ...attributes, ...listeners })}
+    </div>
+  );
+}
+
 export default function EntryList({
   contentFilter,
   title = "Alle Traktanden",
@@ -41,6 +81,9 @@ export default function EntryList({
   const loading = useEntriesStore((state) => state.loading);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
+  const reorderPosteingang = useEntriesStore(
+    (state) => state.reorderPosteingang,
+  );
   const members = useWorkspacesStore((state) => state.members);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
 
@@ -55,6 +98,23 @@ export default function EntryList({
   const [showEntryForm, setShowEntryForm] = useState(false);
   const [showTodoForm, setShowTodoForm] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+
+  // True while (and briefly after) a Posteingang drag, so the card's onClick
+  // doesn't toggle the editor when the user releases a drag.
+  const justDraggedRef = useRef(false);
+
+  // Mouse: dragging starts as soon as the pressed card moves 5px, so it feels
+  // instant; a clean click (no movement) still opens the editor. Touch keeps
+  // press-and-hold instead — instant activation would hijack finger-scrolling
+  // over the cards.
+  const dragSensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 8 },
+    }),
+  );
 
   // *** FUNCTIONS/HANDLERS ***
   const selectedEntry = useMemo(
@@ -122,7 +182,21 @@ export default function EntryList({
 
   const handleSendToPosteingang = async (id) => {
     try {
-      await updateEntry(id, { in_posteingang: true });
+      // New arrivals go to the end of the Posteingang: one past the highest
+      // position in use (re-added items don't remember their old spot).
+      const nextPosition =
+        entries.reduce(
+          (max, entry) =>
+            isInPosteingang(entry) &&
+            typeof entry.posteingang_position === "number"
+              ? Math.max(max, entry.posteingang_position)
+              : max,
+          -1,
+        ) + 1;
+      await updateEntry(id, {
+        in_posteingang: true,
+        posteingang_position: nextPosition,
+      });
       toast.success("In Posteingang verschoben");
     } catch (error) {
       toast.error("Verschieben fehlgeschlagen");
@@ -258,12 +332,133 @@ export default function EntryList({
         map.get(group).push(entry);
       }
     }
+    // The Posteingang always shows the manual drag order. Items that never got
+    // a position (NULL) go to the end, keeping their date order among
+    // themselves (Array.sort is stable); they get real positions on the first
+    // drag.
+    posteingang.sort((a, b) => {
+      const posA = a.posteingang_position ?? Number.POSITIVE_INFINITY;
+      const posB = b.posteingang_position ?? Number.POSITIVE_INFINITY;
+      return posA === posB ? 0 : posA - posB;
+    });
     const groups = Array.from(map.entries()).map(([name, items]) => ({
       name,
       items,
     }));
     return [{ name: "posteingang", items: posteingang }, ...groups];
   }, [contentFilter, filteredAndSortedEntries]);
+
+  const handleDragStart = () => {
+    justDraggedRef.current = true;
+  };
+
+  // Reset the click guard shortly after the drag settles — the browser fires
+  // the card's click right after the drop, and that click must be swallowed.
+  const releaseClickGuard = () => {
+    window.setTimeout(() => {
+      justDraggedRef.current = false;
+    }, 150);
+  };
+
+  const handlePosteingangDragEnd = ({ active, over }) => {
+    releaseClickGuard();
+    if (!over || active.id === over.id) return;
+    const items =
+      groupedEntries.find((group) => group.name === "posteingang")?.items ?? [];
+    const oldIndex = items.findIndex((entry) => entry.id === active.id);
+    const newIndex = items.findIndex((entry) => entry.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    // Renumber the whole section 0..n-1 and persist only what changed; this
+    // also assigns real positions to items that were still unpositioned.
+    const positionsById = {};
+    arrayMove(items, oldIndex, newIndex).forEach((entry, position) => {
+      if (entry.posteingang_position !== position) {
+        positionsById[entry.id] = position;
+      }
+    });
+    if (Object.keys(positionsById).length === 0) return;
+    reorderPosteingang(positionsById).catch(() => {
+      toast.error("Reihenfolge konnte nicht gespeichert werden");
+    });
+  };
+
+  // One Traktandum card in the grouped list. In the Posteingang the dnd-kit
+  // press-and-hold listeners come in via dragProps and sit on this row (not on
+  // the unfolded editor below it).
+  const renderTraktandumCard = (entry, index, group, dragProps = {}) => (
+    <div
+      className={
+        selectedId === entry.id
+          ? "entry-list-open-item entry-list-open-item-selected"
+          : "entry-list-open-item"
+      }
+      onClick={() => {
+        if (justDraggedRef.current) return;
+        if (selectedId === entry.id) {
+          setSelectedId(null);
+          setIsEditingContent(false);
+        } else {
+          setSelectedId(entry.id);
+          setIsEditingContent(true);
+          setContentDraft(entry.content || "");
+        }
+      }}
+      {...dragProps}
+    >
+      <span className="entry-list-open-item-title">
+        {group.name === "posteingang" && `${index + 1}. `}
+        {entry.item_title}
+        {entry.created_by_name && (
+          <span className="entry-list-item-creator">
+            {" - erstellt von "}
+            {entry.created_by_name}
+          </span>
+        )}
+      </span>
+      <div className="entry-list-item-actions">
+        <button
+          className="secondary"
+          onClick={(e) => {
+            e.stopPropagation();
+            setEditingEntry(entry);
+          }}
+        >
+          <Pencil size={14} />
+        </button>
+        {isInPosteingang(entry) && entry.topic !== "posteingang" && (
+          <button
+            className="secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemoveFromPosteingang(entry.id);
+            }}
+          >
+            <MailMinus size={14} />
+          </button>
+        )}
+        {!isInPosteingang(entry) && (
+          <button
+            className="secondary"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSendToPosteingang(entry.id);
+            }}
+          >
+            <MailPlus size={14} />
+          </button>
+        )}
+        <button
+          className="secondary"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleDelete(entry.id);
+          }}
+        >
+          <Trash size={14} />
+        </button>
+      </div>
+    </div>
+  );
 
   const renderContentEditor = () => {
     if (!selectedEntry) return null;
@@ -519,98 +714,65 @@ export default function EntryList({
         filteredAndSortedEntries.length > 0 &&
         contentFilter === "without" && (
           <div className="grouped-list-traktanden">
-            {groupedEntries.map((group) => (
-              <div
-                key={group.name}
-                className={
-                  group.name === "posteingang"
-                    ? "grouped-list-traktanden-section grouped-list-traktanden-section-posteingang"
-                    : "grouped-list-traktanden-section"
-                }
-              >
-                <strong
-                  className={`grouped-list-traktanden-title entry-list-item-topic ${getTopicColorClass(group.name)}`}
+            {groupedEntries.map((group) =>
+              group.name === "posteingang" ? (
+                <div
+                  key={group.name}
+                  className="grouped-list-traktanden-section grouped-list-traktanden-section-posteingang"
                 >
-                  {group.name}
-                </strong>
-                {group.items.map((entry, index) => (
-                  <div key={entry.id}>
-                    <div
-                      className={
-                        selectedId === entry.id
-                          ? "entry-list-open-item entry-list-open-item-selected"
-                          : "entry-list-open-item"
-                      }
-                      onClick={() => {
-                        if (selectedId === entry.id) {
-                          setSelectedId(null);
-                          setIsEditingContent(false);
-                        } else {
-                          setSelectedId(entry.id);
-                          setIsEditingContent(true);
-                          setContentDraft(entry.content || "");
-                        }
-                      }}
+                  <strong
+                    className={`grouped-list-traktanden-title entry-list-item-topic ${getTopicColorClass(group.name)}`}
+                  >
+                    posteingang / aktuelles meeting
+                  </strong>
+                  <DndContext
+                    sensors={dragSensors}
+                    collisionDetection={closestCenter}
+                    onDragStart={handleDragStart}
+                    onDragEnd={handlePosteingangDragEnd}
+                    onDragCancel={releaseClickGuard}
+                  >
+                    <SortableContext
+                      items={group.items.map((entry) => entry.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <span className="entry-list-open-item-title">
-                        {group.name === "posteingang" && `${index + 1}. `}
-                        {entry.item_title}
-                        {entry.created_by_name && (
-                          <span className="entry-list-item-creator">
-                            {" - erstellt von "}
-                            {entry.created_by_name}
-                          </span>
-                        )}
-                      </span>
-                      <div className="entry-list-item-actions">
-                        <button
-                          className="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingEntry(entry);
-                          }}
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        {isInPosteingang(entry) &&
-                          entry.topic !== "posteingang" && (
-                            <button
-                              className="secondary"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveFromPosteingang(entry.id);
-                              }}
-                            >
-                              <MailMinus size={14} />
-                            </button>
+                      {group.items.map((entry, index) => (
+                        <SortablePosteingangItem key={entry.id} id={entry.id}>
+                          {(dragProps) => (
+                            <>
+                              {renderTraktandumCard(
+                                entry,
+                                index,
+                                group,
+                                dragProps,
+                              )}
+                              {selectedId === entry.id && renderContentEditor()}
+                            </>
                           )}
-                        {!isInPosteingang(entry) && (
-                          <button
-                            className="secondary"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleSendToPosteingang(entry.id);
-                            }}
-                          >
-                            <MailPlus size={14} />
-                          </button>
-                        )}
-                        <button
-                          className="secondary"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDelete(entry.id);
-                          }}
-                        >
-                          <Trash size={14} />
-                        </button>
-                      </div>
+                        </SortablePosteingangItem>
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              ) : (
+                <div
+                  key={group.name}
+                  className="grouped-list-traktanden-section"
+                >
+                  <strong
+                    className={`grouped-list-traktanden-title entry-list-item-topic ${getTopicColorClass(group.name)}`}
+                  >
+                    {group.name}
+                  </strong>
+                  {group.items.map((entry, index) => (
+                    <div key={entry.id}>
+                      {renderTraktandumCard(entry, index, group)}
+                      {selectedId === entry.id && renderContentEditor()}
                     </div>
-                    {selectedId === entry.id && renderContentEditor()}
-                  </div>
-                ))}
-              </div>
-            ))}
+                  ))}
+                </div>
+              ),
+            )}
           </div>
         )}
 

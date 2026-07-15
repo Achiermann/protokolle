@@ -12,6 +12,7 @@ CREATE TABLE protokoll_app.entries (
     topic VARCHAR(255),
     members TEXT[],
     in_posteingang BOOLEAN NOT NULL DEFAULT false,
+    posteingang_position INTEGER,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

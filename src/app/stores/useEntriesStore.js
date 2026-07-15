@@ -86,6 +86,40 @@ export const useEntriesStore = create((set, get) => ({
     }
   },
 
+  // Persist a new manual Posteingang order. `positionsById` maps entry id ->
+  // posteingang_position and should only contain entries whose position
+  // actually changed. The store is updated optimistically so the list doesn't
+  // snap back to the old order while the PATCHes run; on any failure the
+  // previous entries are restored and the error rethrown for the caller's toast.
+  reorderPosteingang: async (positionsById) => {
+    const previousEntries = get().entries;
+    set({
+      entries: previousEntries.map((entry) =>
+        positionsById[entry.id] === undefined
+          ? entry
+          : { ...entry, posteingang_position: positionsById[entry.id] }
+      ),
+      error: null,
+    });
+    try {
+      await Promise.all(
+        Object.entries(positionsById).map(async ([id, position]) => {
+          const response = await fetch(`/api/entries/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ posteingang_position: position }),
+          });
+          if (!response.ok) {
+            throw new Error('Failed to save order');
+          }
+        })
+      );
+    } catch (error) {
+      set({ entries: previousEntries, error: error.message });
+      throw error;
+    }
+  },
+
   deleteEntry: async (id) => {
     set({ error: null });
     try {
