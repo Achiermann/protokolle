@@ -690,3 +690,34 @@
     align-self: flex-start;
   }
 }
+
+/* *** POSTEINGANG SECTION *** */
+/* The posteingang group gets a soft mint surface; its items and the unfolded
+   editor panel sit on it as white cards with a soft border. These rules live
+   after the mobile media query so they win the cascade at every width. */
+.grouped-list-traktanden-section-posteingang {
+  background-color: #f0fdf4; /* very soft mint */
+  border-radius: var(--radius-lg);
+  padding: var(--space-2) var(--space-4) var(--space-3);
+  border-bottom: none;
+}
+
+.grouped-list-traktanden-section-posteingang .entry-list-open-item {
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+/* The unfolded editor keeps the card look instead of the grouped list's
+   full-bleed layout (negative margins). */
+.grouped-list-traktanden-section-posteingang .entry-list-detail-panel {
+  margin: 0 0 var(--space-2);
+  width: 100%;
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  box-shadow: none;
+  padding: var(--space-3) var(--space-4);
+}

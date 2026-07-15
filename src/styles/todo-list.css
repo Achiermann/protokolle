@@ -89,6 +89,11 @@
   user-select: none;
 }
 
+/* Children (h2, chevron svg) must never fall back to a text/default cursor. */
+.todo-list-header-done * {
+  cursor: pointer;
+}
+
 .todo-list-header-done:hover,
 .todo-list-header-done:hover h2 {
   color: var(--color-muted);

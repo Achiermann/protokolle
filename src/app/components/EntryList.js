@@ -520,13 +520,20 @@ export default function EntryList({
         contentFilter === "without" && (
           <div className="grouped-list-traktanden">
             {groupedEntries.map((group) => (
-              <div key={group.name} className="grouped-list-traktanden-section">
+              <div
+                key={group.name}
+                className={
+                  group.name === "posteingang"
+                    ? "grouped-list-traktanden-section grouped-list-traktanden-section-posteingang"
+                    : "grouped-list-traktanden-section"
+                }
+              >
                 <strong
                   className={`grouped-list-traktanden-title entry-list-item-topic ${getTopicColorClass(group.name)}`}
                 >
                   {group.name}
                 </strong>
-                {group.items.map((entry) => (
+                {group.items.map((entry, index) => (
                   <div key={entry.id}>
                     <div
                       className={
@@ -546,6 +553,7 @@ export default function EntryList({
                       }}
                     >
                       <span className="entry-list-open-item-title">
+                        {group.name === "posteingang" && `${index + 1}. `}
                         {entry.item_title}
                         {entry.created_by_name && (
                           <span className="entry-list-item-creator">
