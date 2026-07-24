@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 
-// How often to silently refetch entries while a list view is open, so changes
-// made by other people in the same workspace show up without a manual refresh.
-const POLL_INTERVAL_MS = 20000;
+// Slow fallback poll. Partner changes normally arrive instantly via the
+// realtime ping (see useRealtimeSync); this interval is only a safety net for
+// a silently dead websocket, so it can be generous.
+const POLL_INTERVAL_MS = 5 * 60 * 1000;
 
 // Keeps the entries store warm for any view that reads entries.
 // - Renders cached entries instantly; the spinner only appears on the first

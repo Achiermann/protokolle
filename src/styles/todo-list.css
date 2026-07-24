@@ -134,11 +134,18 @@
   text-align: center;
 }
 
+/* Wide enough for two buttons (Traktandum jump + delete) side by side. Right
+   aligned so the delete button keeps one fixed spot whether or not the jump
+   button renders in front of it. */
 .todo-list-table-th-actions,
 .todo-list-table-td-actions {
-  width: 3.5rem;
+  width: 5.5rem;
   white-space: nowrap;
-  text-align: center;
+  text-align: right;
+}
+
+.todo-list-table-td-actions button + button {
+  margin-left: var(--space-2);
 }
 
 .todo-list-table-td-check input[type="checkbox"] {

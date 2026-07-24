@@ -1,19 +1,24 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import toast from "react-hot-toast";
 import { ArchiveRestore, Trash } from "lucide-react";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/entry-list.css";
 
-export default function ArchiveList() {
+export default function ArchiveList({ focusEntryId = null }) {
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
   const loading = useEntriesStore((state) => state.loading);
   const updateEntry = useEntriesStore((state) => state.updateEntry);
   const deleteEntry = useEntriesStore((state) => state.deleteEntry);
-  const [selectedId, setSelectedId] = useState(null);
+  // Deep link from the ToDo list: the linked entry starts out selected (its
+  // panel unfolds as soon as the entry is in the cache). The component
+  // remounts on every view switch, so initialising from the prop is enough.
+  const [selectedId, setSelectedId] = useState(focusEntryId);
+  // Guards the deep-link scroll so it happens exactly once per mount.
+  const didFocusScrollRef = useRef(false);
 
   // *** FUNCTIONS/HANDLERS ***
   const archivedEntries = useMemo(
@@ -27,6 +32,17 @@ export default function ArchiveList() {
         ),
     [entries],
   );
+
+  // Scroll the deep-linked row into view once it is in the DOM (depends on
+  // `archivedEntries` so it retries until the cache has delivered the row;
+  // plain row and detail row share the same id, so either one matches).
+  useEffect(() => {
+    if (!focusEntryId || didFocusScrollRef.current) return;
+    const row = document.getElementById(`entry-row-${focusEntryId}`);
+    if (!row) return;
+    didFocusScrollRef.current = true;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusEntryId, archivedEntries]);
 
   const selectedEntry = useMemo(
     () => archivedEntries.find((e) => e.id === selectedId) || null,
@@ -188,6 +204,7 @@ export default function ArchiveList() {
               <React.Fragment key={entry.id}>
                 {selectedId !== entry.id && (
                   <tr
+                    id={`entry-row-${entry.id}`}
                     className="entry-list-table-row"
                     onClick={() => handleRowClick(entry)}
                   >
@@ -244,7 +261,10 @@ export default function ArchiveList() {
                   </tr>
                 )}
                 {selectedId === entry.id && (
-                  <tr className="entry-list-table-row-detail">
+                  <tr
+                    id={`entry-row-${entry.id}`}
+                    className="entry-list-table-row-detail"
+                  >
                     <td colSpan={4}>{renderDetailPanel()}</td>
                   </tr>
                 )}

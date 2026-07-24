@@ -18,6 +18,9 @@ export default function ClientWrapper() {
   // *** VARIABLES ***
   const [activeApp, setActiveApp] = useState("p");
   const [activeView, setActiveView] = useState(DEFAULT_VIEW.p);
+  // One-shot deep link: the entry whose row the target view should open and
+  // scroll to (set by the ToDo list's "Zum Traktandum" jump).
+  const [focusEntryId, setFocusEntryId] = useState(null);
   const fetchSession = useAuthStore((state) => state.fetchSession);
   const loading = useAuthStore((state) => state.loading);
 
@@ -27,12 +30,21 @@ export default function ClientWrapper() {
   }, [fetchSession]);
 
   const handleViewChange = (view) => {
+    setFocusEntryId(null);
     setActiveView(view);
   };
 
   const handleAppChange = (app) => {
+    setFocusEntryId(null);
     setActiveApp(app);
     setActiveView(DEFAULT_VIEW[app]);
+  };
+
+  // Archived parents live in the Archiv view, everything else in Alle
+  // Traktanden.
+  const handleOpenEntry = (entry) => {
+    setFocusEntryId(entry.id);
+    setActiveView(entry.archived ? "archiv" : "list");
   };
 
   if (loading) {
@@ -52,7 +64,11 @@ export default function ClientWrapper() {
           <EntryList contentFilter="without" title="Offene Traktanden" />
         )}
         {activeApp === "p" && activeView === "list" && (
-          <EntryList contentFilter="with" title="Alle Traktanden" />
+          <EntryList
+            contentFilter="with"
+            title="Alle Traktanden"
+            focusEntryId={focusEntryId}
+          />
         )}
         {activeApp === "p" && activeView === "themen" && (
           <GroupedList
@@ -61,8 +77,12 @@ export default function ClientWrapper() {
             emptyLabel="Noch keine Themen."
           />
         )}
-        {activeApp === "p" && activeView === "todo" && <TodoList />}
-        {activeApp === "p" && activeView === "archiv" && <ArchiveList />}
+        {activeApp === "p" && activeView === "todo" && (
+          <TodoList onOpenEntry={handleOpenEntry} />
+        )}
+        {activeApp === "p" && activeView === "archiv" && (
+          <ArchiveList focusEntryId={focusEntryId} />
+        )}
 
         {activeApp === "s" && activeView === "forderbereiche" && (
           <Forderbereiche />

@@ -9,9 +9,11 @@ import {
   Plus,
   ChevronDown,
   ChevronUp,
+  ClipboardList,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTodosStore } from "../stores/useTodosStore";
+import { useEntriesStore } from "../stores/useEntriesStore";
 import RichTextEditor from "./RichTextEditor";
 import TodoForm from "./TodoForm";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
@@ -50,13 +52,14 @@ const getSortValue = (todo, column) => {
   return new Date(todo.date_created).getTime();
 };
 
-export default function TodoList() {
+export default function TodoList({ onOpenEntry }) {
   // *** VARIABLES ***
   const todos = useTodosStore((state) => state.todos);
   const loading = useTodosStore((state) => state.loading);
   const ensureTodos = useTodosStore((state) => state.ensureTodos);
   const updateTodo = useTodosStore((state) => state.updateTodo);
   const deleteTodo = useTodosStore((state) => state.deleteTodo);
+  const entries = useEntriesStore((state) => state.entries);
 
   const [selectedId, setSelectedId] = useState(null);
   const [commentDraft, setCommentDraft] = useState("");
@@ -168,6 +171,13 @@ export default function TodoList() {
 
     return result;
   }, [todos, filterSearch, filterDateFrom, filterDateTo, sortBy, sortDir]);
+
+  // Parent entries of marker-todos, for the "Zum Traktandum" jump. The entries
+  // cache holds every entry (the Sidebar keeps it warm), archived ones included.
+  const entriesById = useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry])),
+    [entries],
+  );
 
   // "Offen" holds every open todo (commented or not); commented ones just show
   // the message icon. "Erledigt" holds the done ones.
@@ -341,78 +351,98 @@ export default function TodoList() {
         </tr>
       </thead>
       <tbody>
-        {list.map((todo) => (
-          <React.Fragment key={todo.id}>
-            <tr
-              className="todo-list-table-row"
-              onClick={() => handleTitleClick(todo)}
-            >
-              <td
-                className="todo-list-table-td-check"
-                onClick={(e) => e.stopPropagation()}
+        {list.map((todo) => {
+          // The jump button needs a parent that is actually reachable: in the
+          // Archiv view when archived, otherwise in Alle Traktanden (which
+          // only lists entries with content).
+          const linkedEntry = todo.entry_id
+            ? entriesById.get(todo.entry_id)
+            : null;
+          const canOpenEntry =
+            linkedEntry && (linkedEntry.archived || linkedEntry.content);
+          return (
+            <React.Fragment key={todo.id}>
+              <tr
+                className="todo-list-table-row"
+                onClick={() => handleTitleClick(todo)}
               >
-                {variant === "done" ? (
+                <td
+                  className="todo-list-table-td-check"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {variant === "done" ? (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => handleToggleDone(todo)}
+                      title="Zurück zu offen"
+                    >
+                      <RotateCcw size={14} />
+                    </button>
+                  ) : (
+                    <input
+                      type="checkbox"
+                      checked={false}
+                      onChange={() => handleToggleDone(todo)}
+                    />
+                  )}
+                </td>
+                <td>{renderMemberCell(todo)}</td>
+                <td>
+                  <div className="todo-list-item-title-wrap">
+                    {hasComment(todo) && (
+                      <MessageSquareCheck
+                        size={16}
+                        className="todo-list-item-title-icon"
+                      />
+                    )}
+                    <span className="todo-list-item-title">{todo.title}</span>
+                  </div>
+                </td>
+                <td>
+                  <div
+                    className={`entry-list-item-topic ${getTopicColorClass(todo.topic)}`}
+                  >
+                    {todo.topic || "-"}
+                  </div>
+                </td>
+                <td>
+                  <div className="todo-list-item-date">
+                    {formatDate(todo.date_created)}
+                  </div>
+                </td>
+                <td
+                  className="todo-list-table-td-actions"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {canOpenEntry && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => onOpenEntry(linkedEntry)}
+                      title="Zum Traktandum"
+                    >
+                      <ClipboardList size={14} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="secondary"
-                    onClick={() => handleToggleDone(todo)}
-                    title="Zurück zu offen"
+                    onClick={() => handleDelete(todo)}
+                    title="ToDo löschen"
                   >
-                    <RotateCcw size={14} />
+                    <Trash size={14} />
                   </button>
-                ) : (
-                  <input
-                    type="checkbox"
-                    checked={false}
-                    onChange={() => handleToggleDone(todo)}
-                  />
-                )}
-              </td>
-              <td>{renderMemberCell(todo)}</td>
-              <td>
-                <div className="todo-list-item-title-wrap">
-                  {hasComment(todo) && (
-                    <MessageSquareCheck
-                      size={16}
-                      className="todo-list-item-title-icon"
-                    />
-                  )}
-                  <span className="todo-list-item-title">{todo.title}</span>
-                </div>
-              </td>
-              <td>
-                <div
-                  className={`entry-list-item-topic ${getTopicColorClass(todo.topic)}`}
-                >
-                  {todo.topic || "-"}
-                </div>
-              </td>
-              <td>
-                <div className="todo-list-item-date">
-                  {formatDate(todo.date_created)}
-                </div>
-              </td>
-              <td
-                className="todo-list-table-td-actions"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => handleDelete(todo)}
-                  title="ToDo löschen"
-                >
-                  <Trash size={14} />
-                </button>
-              </td>
-            </tr>
-            {selectedId === todo.id && (
-              <tr className="todo-list-table-row-detail">
-                <td colSpan={6}>{renderCommentPanel(todo)}</td>
+                </td>
               </tr>
-            )}
-          </React.Fragment>
-        ))}
+              {selectedId === todo.id && (
+                <tr className="todo-list-table-row-detail">
+                  <td colSpan={6}>{renderCommentPanel(todo)}</td>
+                </tr>
+              )}
+            </React.Fragment>
+          );
+        })}
       </tbody>
     </table>
   );

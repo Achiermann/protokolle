@@ -29,7 +29,10 @@
 @font-palette-values --nablaTitle {
   font-family: "Nabla";
   base-palette: 0;
-  override-colors: 0 #ff8a96, 1 #ff8a96, 2 #ff8a96;
+  override-colors:
+    0 #ff8a96,
+    1 #ff8a96,
+    2 #ff8a96;
 }
 
 .sidebar-title {
@@ -47,13 +50,19 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-4);
+  /* One fixed row height for every button: rows with an icon, with the ToDo
+     count badge (1.75rem + padding = exactly this) or with plain text all
+     line up, so the gaps read as even. */
+  height: 2.75rem;
   border: none;
   border-radius: var(--radius-btn);
   background-color: transparent;
   color: var(--color-text);
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
   text-align: left;
   width: 100%;
 }
@@ -72,6 +81,14 @@
 .sidebar-button.active:hover {
   background-color: var(--color-line);
   color: var(--color-brand);
+}
+
+/* Main nav group: same tight spacing as the footer, so the whole sidebar
+   reads as one evenly spaced list. */
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .sidebar-button-todo-count {
@@ -102,10 +119,6 @@
   flex-direction: column;
   gap: var(--space-2);
   z-index: 20;
-}
-
-.sidebar-einstellungen {
-  margin-top: var(--space-4);
 }
 
 .sidebar-logout {

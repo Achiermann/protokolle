@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { pingWorkspaceChange } from "@/db/supabase-browser";
 
 // Client source of truth for todos. Mirrors useEntriesStore: todos are fetched
 // from /api/todos (scoped to the active workspace by cookie) and cached here.
@@ -55,6 +56,7 @@ export const useTodosStore = create((set, get) => ({
       }
       const data = await response.json();
       set((state) => ({ todos: [data.item, ...state.todos] }));
+      pingWorkspaceChange();
       return data.item;
     } catch (error) {
       set({ error: error.message });
@@ -72,6 +74,7 @@ export const useTodosStore = create((set, get) => ({
       set((state) => ({
         todos: state.todos.filter((todo) => todo.id !== id),
       }));
+      pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
       throw error;
@@ -94,6 +97,7 @@ export const useTodosStore = create((set, get) => ({
       set((state) => ({
         todos: state.todos.map((todo) => (todo.id === id ? data.item : todo)),
       }));
+      pingWorkspaceChange();
       return data.item;
     } catch (error) {
       set({ error: error.message });

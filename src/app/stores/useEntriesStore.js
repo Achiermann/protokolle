@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { pingWorkspaceChange } from '@/db/supabase-browser';
 
 export const useEntriesStore = create((set, get) => ({
   // *** VARIABLES ***
@@ -55,6 +56,7 @@ export const useEntriesStore = create((set, get) => ({
       set((state) => ({
         entries: [...state.entries, data.item],
       }));
+      pingWorkspaceChange();
       return data.item;
     } catch (error) {
       set({ error: error.message });
@@ -79,6 +81,7 @@ export const useEntriesStore = create((set, get) => ({
           entry.id === id ? data.item : entry
         ),
       }));
+      pingWorkspaceChange();
       return data.item;
     } catch (error) {
       set({ error: error.message });
@@ -114,6 +117,7 @@ export const useEntriesStore = create((set, get) => ({
           }
         })
       );
+      pingWorkspaceChange();
     } catch (error) {
       set({ entries: previousEntries, error: error.message });
       throw error;
@@ -132,6 +136,7 @@ export const useEntriesStore = create((set, get) => ({
       set((state) => ({
         entries: state.entries.filter((entry) => entry.id !== id),
       }));
+      pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
       throw error;

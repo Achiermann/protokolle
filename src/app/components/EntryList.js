@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import toast from "react-hot-toast";
@@ -75,6 +75,7 @@ function SortablePosteingangItem({ id, children }) {
 export default function EntryList({
   contentFilter,
   title = "Alle Traktanden",
+  focusEntryId = null,
 }) {
   // *** VARIABLES ***
   const entries = useEntriesStore((state) => state.entries);
@@ -92,7 +93,10 @@ export default function EntryList({
   const [filterDateTo, setFilterDateTo] = useState("");
   const [sortBy, setSortBy] = useState("date");
   const [sortDir, setSortDir] = useState("desc");
-  const [selectedId, setSelectedId] = useState(null);
+  // Deep link from the ToDo list: the linked entry starts out selected (its
+  // panel unfolds as soon as the entry is in the cache). The component
+  // remounts on every view switch, so initialising from the prop is enough.
+  const [selectedId, setSelectedId] = useState(focusEntryId);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [contentDraft, setContentDraft] = useState("");
   const [showEntryForm, setShowEntryForm] = useState(false);
@@ -102,6 +106,9 @@ export default function EntryList({
   // True while (and briefly after) a Posteingang drag, so the card's onClick
   // doesn't toggle the editor when the user releases a drag.
   const justDraggedRef = useRef(false);
+
+  // Guards the deep-link scroll so it happens exactly once per mount.
+  const didFocusScrollRef = useRef(false);
 
   // Mouse: dragging starts as soon as the pressed card moves 5px, so it feels
   // instant; a clean click (no movement) still opens the editor. Touch keeps
@@ -117,6 +124,16 @@ export default function EntryList({
   );
 
   // *** FUNCTIONS/HANDLERS ***
+  // Scroll the deep-linked row into view once it is in the DOM (depends on
+  // `entries` so it retries until the cache has delivered the row).
+  useEffect(() => {
+    if (!focusEntryId || didFocusScrollRef.current) return;
+    const row = document.getElementById(`entry-row-${focusEntryId}`);
+    if (!row) return;
+    didFocusScrollRef.current = true;
+    row.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [focusEntryId, entries]);
+
   const selectedEntry = useMemo(
     () => entries.find((e) => e.id === selectedId) || null,
     [entries, selectedId],
@@ -807,6 +824,7 @@ export default function EntryList({
               {filteredAndSortedEntries.map((entry) => (
                 <React.Fragment key={entry.id}>
                   <tr
+                    id={`entry-row-${entry.id}`}
                     className="entry-list-table-row"
                     onClick={() => handleRowClick(entry)}
                   >

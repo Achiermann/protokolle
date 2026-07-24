@@ -1,8 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
+  ClipboardList,
   ListTodo,
+  Repeat,
   Tag,
   Settings,
   LogOut,
@@ -13,19 +16,24 @@ import {
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useEntriesSync } from "../hooks/useEntriesSync";
+import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { createTodoCountRegex } from "../../lib/richText";
 import "../../styles/sidebar.css";
 
 export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   // *** VARIABLES ***
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const entries = useEntriesStore((state) => state.entries);
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
 
-  // Single source of truth for keeping the entries cache warm: the Sidebar is
-  // mounted for the whole session, so one poller here serves every view.
+  // Single source of truth for keeping the caches warm: the Sidebar is
+  // mounted for the whole session, so one subscription here serves every view.
+  // Realtime pings from other workspace members trigger instant refetches;
+  // useEntriesSync keeps a slow fallback poll and the on-focus refetch.
   useEntriesSync();
+  useRealtimeSync();
 
   const title = activeApp === "s" ? "stiftungen" : "protokolle";
 
@@ -65,7 +73,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
         )}
 
         {activeApp === "p" && (
-          <>
+          <nav className="sidebar-nav">
             <button
               className={`sidebar-button ${activeView === "unbearbeitet" ? "active" : ""}`}
               onClick={() => handleViewChange("unbearbeitet")}
@@ -77,6 +85,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
               className={`sidebar-button ${activeView === "list" ? "active" : ""}`}
               onClick={() => handleViewChange("list")}
             >
+              <ClipboardList size={20} />
               Alle Traktanden
             </button>
 
@@ -96,11 +105,11 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
               ToDo
               <span className="sidebar-button-todo-count">{todoCount}</span>
             </button>
-          </>
+          </nav>
         )}
 
         {activeApp === "s" && (
-          <>
+          <nav className="sidebar-nav">
             <button
               className={`sidebar-button ${activeView === "forderbereiche" ? "active" : ""}`}
               onClick={() => handleViewChange("forderbereiche")}
@@ -114,7 +123,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             >
               Eingabefristen
             </button>
-          </>
+          </nav>
         )}
         <div className="sidebar-footer">
           {activeApp === "p" && (
@@ -128,11 +137,19 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
           )}
 
           <button
-            className={`sidebar-button sidebar-einstellungen ${activeView === "members" ? "active" : ""}`}
+            className={`sidebar-button ${activeView === "members" ? "active" : ""}`}
             onClick={() => handleViewChange("members")}
           >
             <Settings size={20} />
             Einstellungen
+          </button>
+
+          <button
+            className="sidebar-button"
+            onClick={() => router.push("/workspace")}
+          >
+            <Repeat size={20} />
+            Workspace
           </button>
 
           <button className="sidebar-button sidebar-logout" onClick={logout}>
