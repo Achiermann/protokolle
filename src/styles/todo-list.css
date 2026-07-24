@@ -19,13 +19,17 @@
     monospace;
 }
 
+/* Shares the entry-list table design (card background, inset, cell spacing,
+   row dividers, hover) so ToDo and Alle Traktanden look identical. Collapse
+   would swallow the table's own padding, hence separate + spacing 0. */
 .todo-list-table {
   width: 100%;
-  border-collapse: collapse;
-  background-color: transparent;
+  border-collapse: separate;
+  border-spacing: 0;
+  background-color: var(--color-bg);
   border: none;
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  padding: var(--space-3) var(--space-4);
   /* Fixed layout so all three bucket tables share identical column widths
      regardless of their own content (the "Offen" layout is the reference). */
   table-layout: fixed;
@@ -53,15 +57,23 @@
 }
 
 .todo-list-table td {
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
 }
 
-.todo-list-table tbody tr:hover {
-  background-color: var(--color-surface);
+.todo-list-table-row td {
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.todo-list-table-row:last-child td {
+  border-bottom: none;
+}
+
+.todo-list-table-row:hover td {
+  background-color: #fafafa;
 }
 
 .todo-list-item-title {
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 400;
   color: var(--color-text);
 }
@@ -129,23 +141,23 @@
 
 .todo-list-table-th-check,
 .todo-list-table-td-check {
-  width: 3.25rem;
+  width: 4.5rem;
   white-space: nowrap;
   text-align: center;
 }
 
-/* Wide enough for two buttons (Traktandum jump + delete) side by side. Right
-   aligned so the delete button keeps one fixed spot whether or not the jump
-   button renders in front of it. */
+/* Wide enough for two entry-list-sized buttons (Traktandum jump + delete)
+   side by side. */
 .todo-list-table-th-actions,
 .todo-list-table-td-actions {
-  width: 5.5rem;
+  width: 7.5rem;
   white-space: nowrap;
-  text-align: right;
 }
 
-.todo-list-table-td-actions button + button {
-  margin-left: var(--space-2);
+/* Right aligned so the delete button keeps one fixed spot whether or not the
+   jump button renders in front of it. */
+.todo-list-table-td-actions .entry-list-item-actions {
+  justify-content: flex-end;
 }
 
 .todo-list-table-td-check input[type="checkbox"] {
@@ -160,17 +172,11 @@
   cursor: pointer;
 }
 
-/* Give the check/action buttons the exact 1.1rem footprint of the checkbox so
-   every row keeps the same height (identical columns => identical row height). */
-.todo-list-table-td-check button,
-.todo-list-table-td-actions button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.1rem;
-  height: 1.1rem;
-  padding: 0;
-  box-sizing: border-box;
+/* The restore button ("Zurück zu offen") matches the entry-list action
+   buttons, like the jump/delete pair on the right. */
+.todo-list-table-td-check button {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.875rem;
   vertical-align: middle;
 }
 
@@ -184,8 +190,10 @@
     overflow-x: auto;
   }
 
+  /* The fixed columns alone need ~600px now; keep room for the flexible
+     "ToDo" column. */
   .todo-list-table {
-    min-width: 560px;
+    min-width: 720px;
   }
 
   .todo-list-table th,

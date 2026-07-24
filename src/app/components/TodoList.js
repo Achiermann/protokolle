@@ -377,7 +377,7 @@ export default function TodoList({ onOpenEntry }) {
                       onClick={() => handleToggleDone(todo)}
                       title="Zurück zu offen"
                     >
-                      <RotateCcw size={14} />
+                      <RotateCcw size={16} />
                     </button>
                   ) : (
                     <input
@@ -415,24 +415,26 @@ export default function TodoList({ onOpenEntry }) {
                   className="todo-list-table-td-actions"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {canOpenEntry && (
+                  <div className="entry-list-item-actions">
+                    {canOpenEntry && (
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => onOpenEntry(linkedEntry)}
+                        title="Zum Traktandum"
+                      >
+                        <ClipboardList size={16} />
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="secondary"
-                      onClick={() => onOpenEntry(linkedEntry)}
-                      title="Zum Traktandum"
+                      onClick={() => handleDelete(todo)}
+                      title="ToDo löschen"
                     >
-                      <ClipboardList size={14} />
+                      <Trash size={16} />
                     </button>
-                  )}
-                  <button
-                    type="button"
-                    className="secondary"
-                    onClick={() => handleDelete(todo)}
-                    title="ToDo löschen"
-                  >
-                    <Trash size={14} />
-                  </button>
+                  </div>
                 </td>
               </tr>
               {selectedId === todo.id && (
