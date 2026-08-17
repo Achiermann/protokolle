@@ -25,12 +25,16 @@ function buildGrouped(items) {
   const open = [];
 
   for (const item of items) {
-    const dates = Array.isArray(item.eingabefristen) ? item.eingabefristen : [];
-
-    if (dates.length === 0) {
+    if (item.eingabefristen === null) {
       open.push(item);
       continue;
     }
+
+    const dates = Array.isArray(item.eingabefristen) ? item.eingabefristen : [];
+
+    // Fixed deadlines that have all passed: omit until the next dates are published,
+    // instead of wrongly suggesting «Ganzjährig offen».
+    if (dates.length === 0) continue;
 
     for (const d of dates) {
       const [y, m] = d.split('-');

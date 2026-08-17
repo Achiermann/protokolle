@@ -24,6 +24,10 @@ const PROHELVETIA_MAR_SEP = [
 // Schwyz publishes a fresh deadline calendar each year — extend annually.
 const SCHWYZ_DEADLINES = ['2026-01-02', '2026-03-06', '2026-06-05', '2026-08-14', '2026-10-23'];
 
+// Get Going! is an annual call (early summer, results mid-December). Only officially
+// published deadlines belong here — add the 2027 date once fondation-suisa.ch announces it.
+const GET_GOING_DEADLINES = ['2026-07-15'];
+
 const FOUR_CATEGORIES = [
   'Konzerttournee Inland',
   'Konzerttournee Ausland',
@@ -141,6 +145,42 @@ export const SOURCES = [
         förderformat: 'Kreation und Produktion: aktuelle Musik',
         förderbereiche: ['Tonträgerproduktion', 'Promotion und Diffusion'],
         deadlines: { type: 'annual', monthDays: PROHELVETIA_MAR_SEP },
+      },
+    ],
+  },
+  {
+    sourceUrl: 'https://fondation-suisa.ch/de/gesuche/',
+    förderstelle: 'Fondation SUISA',
+    kanton: null,
+    stadt: null,
+    verifiedAt: '2026-08-17',
+    programs: [
+      {
+        // Förderreglement (13.12.2022) excludes Tonträger («studiotechnische Aufnahmen …
+        // sowie deren Umsetzung und Vervielfältigung») — hence no Tonträgerproduktion.
+        förderformat: 'Projektförderung Bekanntmachung und Verbreitung (laufend, 3 Monate vor Projektstart)',
+        förderbereiche: ['Konzerttournee Inland', 'Konzerttournee Ausland', 'Promotion und Diffusion'],
+        deadlines: { type: 'open' },
+      },
+      {
+        förderformat: 'Get Going! Förderbeiträge (jährliche Ausschreibung)',
+        förderbereiche: FOUR_CATEGORIES,
+        deadlines: { type: 'fixed', dates: GET_GOING_DEADLINES },
+      },
+    ],
+  },
+  {
+    sourceUrl: 'https://www.interpretenstiftung.ch/de/angebote/live-darbietungen-und-tourneen/',
+    förderstelle: 'Schweizerische Interpretenstiftung SIS',
+    kanton: null,
+    stadt: null,
+    verifiedAt: '2026-08-17',
+    programs: [
+      {
+        // Max. CHF 5000 pro Gesuch; Audio-/Videoproduktionen sind ausgeschlossen.
+        förderformat: 'Live-Darbietungen und Tourneen (laufend, 2 Monate vor erstem Auftritt)',
+        förderbereiche: ['Konzerttournee Inland', 'Konzerttournee Ausland', 'Promotion und Diffusion'],
+        deadlines: { type: 'open' },
       },
     ],
   },
