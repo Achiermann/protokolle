@@ -7,6 +7,7 @@ import AppSwitcher from "./AppSwitcher";
 import EntryList from "./EntryList";
 import GroupedList from "./GroupedList";
 import TodoList from "./TodoList";
+import Timeline from "./Timeline";
 import Settings from "./Settings";
 import ArchiveList from "./ArchiveList";
 import Forderbereiche from "./stiftungen/Forderbereiche";
@@ -40,11 +41,14 @@ export default function ClientWrapper() {
     setActiveView(DEFAULT_VIEW[app]);
   };
 
-  // Archived parents live in the Archiv view, everything else in Alle
-  // Traktanden.
+  // Jump to wherever the entry is actually listed: archived ones live in the
+  // Archiv, entries with notes in Alle Traktanden, and the rest (a scheduled
+  // traktandum that has no notes yet) in Offene Traktanden.
   const handleOpenEntry = (entry) => {
     setFocusEntryId(entry.id);
-    setActiveView(entry.archived ? "archiv" : "list");
+    if (entry.archived) setActiveView("archiv");
+    else if (entry.content) setActiveView("list");
+    else setActiveView("unbearbeitet");
   };
 
   if (loading) {
@@ -79,6 +83,9 @@ export default function ClientWrapper() {
         )}
         {activeApp === "p" && activeView === "todo" && (
           <TodoList onOpenEntry={handleOpenEntry} />
+        )}
+        {activeApp === "p" && activeView === "timeline" && (
+          <Timeline onOpenEntry={handleOpenEntry} />
         )}
         {activeApp === "p" && activeView === "archiv" && (
           <ArchiveList focusEntryId={focusEntryId} />

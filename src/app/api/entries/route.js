@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
-import { reconcileEntryTodos } from "@/lib/todoSync";
+import { reconcileEntryTodos, reconcileEntryZiele } from "@/lib/todoSync";
+import { sweepDueEntries } from "@/lib/posteingangSweep";
 
 // GET /api/entries
 export async function GET() {
@@ -31,6 +32,23 @@ export async function GET() {
     }
 
     const entries = data || [];
+
+    // Traktanden whose planned date has arrived move into the Posteingang.
+    // Non-fatal: a failed sweep must not break the list.
+    try {
+      const moved = await sweepDueEntries(supabase, { workspaceId, entries });
+      const movedById = new Map(moved.map((m) => [m.id, m]));
+      for (const entry of entries) {
+        const move = movedById.get(entry.id);
+        if (!move) continue;
+        entry.in_posteingang = true;
+        entry.posteingang_position = move.position;
+        entry.auto_posteingang_at = move.movedAt;
+      }
+    } catch (sweepError) {
+      console.error("Posteingang sweep failed:", sweepError);
+    }
+
     const creatorIds = [
       ...new Set(entries.map((e) => e.created_by).filter(Boolean)),
     ];
@@ -121,6 +139,7 @@ export async function POST(request) {
           item_title: body.item_title,
           content: body.content || null,
           topic: body.topic || null,
+          scheduled: body.scheduled || null,
           members: body.members || [],
           workspace_id: workspaceId,
           created_by: user.id,
@@ -133,14 +152,19 @@ export async function POST(request) {
       throw error;
     }
 
-    // Turn any /todo markers in the new notes into todo rows. Non-fatal: a
-    // failed sync must not fail entry creation.
+    // Turn any /todo and /ziel markers in the new notes into rows. Non-fatal:
+    // a failed sync must not fail entry creation.
     try {
       await reconcileEntryTodos(supabase, {
         entryId: data.id,
         workspaceId,
         content: data.content,
         dateCreated: data.date_created,
+      });
+      await reconcileEntryZiele(supabase, {
+        entryId: data.id,
+        workspaceId,
+        content: data.content,
       });
     } catch (syncError) {
       console.error("Todo sync failed on entry create:", syncError);

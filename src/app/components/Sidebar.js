@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CalendarRange,
   ClipboardList,
+  Inbox,
   ListTodo,
   Repeat,
   Tag,
@@ -17,7 +19,7 @@ import { useEntriesStore } from "../stores/useEntriesStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useEntriesSync } from "../hooks/useEntriesSync";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
-import { createTodoCountRegex } from "../../lib/richText";
+import { parseTodoMarkers } from "../../lib/richText";
 import "../../styles/sidebar.css";
 
 export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
@@ -37,13 +39,13 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
 
   const title = activeApp === "s" ? "stiftungen" : "protokolle";
 
+  // Open marker-todos across all entries; a multi-member marker counts once
+  // per member, matching the rows it spawns in the ToDo table.
   const todoCount = useMemo(() => {
-    const regex = createTodoCountRegex();
     let count = 0;
     for (const entry of entries) {
       if (!entry.content) continue;
-      const matches = entry.content.match(regex);
-      if (matches) count += matches.length;
+      count += parseTodoMarkers(entry.content).filter((t) => !t.done).length;
     }
     return count;
   }, [entries]);
@@ -78,6 +80,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
               className={`sidebar-button ${activeView === "unbearbeitet" ? "active" : ""}`}
               onClick={() => handleViewChange("unbearbeitet")}
             >
+              <Inbox size={20} />
               Offene Traktanden
             </button>
 
@@ -104,6 +107,14 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
               <ListTodo size={20} />
               ToDo
               <span className="sidebar-button-todo-count">{todoCount}</span>
+            </button>
+
+            <button
+              className={`sidebar-button ${activeView === "timeline" ? "active" : ""}`}
+              onClick={() => handleViewChange("timeline")}
+            >
+              <CalendarRange size={20} />
+              Timeline
             </button>
           </nav>
         )}

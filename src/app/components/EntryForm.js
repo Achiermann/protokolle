@@ -14,6 +14,8 @@ export default function EntryForm({ onCancel, entry }) {
   const [formData, setFormData] = useState({
     item_title: entry?.item_title || "",
     topic: entry?.topic || "",
+    // Optional planned date; scheduled traktanden show up on the timeline.
+    scheduled: entry?.scheduled || "",
   });
   const [isNewTopic, setIsNewTopic] = useState(false);
 
@@ -60,12 +62,14 @@ export default function EntryForm({ onCancel, entry }) {
         await updateEntry(entry.id, {
           item_title: formData.item_title,
           topic: formData.topic || null,
+          scheduled: formData.scheduled || null,
         });
         toast.success("Traktandum aktualisiert");
       } else {
         await addEntry({
           item_title: formData.item_title,
           topic: formData.topic || null,
+          scheduled: formData.scheduled || null,
           content: null,
           members: [],
         });
@@ -75,6 +79,7 @@ export default function EntryForm({ onCancel, entry }) {
       setFormData({
         item_title: "",
         topic: "",
+        scheduled: "",
       });
       if (onCancel) onCancel();
     } catch (error) {
@@ -130,6 +135,17 @@ export default function EntryForm({ onCancel, entry }) {
             </select>
           )}
         </div>
+
+        <div className="entry-form-field">
+          <label htmlFor="scheduled">Geplant</label>
+          <input
+            type="date"
+            id="scheduled"
+            name="scheduled"
+            value={formData.scheduled}
+            onChange={handleChange}
+          />
+        </div>
       </div>
 
       <div className="entry-form-actions">
@@ -143,6 +159,7 @@ export default function EntryForm({ onCancel, entry }) {
             setFormData({
               item_title: "",
               topic: "",
+              scheduled: "",
             });
             if (onCancel) onCancel();
           }}

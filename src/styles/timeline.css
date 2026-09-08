@@ -1,0 +1,349 @@
+/* Timeline view: the range (this month → +X months) is scaled to fill the
+   frame exactly, so nothing scrolls and no past is shown. Items render as
+   vertical lines hanging from the month header, each ending in a labelled tab
+   that carries the title and the planned date. */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.timeline-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.timeline-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.timeline-scope {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.timeline-scope button {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+}
+
+.timeline-scope button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.timeline-scope-label {
+  min-width: 5.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.timeline-empty {
+  color: var(--color-muted);
+}
+
+/* Second toolbar line, below the heading: Heute, + Ziel and the type filter on
+   the left, the scope stepper pushed to the right. It lives here rather than
+   beside the <h2> so it clears the fixed .app-switcher, which floats over the
+   top-right of the main content. */
+.timeline-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* --- Strip --- */
+
+/* The range is scaled to fit this box exactly, so nothing ever scrolls; the
+   hidden overflow only guards against sub-pixel rounding. */
+.timeline-frame {
+  overflow: hidden;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius);
+  background-color: var(--color-bg);
+}
+
+.timeline-strip {
+  position: relative;
+}
+
+.timeline-months {
+  display: flex;
+}
+
+.timeline-month {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--color-border-soft);
+  border-bottom: 1px solid var(--color-border-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* Empty run for the item lines; its height is set inline. */
+.timeline-body {
+  background-color: var(--color-bg);
+}
+
+/* One divider per month, from below the header to the bottom of the strip. */
+.timeline-month-line {
+  position: absolute;
+  bottom: 0;
+  width: 1px;
+  background-color: var(--color-border-soft);
+}
+
+/* --- Items --- */
+
+/* The line is painted in the colour class's own pastel fill — the same tone as
+   the label it ends in, so the two read as one element. That fill is light, so
+   the line is wider than a hairline to stay visible. */
+.timeline-line {
+  position: absolute;
+  width: 3px;
+  /* Centred on the day rather than starting at it, so widening on hover keeps
+     the line on its date. */
+  transform: translateX(-50%);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The labelled end of a line: same type and rounding as an
+   .entry-list-item-topic chip, with roomier padding because it carries two
+   lines inside a fixed width. The colour class supplies the one fill and text
+   colour the whole item uses. */
+.timeline-label {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-1) var(--space-4);
+  /* Transparent by default and only coloured when the item is selected, so
+     the border never changes the label's size or position. */
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family:
+    "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  overflow: hidden;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* Mirror .main-content .forderbereiche-tile: the global `.main-content *`
+   rule ties with .timeline-label on specificity, so the mono face only wins
+   reliably at this higher specificity. The width estimate in Timeline.js
+   assumes monospace metrics, so this must stay. */
+.main-content .timeline-label {
+  font-family:
+    "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+}
+
+/* A flex item won't shrink below its own content by default, so without
+   `min-width: 0` a long title pushes straight out past the label's edge
+   instead of being cut with an ellipsis. */
+.timeline-label-title,
+.timeline-label-date {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timeline-label-date {
+  font-size: 0.68rem;
+}
+
+.timeline-ziel-color {
+  color: #b4515e;
+  background-color: var(--marker-pink);
+}
+
+.timeline-item-done {
+  opacity: 0.45;
+}
+
+.timeline-item-done .timeline-label {
+  text-decoration: line-through;
+}
+
+/* Marks the item whose row was clicked in the overview. Hovering a label does
+   nothing on purpose. */
+.timeline-item-hot .timeline-line {
+  width: 5px;
+}
+
+.timeline-item-hot .timeline-label {
+  border-color: currentColor;
+}
+
+/* --- Today marker --- */
+
+/* Starts below the month header (`top` is set inline) so it never crosses the
+   month names, and sits behind the item lines and labels. */
+.timeline-today-line {
+  position: absolute;
+  bottom: 0;
+  width: 2px;
+  background-color: var(--color-error);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.timeline-today-label {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  padding: 0 var(--space-1);
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #fff;
+  background-color: var(--color-error);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Ziel popover --- */
+
+/* Sits outside .timeline-frame and is placed in viewport coordinates, so the
+   frame's hidden overflow can't clip it. */
+.timeline-ziel-popover {
+  position: fixed;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 280px;
+  padding: var(--space-3);
+  background-color: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.timeline-ziel-popover input[type="text"],
+.timeline-ziel-popover input[type="date"] {
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-btn);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.timeline-ziel-popover-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.timeline-ziel-popover-actions button {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.875rem;
+}
+
+/* --- Overview table --- */
+
+.timeline-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-7);
+  margin-bottom: var(--space-7);
+}
+
+.timeline-table-title {
+  margin: 0;
+}
+
+.timeline-table-title-past {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  user-select: none;
+}
+
+.timeline-table-title-past h3 {
+  margin: 0;
+}
+
+.timeline-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+/* Header divider, same weight and colour as the entry-list and todo-list
+   tables; the body rows keep the softer line. */
+.timeline-table th {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.timeline-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.timeline-table-row {
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.timeline-table-row:hover {
+  background-color: var(--btn-bg);
+}
+
+/* The row picked to center the strip stays marked. */
+.timeline-table-row-selected,
+.timeline-table-row-selected:hover {
+  background-color: var(--btn-bg-hover);
+}
+
+.timeline-table-row-done {
+  opacity: 0.5;
+}
+
+.timeline-table-td-actions {
+  width: 1%;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.timeline-table-td-actions button {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+}
+
+.timeline-table-row-done td:nth-child(2) {
+  text-decoration: line-through;
+}
+
+.timeline-table-type {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}

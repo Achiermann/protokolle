@@ -1,0 +1,845 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ChevronDown,
+  ChevronUp,
+  ClipboardList,
+  Flag,
+  ListTodo,
+  Minus,
+  Pencil,
+  Plus,
+  Trash,
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { useTodosStore } from "../stores/useTodosStore";
+import { useEventsStore } from "../stores/useEventsStore";
+import { useEntriesStore } from "../stores/useEntriesStore";
+import "../../styles/timeline.css";
+// Member/topic colour chips and the shared popup styling.
+import "../../styles/entry-list.css";
+
+// The range (this month → +X months) always fills the frame's width exactly,
+// so the strip never scrolls; the past isn't drawn at all and lives in the
+// overview's "Vergangen" section instead. The scale is deliberately coarse: a
+// month header and one divider per month, nothing finer — a line's exact date
+// is written on its label, not read off the strip.
+const MIN_SCOPE = 3;
+const MAX_SCOPE = 24;
+const SCOPE_STEP = 3;
+const DEFAULT_SCOPE = 6;
+
+// Vertical layout: the month header on top, then open space the item lines
+// run through, then the lanes where each line ends in its labelled tab.
+const LINE_RUN_HEIGHT = 150;
+// A label tab holds two lines (title over date) at chip size, so its lane
+// needs room for both.
+const LABEL_LANE_HEIGHT = 42;
+const MONTHS_ROW_H = 24;
+// Keep in step with .timeline-ziel-popover's width in timeline.css.
+const POPOVER_WIDTH = 280;
+
+// The three kinds of item on the timeline, in filter-bar order.
+const TYPES = ["entry", "todo", "ziel"];
+const TYPE_LABELS = { entry: "Traktanden", todo: "ToDos", ziel: "Ziele" };
+
+const MS_PER_DAY = 86400000;
+const MONTH_NAMES = [
+  "Januar",
+  "Februar",
+  "März",
+  "April",
+  "Mai",
+  "Juni",
+  "Juli",
+  "August",
+  "September",
+  "Oktober",
+  "November",
+  "Dezember",
+];
+const MONTH_SHORT = [
+  "Jan",
+  "Feb",
+  "Mär",
+  "Apr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Dez",
+];
+
+const startOfToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+// Local-midnight date from a DB `scheduled` value (YYYY-MM-DD).
+const parseIsoDate = (iso) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+};
+
+// Calendar-day difference; rounding absorbs DST offsets.
+const dayDiff = (from, to) => Math.round((to - from) / MS_PER_DAY);
+
+const formatDate = (iso) =>
+  parseIsoDate(iso).toLocaleDateString("de-DE", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+// Short form for the date line inside an item's label tab.
+const formatShortDate = (iso) => {
+  const [y, m, d] = iso.split("-");
+  return `${d}.${m}.${y.slice(2)}`;
+};
+
+// Same member colour hash + display casing as the ToDo table.
+const normalizeMemberKey = (name) => (name || "").trim().toLowerCase();
+const getMemberColorClass = (name) => {
+  const key = normalizeMemberKey(name);
+  if (!key) return "";
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash * 31 + key.charCodeAt(i)) | 0;
+  }
+  return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
+};
+const formatMemberName = (name) =>
+  normalizeMemberKey(name)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
+// Identical hash to EntryList.getTopicColorClass (raw string, not normalised)
+// so a traktandum's line matches its topic chip in the entry list.
+const getTopicColorClass = (topic) => {
+  if (!topic) return "";
+  let hash = 0;
+  for (let i = 0; i < topic.length; i++) {
+    hash = (hash * 31 + topic.charCodeAt(i)) | 0;
+  }
+  return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
+};
+
+export default function Timeline({ onOpenEntry }) {
+  // *** VARIABLES ***
+  const todos = useTodosStore((state) => state.todos);
+  const todosLoading = useTodosStore((state) => state.loading);
+  const ensureTodos = useTodosStore((state) => state.ensureTodos);
+  const events = useEventsStore((state) => state.events);
+  const eventsLoading = useEventsStore((state) => state.loading);
+  const ensureEvents = useEventsStore((state) => state.ensureEvents);
+  const addEvent = useEventsStore((state) => state.addEvent);
+  const updateEvent = useEventsStore((state) => state.updateEvent);
+  const deleteEvent = useEventsStore((state) => state.deleteEvent);
+  const entries = useEntriesStore((state) => state.entries);
+  const entriesLoading = useEntriesStore((state) => state.loading);
+  const ensureEntries = useEntriesStore((state) => state.ensureEntries);
+
+  const [scopeMonths, setScopeMonths] = useState(DEFAULT_SCOPE);
+  // Which item types are shown, on the strip and in the overview alike.
+  const [activeTypes, setActiveTypes] = useState(() => new Set(TYPES));
+  const [viewWidth, setViewWidth] = useState(0);
+  const [showPast, setShowPast] = useState(false);
+  // The row picked in the overview table: its line stays highlighted.
+  const [selectedKey, setSelectedKey] = useState(null);
+  // "+ Ziel" popup (workspace-only Ziel, no traktandum).
+  const [showZielForm, setShowZielForm] = useState(false);
+  const [zielTitle, setZielTitle] = useState("");
+  const [zielDate, setZielDate] = useState("");
+  // Edit popover for a workspace-only Ziel: draft fields + anchor position.
+  const [editingZiel, setEditingZiel] = useState(null);
+  const stripRef = useRef(null);
+
+  const today = useMemo(() => startOfToday(), []);
+  const todayIso = useMemo(() => {
+    const y = today.getFullYear();
+    const m = String(today.getMonth() + 1).padStart(2, "0");
+    const d = String(today.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+  }, [today]);
+
+  // *** FUNCTIONS/HANDLERS ***
+  useEffect(() => {
+    ensureTodos();
+    ensureEvents();
+    ensureEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Track the strip's width so the range always fills it exactly.
+  useEffect(() => {
+    const el = stripRef.current;
+    if (!el) return undefined;
+    const observer = new ResizeObserver(() => setViewWidth(el.clientWidth));
+    observer.observe(el);
+    setViewWidth(el.clientWidth);
+    return () => observer.disconnect();
+  }, []);
+
+  // Whole months, no past: the 1st of the current month through the last day
+  // of the month `scope` ahead, so the month header never shows a partial
+  // month. Anything already behind us lives in the overview's "Vergangen"
+  // section instead.
+  const range = useMemo(() => {
+    const start = new Date(today.getFullYear(), today.getMonth(), 1);
+    const end = new Date(
+      today.getFullYear(),
+      today.getMonth() + scopeMonths + 1,
+      0,
+    );
+    return { start, end, totalDays: dayDiff(start, end) + 1 };
+  }, [today, scopeMonths]);
+
+  // The whole range fits the viewport exactly, so the strip never scrolls.
+  const pxPerDay = viewWidth > 0 ? viewWidth / range.totalDays : 4;
+  const stripWidth = range.totalDays * pxPerDay;
+
+  const headerHeight = MONTHS_ROW_H;
+
+  const months = useMemo(() => {
+    const out = [];
+    const cursor = new Date(range.start);
+    while (cursor <= range.end) {
+      const dayCount = new Date(
+        cursor.getFullYear(),
+        cursor.getMonth() + 1,
+        0,
+      ).getDate();
+      out.push({
+        month: cursor.getMonth(),
+        year: cursor.getFullYear(),
+        dayCount,
+        startIndex: dayDiff(range.start, cursor),
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+    return out;
+  }, [range]);
+
+  const entriesById = useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry])),
+    [entries],
+  );
+
+  // Merge the scheduled traktanden, todos and Ziele the filter bar leaves
+  // active into positioned items, and pack their hanging labels into lanes so
+  // they never overlap.
+  const { items, laneCount } = useMemo(() => {
+    const list = [];
+    for (const todo of activeTypes.has("todo") ? todos : []) {
+      if (!todo.scheduled) continue;
+      const index = dayDiff(range.start, parseIsoDate(todo.scheduled));
+      if (index < 0 || index >= range.totalDays) continue;
+      list.push({
+        key: `todo-${todo.id}`,
+        type: "todo",
+        todo,
+        title: todo.title,
+        iso: todo.scheduled,
+        index,
+      });
+    }
+    for (const event of activeTypes.has("ziel") ? events : []) {
+      const index = dayDiff(range.start, parseIsoDate(event.scheduled));
+      if (index < 0 || index >= range.totalDays) continue;
+      list.push({
+        key: `ziel-${event.id}`,
+        type: "ziel",
+        event,
+        title: event.title,
+        iso: event.scheduled,
+        index,
+      });
+    }
+    // Archiving a traktandum takes it off the timeline.
+    for (const entry of activeTypes.has("entry") ? entries : []) {
+      if (!entry.scheduled || entry.archived) continue;
+      const index = dayDiff(range.start, parseIsoDate(entry.scheduled));
+      if (index < 0 || index >= range.totalDays) continue;
+      list.push({
+        key: `entry-${entry.id}`,
+        type: "entry",
+        entry,
+        title: entry.item_title,
+        iso: entry.scheduled,
+        index,
+      });
+    }
+    list.sort(
+      (a, b) =>
+        a.iso.localeCompare(b.iso) || (a.title || "").localeCompare(b.title),
+    );
+
+    const laneEnds = [];
+    const placed = list.map((item) => {
+      const x = (item.index + 0.5) * pxPerDay;
+      // Wide enough for the title, but never narrower than the date line.
+      // 7.8px per character approximates JetBrains Mono at 0.8rem; the
+      // constant covers the label's horizontal padding (2 × --space-4) and
+      // border plus a few pixels of slack, so text never runs into the
+      // rounded edge.
+      const labelWidth = Math.min(
+        Math.max((item.title || "").length * 7.8 + 44, 102),
+        204,
+      );
+      const labelLeft = Math.min(
+        Math.max(x - labelWidth / 2, 0),
+        Math.max(stripWidth - labelWidth, 0),
+      );
+      let lane = laneEnds.findIndex((end) => end <= labelLeft);
+      if (lane === -1) {
+        lane = laneEnds.length;
+        laneEnds.push(0);
+      }
+      laneEnds[lane] = labelLeft + labelWidth + 8;
+      return { ...item, x, labelWidth, labelLeft, lane };
+    });
+    return { items: placed, laneCount: Math.max(laneEnds.length, 1) };
+  }, [todos, events, entries, activeTypes, range, pxPerDay, stripWidth]);
+
+  const labelZoneHeight = laneCount * LABEL_LANE_HEIGHT + 8;
+  const todayX = (dayDiff(range.start, today) + 0.5) * pxPerDay;
+
+  // Deselecting the last active type would leave an empty timeline with no way
+  // back that reads as broken, so the last one stays on.
+  const handleToggleType = (type) => {
+    setEditingZiel(null);
+    setActiveTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) {
+        if (next.size === 1) return prev;
+        next.delete(type);
+      } else {
+        next.add(type);
+      }
+      return next;
+    });
+  };
+
+  const handleScope = (delta) => {
+    setEditingZiel(null);
+    setScopeMonths((prev) =>
+      Math.min(MAX_SCOPE, Math.max(MIN_SCOPE, prev + delta)),
+    );
+  };
+
+  const openEntryFor = (entryId) => {
+    const entry = entryId ? entriesById.get(entryId) : null;
+    if (entry) onOpenEntry(entry);
+  };
+
+  // Jump/edit: todos and traktandum-Ziele open their traktandum; only
+  // workspace-only Ziele open the edit popover (linked ones are owned by
+  // their /ziel marker in the notes). Reached by clicking an item's label on
+  // the strip, or the action button at the end of an overview row.
+  const handleItemClick = (item) => {
+    if (item.type === "entry") {
+      onOpenEntry(item.entry);
+      return;
+    }
+    if (item.type === "todo") {
+      openEntryFor(item.todo.entry_id);
+      return;
+    }
+    if (item.event.entry_id) {
+      openEntryFor(item.event.entry_id);
+      return;
+    }
+    // The popover lives outside the strip (whose overflow would clip it), so
+    // it is placed in viewport coordinates: over the item's line, clamped to
+    // stay fully on screen.
+    const el = stripRef.current;
+    const rect = el?.getBoundingClientRect();
+    const anchorX = rect ? rect.left + item.x : 0;
+    setEditingZiel({
+      id: item.event.id,
+      title: item.event.title,
+      scheduled: item.event.scheduled,
+      left: Math.max(
+        8,
+        Math.min(
+          anchorX - POPOVER_WIDTH / 2,
+          window.innerWidth - POPOVER_WIDTH - 8,
+        ),
+      ),
+      top: rect ? rect.top + headerHeight + 8 : 80,
+    });
+  };
+
+  const handleZielFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!zielTitle.trim() || !zielDate) return;
+    try {
+      await addEvent({ title: zielTitle.trim(), scheduled: zielDate });
+      toast.success("Ziel erstellt");
+      setShowZielForm(false);
+    } catch (error) {
+      toast.error("Ziel konnte nicht erstellt werden");
+    }
+  };
+
+  const handleZielSave = async (e) => {
+    e.preventDefault();
+    if (!editingZiel.title.trim() || !editingZiel.scheduled) return;
+    try {
+      await updateEvent(editingZiel.id, {
+        title: editingZiel.title.trim(),
+        scheduled: editingZiel.scheduled,
+      });
+      setEditingZiel(null);
+      toast.success("Ziel aktualisiert");
+    } catch (error) {
+      toast.error("Ziel konnte nicht aktualisiert werden");
+    }
+  };
+
+  const handleZielDelete = async () => {
+    if (!confirm("Ziel wirklich löschen?")) return;
+    try {
+      await deleteEvent(editingZiel.id);
+      setEditingZiel(null);
+      toast.success("Ziel gelöscht");
+    } catch (error) {
+      toast.error("Ziel konnte nicht gelöscht werden");
+    }
+  };
+
+  const upcomingItems = useMemo(
+    () => items.filter((item) => item.iso >= todayIso),
+    [items, todayIso],
+  );
+  const pastItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.iso < todayIso)
+        .sort((a, b) => b.iso.localeCompare(a.iso)),
+    [items, todayIso],
+  );
+
+  // Ziele have one fixed colour; todos follow their member, traktanden their
+  // topic — each matching the chips those rows show elsewhere in the app.
+  const itemColorClass = (item) => {
+    if (item.type === "ziel") return "timeline-ziel-color";
+    if (item.type === "entry") return getTopicColorClass(item.entry.topic);
+    return getMemberColorClass(item.todo.assignee);
+  };
+  const isDone = (item) => item.type === "todo" && item.todo.done;
+
+  const loading = todosLoading || eventsLoading || entriesLoading;
+
+  // A row click highlights the item's line on the strip. Jumping to the
+  // traktandum (or editing a free Ziel) lives on the action button, so the
+  // two don't fight over the same click.
+  const handleRowClick = (item) => {
+    setSelectedKey(item.key);
+  };
+
+  const renderRow = (item) => {
+    // A traktandum is its own target; todos and marker-Ziele point at the one
+    // they were authored in.
+    const linkedEntry =
+      item.type === "entry"
+        ? item.entry
+        : item.type === "todo"
+          ? item.todo.entry_id && entriesById.get(item.todo.entry_id)
+          : item.event.entry_id && entriesById.get(item.event.entry_id);
+    const canOpenEntry = Boolean(linkedEntry);
+    // Free Ziele (no traktandum) are edited right on the timeline.
+    const canEditZiel = item.type === "ziel" && !item.event.entry_id;
+    const topic =
+      item.type === "entry"
+        ? item.entry.topic
+        : item.type === "todo"
+          ? item.todo.topic
+          : null;
+    return (
+      <tr
+        key={item.key}
+        className={`timeline-table-row${isDone(item) ? " timeline-table-row-done" : ""}${selectedKey === item.key ? " timeline-table-row-selected" : ""}`}
+        onClick={() => handleRowClick(item)}
+      >
+        <td>{formatDate(item.iso)}</td>
+        <td>{item.title}</td>
+        <td>
+          {item.type === "todo" && item.todo.assignee ? (
+            <span
+              className={`entry-list-item-topic ${getMemberColorClass(item.todo.assignee)}`}
+            >
+              {formatMemberName(item.todo.assignee)}
+            </span>
+          ) : (
+            "-"
+          )}
+        </td>
+        <td>
+          {topic ? (
+            <span
+              className={`entry-list-item-topic ${getTopicColorClass(topic)}`}
+            >
+              {topic}
+            </span>
+          ) : (
+            "-"
+          )}
+        </td>
+        <td>
+          <span className="timeline-table-type">
+            {item.type === "ziel" ? (
+              <Flag size={13} />
+            ) : item.type === "entry" ? (
+              <ClipboardList size={13} />
+            ) : (
+              <ListTodo size={13} />
+            )}
+            {item.type === "ziel"
+              ? "Ziel"
+              : item.type === "entry"
+                ? "Traktandum"
+                : "ToDo"}
+          </span>
+        </td>
+        <td
+          className="timeline-table-td-actions"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {(canOpenEntry || canEditZiel) && (
+            <button
+              type="button"
+              className="secondary"
+              title={canOpenEntry ? "Zum Traktandum" : "Ziel bearbeiten"}
+              onClick={() => {
+                setSelectedKey(item.key);
+                handleItemClick(item);
+              }}
+            >
+              {canOpenEntry ? (
+                <ClipboardList size={16} />
+              ) : (
+                <Pencil size={16} />
+              )}
+            </button>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
+  const renderTable = (list) => (
+    <table className="timeline-table">
+      <thead>
+        <tr>
+          <th className="table-header-cell">Geplant</th>
+          <th className="table-header-cell">Titel</th>
+          <th className="table-header-cell">Für</th>
+          <th className="table-header-cell">Thema</th>
+          <th className="table-header-cell">Typ</th>
+          <th className="table-header-cell"></th>
+        </tr>
+      </thead>
+      <tbody>{list.map(renderRow)}</tbody>
+    </table>
+  );
+
+  // return (JSX)
+  return (
+    <div className="timeline">
+      <div className="timeline-toolbar">
+        <h2>Timeline</h2>
+      </div>
+
+      <div className="timeline-filter-row">
+        <div className="timeline-controls">
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setZielTitle("");
+              setZielDate("");
+              setShowZielForm((v) => !v);
+            }}
+          >
+            + Ziel
+          </button>
+          <div className="timeline-filter member-toggle-group">
+            {TYPES.map((type) => (
+              <button
+                key={type}
+                type="button"
+                className={`member-toggle${activeTypes.has(type) ? " member-toggle-selected" : ""}`}
+                aria-pressed={activeTypes.has(type)}
+                onClick={() => handleToggleType(type)}
+              >
+                {TYPE_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="timeline-scope">
+          <button
+            type="button"
+            className="secondary"
+            aria-label="Zeitraum verkleinern"
+            disabled={scopeMonths <= MIN_SCOPE}
+            onClick={() => handleScope(-SCOPE_STEP)}
+          >
+            <Minus size={14} />
+          </button>
+          <span className="timeline-scope-label">{scopeMonths} Monate</span>
+          <button
+            type="button"
+            className="secondary"
+            aria-label="Zeitraum vergrössern"
+            disabled={scopeMonths >= MAX_SCOPE}
+            onClick={() => handleScope(SCOPE_STEP)}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+      </div>
+
+      {showZielForm && (
+        <form
+          className="entry-list-detail-panel-member-dropdown entry-list-schedule-popup"
+          onSubmit={handleZielFormSubmit}
+        >
+          <div className="entry-list-schedule-popup-row">
+            <input
+              type="text"
+              className="entry-list-schedule-popup-title"
+              placeholder="Ziel..."
+              value={zielTitle}
+              onChange={(e) => setZielTitle(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="date"
+              aria-label="Geplant"
+              value={zielDate}
+              onChange={(e) => setZielDate(e.target.value)}
+              required
+            />
+            <button
+              type="submit"
+              className="primary"
+              disabled={!zielTitle.trim() || !zielDate}
+            >
+              OK
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowZielForm(false)}
+            >
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      )}
+
+      {loading && <p>Timeline wird geladen...</p>}
+
+      {!loading && items.length === 0 && (
+        <p className="timeline-empty">
+          Noch nichts geplant. Traktanden und ToDos mit Datum sowie Ziele
+          erscheinen hier.
+        </p>
+      )}
+
+      <div className="timeline-frame" ref={stripRef}>
+        <div className="timeline-strip" style={{ width: stripWidth }}>
+          <div className="timeline-months" style={{ height: MONTHS_ROW_H }}>
+            {months.map((m) => {
+              const width = m.dayCount * pxPerDay;
+              return (
+                <div
+                  key={`${m.year}-${m.month}`}
+                  className="timeline-month"
+                  style={{ width }}
+                >
+                  {width >= 110
+                    ? `${MONTH_NAMES[m.month]} ${m.year}`
+                    : `${MONTH_SHORT[m.month]} ${String(m.year).slice(2)}`}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* The body is plain empty space the item lines run through; the
+              only thing drawn in it is one divider per month, hanging off the
+              strip so it reaches all the way down past the labels. */}
+          <div
+            className="timeline-body"
+            style={{ height: LINE_RUN_HEIGHT + labelZoneHeight }}
+          />
+          {months.map((m) => (
+            <div
+              key={`line-${m.year}-${m.month}`}
+              className="timeline-month-line"
+              style={{ left: m.startIndex * pxPerDay, top: MONTHS_ROW_H }}
+            />
+          ))}
+
+          {items.map((item) => {
+            const colorClass = itemColorClass(item);
+            const hot = selectedKey === item.key;
+            const lineTop = headerHeight;
+            const lineHeight =
+              LINE_RUN_HEIGHT + item.lane * LABEL_LANE_HEIGHT + 10;
+            const labelTop = lineTop + lineHeight - 2;
+            const tooltip = [
+              item.title,
+              item.type === "todo"
+                ? item.todo.assignee
+                : item.type === "entry"
+                  ? "Traktandum"
+                  : "Ziel",
+              item.type === "todo"
+                ? item.todo.topic
+                : item.type === "entry"
+                  ? item.entry.topic
+                  : null,
+              formatDate(item.iso),
+            ]
+              .filter(Boolean)
+              .join(" · ");
+            return (
+              <div
+                key={item.key}
+                className={`${isDone(item) ? "timeline-item-done" : ""}${hot ? " timeline-item-hot" : ""}`}
+              >
+                <div
+                  className={`timeline-line ${colorClass}`}
+                  style={{ left: item.x, top: lineTop, height: lineHeight }}
+                />
+                {/* Deliberately not a <button>: the global button:hover fill
+                    would override the label's own colour on hover. */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className={`timeline-label ${colorClass}`}
+                  style={{
+                    left: item.labelLeft,
+                    top: labelTop,
+                    maxWidth: item.labelWidth,
+                  }}
+                  title={tooltip}
+                  onClick={() => handleItemClick(item)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      handleItemClick(item);
+                    }
+                  }}
+                >
+                  <span className="timeline-label-title">{item.title}</span>
+                  <span className="timeline-label-date">
+                    {formatShortDate(item.iso)}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+
+          <div
+            className="timeline-today-line"
+            style={{ left: todayX - 1, top: headerHeight }}
+          >
+            <span className="timeline-today-label">Heute</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Outside the scrolling strip, which would clip it (see the viewport
+          coordinates computed in handleItemClick). */}
+      {editingZiel && (
+        <form
+          className="timeline-ziel-popover"
+          style={{ left: editingZiel.left, top: editingZiel.top }}
+          onSubmit={handleZielSave}
+        >
+          <input
+            type="text"
+            value={editingZiel.title}
+            onChange={(e) =>
+              setEditingZiel((prev) => ({
+                ...prev,
+                title: e.target.value,
+              }))
+            }
+            autoFocus
+          />
+          <input
+            type="date"
+            value={editingZiel.scheduled}
+            onChange={(e) =>
+              setEditingZiel((prev) => ({
+                ...prev,
+                scheduled: e.target.value,
+              }))
+            }
+            required
+          />
+          <div className="timeline-ziel-popover-actions">
+            <button
+              type="submit"
+              className="primary"
+              disabled={!editingZiel.title.trim() || !editingZiel.scheduled}
+            >
+              Speichern
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setEditingZiel(null)}
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleZielDelete}
+              title="Ziel löschen"
+            >
+              <Trash size={14} />
+            </button>
+          </div>
+        </form>
+      )}
+
+      {!loading && (
+        <div className="timeline-table-section">
+          <h3 className="timeline-table-title">Übersicht</h3>
+          {upcomingItems.length === 0 ? (
+            <p className="timeline-empty">Nichts Anstehendes geplant.</p>
+          ) : (
+            renderTable(upcomingItems)
+          )}
+
+          {pastItems.length > 0 && (
+            <>
+              <div
+                className="timeline-table-title timeline-table-title-past"
+                onClick={() => setShowPast(!showPast)}
+              >
+                <h3>Vergangen ({pastItems.length})</h3>
+                {showPast ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+              </div>
+              {showPast && renderTable(pastItems)}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

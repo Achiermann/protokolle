@@ -49,6 +49,9 @@ const getSortValue = (todo, column) => {
   if (column === "assignee") return normalizeMemberKey(todo.assignee);
   if (column === "title") return (todo.title || "").toLowerCase();
   if (column === "topic") return (todo.topic || "").toLowerCase();
+  // `scheduled` is an ISO date string, so string order is date order; "~"
+  // sorts after any digit, pushing unscheduled todos to the end (ascending).
+  if (column === "scheduled") return todo.scheduled || "~";
   return new Date(todo.date_created).getTime();
 };
 
@@ -65,6 +68,8 @@ export default function TodoList({ onOpenEntry }) {
   const [commentDraft, setCommentDraft] = useState("");
   const [isEditingComment, setIsEditingComment] = useState(false);
   const [showTodoForm, setShowTodoForm] = useState(false);
+  // The todo whose edit form is open, if any.
+  const [editingTodo, setEditingTodo] = useState(null);
   const [showDone, setShowDone] = useState(false);
   const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -347,6 +352,12 @@ export default function TodoList({ onOpenEntry }) {
           >
             Datum{sortIndicator("date")}
           </th>
+          <th
+            className="entry-list-table-th-sortable table-header-cell"
+            onClick={() => handleSort("scheduled")}
+          >
+            Geplant{sortIndicator("scheduled")}
+          </th>
           <th className="todo-list-table-th-actions table-header-cell"></th>
         </tr>
       </thead>
@@ -411,6 +422,11 @@ export default function TodoList({ onOpenEntry }) {
                     {formatDate(todo.date_created)}
                   </div>
                 </td>
+                <td>
+                  <div className="todo-list-item-date">
+                    {todo.scheduled ? formatDate(todo.scheduled) : "-"}
+                  </div>
+                </td>
                 <td
                   className="todo-list-table-td-actions"
                   onClick={(e) => e.stopPropagation()}
@@ -429,6 +445,14 @@ export default function TodoList({ onOpenEntry }) {
                     <button
                       type="button"
                       className="secondary"
+                      onClick={() => setEditingTodo(todo)}
+                      title="ToDo bearbeiten"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
                       onClick={() => handleDelete(todo)}
                       title="ToDo löschen"
                     >
@@ -439,7 +463,7 @@ export default function TodoList({ onOpenEntry }) {
               </tr>
               {selectedId === todo.id && (
                 <tr className="todo-list-table-row-detail">
-                  <td colSpan={6}>{renderCommentPanel(todo)}</td>
+                  <td colSpan={7}>{renderCommentPanel(todo)}</td>
                 </tr>
               )}
             </React.Fragment>
@@ -544,6 +568,20 @@ export default function TodoList({ onOpenEntry }) {
         >
           <div onClick={(e) => e.stopPropagation()}>
             <TodoForm onCancel={() => setShowTodoForm(false)} />
+          </div>
+        </div>
+      )}
+
+      {editingTodo && (
+        <div
+          className="entry-form-overlay"
+          onClick={() => setEditingTodo(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <TodoForm
+              todo={editingTodo}
+              onCancel={() => setEditingTodo(null)}
+            />
           </div>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useEntriesStore } from "./useEntriesStore";
 import { useTodosStore } from "./useTodosStore";
+import { useEventsStore } from "./useEventsStore";
 
 export const useWorkspacesStore = create((set, get) => ({
   // *** VARIABLES ***
@@ -56,10 +57,11 @@ export const useWorkspacesStore = create((set, get) => ({
         body: JSON.stringify({ workspace_id: workspaceId }),
       });
       if (!response.ok) throw new Error("Auswahl fehlgeschlagen");
-      // Entries and todos are scoped per workspace; drop the caches so the next
-      // view loads the newly selected workspace's data fresh.
+      // Entries, todos and events are scoped per workspace; drop the caches so
+      // the next view loads the newly selected workspace's data fresh.
       useEntriesStore.getState().resetEntries();
       useTodosStore.getState().resetTodos();
+      useEventsStore.getState().resetEvents();
       return true;
     } catch (error) {
       set({ error: error.message });

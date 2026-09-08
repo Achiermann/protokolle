@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { sanitizeHtml, decorateTodos } from "../../lib/richText";
+import {
+  sanitizeHtml,
+  decorateTodos,
+  buildTodoTag,
+  buildZielTag,
+} from "../../lib/richText";
 import "../../styles/entry-list.css";
 
 // Highlight colours. Each value is also a CSS class (see entry-list.css) that
@@ -45,9 +50,18 @@ export default function RichTextEditor({
     timer: null,
     applying: false,
   });
-  const [showMemberDropdown, setShowMemberDropdown] = useState(false);
+  const [showTodoPopup, setShowTodoPopup] = useState(false);
+  const [selectedMemberIds, setSelectedMemberIds] = useState(new Set());
+  const [todoDate, setTodoDate] = useState("");
+  const [showZielPopup, setShowZielPopup] = useState(false);
+  const [zielTitle, setZielTitle] = useState("");
+  const [zielDate, setZielDate] = useState("");
   const [showColorDropdown, setShowColorDropdown] = useState(false);
   const [activeColor, setActiveColor] = useState(MARKER_COLORS[0].className);
+  // Caret offset captured when a popup opens: interacting with the popup's
+  // inputs moves focus (and thus the selection) out of the editor, so the
+  // insertion point is restored from here on OK.
+  const savedCaretRef = useRef(null);
 
   // *** FUNCTIONS/HANDLERS ***
   // contentEditable is uncontrolled: seed the DOM once on mount so the caret
@@ -435,10 +449,10 @@ export default function RichTextEditor({
   const activeMarker =
     MARKER_COLORS.find((c) => c.className === activeColor) || MARKER_COLORS[0];
 
-  // Insert the todo tag wrapped in a todo-line span so it is highlighted
-  // immediately and the task text typed next stays inside the highlight. The
-  // span is throwaway (stripped on save, re-derived on load by decorateTodos).
-  const insertTodoTag = (text) => {
+  // Insert a marker tag wrapped in a colour-line span so it is highlighted
+  // immediately and text typed next stays inside the highlight. The span is
+  // throwaway (stripped on save, re-derived on load by decorateTodos).
+  const insertTodoTag = (text, cls = "todo-line") => {
     const editor = editorRef.current;
     if (!editor) return;
     const selection = window.getSelection();
@@ -456,7 +470,7 @@ export default function RichTextEditor({
     }
     range.deleteContents();
     const span = document.createElement("span");
-    span.className = "todo-line";
+    span.className = cls;
     span.textContent = text;
     range.insertNode(span);
     const next = document.createRange();
@@ -469,18 +483,76 @@ export default function RichTextEditor({
   };
 
   const handleInsertTodo = async () => {
+    // Capture the caret before the popup steals focus (see savedCaretRef).
+    savedCaretRef.current = getCaret();
     if (members.length === 0) await onRequestMembers();
-    setShowMemberDropdown(true);
+    setSelectedMemberIds(new Set());
+    setTodoDate("");
+    setShowZielPopup(false);
+    setShowTodoPopup(true);
   };
 
-  const handleSelectMember = (member) => {
-    const rawName = member.name || member.email.split("@")[0];
-    const nameTag = rawName.replace(/\s+/g, "_");
-    runWithHistory(() => insertTodoTag(`/todo@${nameTag} `));
-    setShowMemberDropdown(false);
+  const handleToggleMember = (id) => {
+    setSelectedMemberIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
-  const handleCancelMemberDropdown = () => setShowMemberDropdown(false);
+  const handleTodoPopupSubmit = (e) => {
+    e.preventDefault();
+    const names = members
+      .filter((m) => selectedMemberIds.has(m.id))
+      .map((m) => m.name || m.email.split("@")[0]);
+    if (names.length === 0) return;
+    const editor = editorRef.current;
+    if (editor) {
+      editor.focus();
+      setCaret(savedCaretRef.current);
+    }
+    runWithHistory(() => insertTodoTag(buildTodoTag(names, todoDate || null)));
+    setShowTodoPopup(false);
+  };
+
+  const handleCancelTodoPopup = () => setShowTodoPopup(false);
+
+  const handleOpenZiel = () => {
+    savedCaretRef.current = getCaret();
+    setZielTitle("");
+    setZielDate("");
+    setShowTodoPopup(false);
+    setShowZielPopup(true);
+  };
+
+  // Ziele are authored inline like todos: OK inserts a `/ziel@Datum Titel`
+  // marker at the caret; the row is created (and linked to this traktandum)
+  // when the notes are saved.
+  const handleZielSubmit = (e) => {
+    e.preventDefault();
+    if (!zielTitle.trim() || !zielDate) return;
+    const editor = editorRef.current;
+    if (editor) {
+      editor.focus();
+      setCaret(savedCaretRef.current);
+    }
+    runWithHistory(() =>
+      insertTodoTag(buildZielTag(zielTitle.trim(), zielDate), "ziel-line"),
+    );
+    setShowZielPopup(false);
+  };
+
+  const handleCancelZiel = () => setShowZielPopup(false);
+
+  // Escape closes whichever popup is open (without touching the editor).
+  const closePopupsOnEscape = (e) => {
+    if (e.key === "Escape") {
+      e.stopPropagation();
+      setShowTodoPopup(false);
+      setShowZielPopup(false);
+    }
+  };
 
   // Pressing a toolbar/dropdown button must not blur the editor, or execCommand
   // and caret insertion would lose the selection they act on.
@@ -559,29 +631,98 @@ export default function RichTextEditor({
             + ToDo
           </button>
         )}
+        {showTodoButton && (
+          <button type="button" className="secondary" onClick={handleOpenZiel}>
+            + Ziel
+          </button>
+        )}
       </div>
-      {showTodoButton && showMemberDropdown && (
-        <div className="entry-list-detail-panel-member-dropdown">
-          {members.map((m) => (
+      {showTodoButton && showTodoPopup && (
+        <form
+          className="entry-list-detail-panel-member-dropdown entry-list-schedule-popup"
+          onSubmit={handleTodoPopupSubmit}
+          onKeyDown={closePopupsOnEscape}
+        >
+          <div className="member-toggle-group">
+            {members.map((m) => (
+              <button
+                key={m.id}
+                type="button"
+                className={`member-toggle${selectedMemberIds.has(m.id) ? " member-toggle-selected" : ""}`}
+                onClick={() => handleToggleMember(m.id)}
+              >
+                {m.name || m.email}
+              </button>
+            ))}
+          </div>
+          <div className="entry-list-schedule-popup-row">
+            <label
+              className="entry-list-schedule-popup-date-label"
+              htmlFor="todo-schedule-date"
+            >
+              Geplant
+            </label>
+            <input
+              type="date"
+              id="todo-schedule-date"
+              value={todoDate}
+              onChange={(e) => setTodoDate(e.target.value)}
+            />
             <button
-              key={m.id}
+              type="submit"
+              className="primary"
+              disabled={selectedMemberIds.size === 0}
+            >
+              OK
+            </button>
+            <button
               type="button"
               className="secondary"
-              onMouseDown={keepSelection}
-              onClick={() => handleSelectMember(m)}
+              onClick={handleCancelTodoPopup}
             >
-              {m.name || m.email}
+              Abbrechen
             </button>
-          ))}
-          <button
-            type="button"
-            className="secondary"
-            onMouseDown={keepSelection}
-            onClick={handleCancelMemberDropdown}
-          >
-            Abbrechen
-          </button>
-        </div>
+          </div>
+        </form>
+      )}
+      {showTodoButton && showZielPopup && (
+        <form
+          className="entry-list-detail-panel-member-dropdown entry-list-schedule-popup"
+          onSubmit={handleZielSubmit}
+          onKeyDown={closePopupsOnEscape}
+        >
+          <div className="entry-list-schedule-popup-row">
+            <input
+              type="text"
+              className="entry-list-schedule-popup-title"
+              placeholder="Ziel..."
+              value={zielTitle}
+              onChange={(e) => setZielTitle(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="date"
+              aria-label="Geplant"
+              value={zielDate}
+              onChange={(e) => setZielDate(e.target.value)}
+              required
+            />
+            <button
+              type="submit"
+              className="primary"
+              disabled={!zielTitle.trim() || !zielDate}
+            >
+              OK
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleCancelZiel}
+            >
+              Abbrechen
+            </button>
+          </div>
+        </form>
       )}
       <div
         ref={editorRef}

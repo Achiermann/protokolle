@@ -263,6 +263,9 @@ export default function EntryList({
   const getSortValue = (entry, column) => {
     if (column === "title") return (entry.item_title || "").toLowerCase();
     if (column === "topic") return (entry.topic || "").toLowerCase();
+    // `scheduled` is an ISO date string, so string order is date order; "~"
+    // sorts after any digit, pushing unscheduled entries to the end.
+    if (column === "scheduled") return entry.scheduled || "~";
     return new Date(entry.date_created).getTime();
   };
 
@@ -404,6 +407,7 @@ export default function EntryList({
   // the unfolded editor below it).
   const renderTraktandumCard = (entry, index, group, dragProps = {}) => (
     <div
+      id={`entry-row-${entry.id}`}
       className={
         selectedId === entry.id
           ? "entry-list-open-item entry-list-open-item-selected"
@@ -425,10 +429,15 @@ export default function EntryList({
       <span className="entry-list-open-item-title">
         {group.name === "posteingang" && `${index + 1}. `}
         {entry.item_title}
-        {entry.created_by_name && (
+        {(entry.created_by_name || entry.scheduled) && (
           <span className="entry-list-item-creator">
-            {" - erstellt von "}
-            {entry.created_by_name}
+            {" - "}
+            {[
+              entry.created_by_name && `erstellt von ${entry.created_by_name}`,
+              entry.scheduled && `geplant auf ${formatDate(entry.scheduled)}`,
+            ]
+              .filter(Boolean)
+              .join(", ")}
           </span>
         )}
       </span>
@@ -540,6 +549,14 @@ export default function EntryList({
               <span className="entry-list-detail-panel-meta-label">Datum</span>
               <span>{formatDate(selectedEntry.date_created)}</span>
             </span>
+            {selectedEntry.scheduled && (
+              <span className="entry-list-detail-panel-meta-item">
+                <span className="entry-list-detail-panel-meta-label">
+                  Geplant
+                </span>
+                <span>{formatDate(selectedEntry.scheduled)}</span>
+              </span>
+            )}
           </div>
           <div className="entry-list-item-actions">
             <button
@@ -817,6 +834,12 @@ export default function EntryList({
                 >
                   Datum{sortIndicator("date")}
                 </th>
+                <th
+                  className="entry-list-table-th-sortable table-header-cell"
+                  onClick={() => handleSort("scheduled")}
+                >
+                  Geplant{sortIndicator("scheduled")}
+                </th>
                 <th className="table-header-cell">Aktionen</th>
               </tr>
             </thead>
@@ -855,6 +878,11 @@ export default function EntryList({
                       </div>
                     </td>
                     <td>
+                      <div className="entry-list-item-date">
+                        {entry.scheduled ? formatDate(entry.scheduled) : "-"}
+                      </div>
+                    </td>
+                    <td>
                       <div className="entry-list-item-actions">
                         <button
                           className="secondary"
@@ -888,7 +916,7 @@ export default function EntryList({
                   </tr>
                   {selectedId === entry.id && (
                     <tr className="entry-list-table-row-detail">
-                      <td colSpan={4}>{renderDetailPanel()}</td>
+                      <td colSpan={5}>{renderDetailPanel()}</td>
                     </tr>
                   )}
                 </React.Fragment>

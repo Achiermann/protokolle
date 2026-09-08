@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
-import { reconcileEntryTodos } from "@/lib/todoSync";
+import { reconcileEntryTodos, reconcileEntryZiele } from "@/lib/todoSync";
 
 // GET /api/entries/:id
 export async function GET(request, { params }) {
@@ -87,6 +87,11 @@ export async function PATCH(request, { params }) {
           workspaceId,
           content: data.content,
           dateCreated: data.date_created,
+        });
+        await reconcileEntryZiele(supabase, {
+          entryId: data.id,
+          workspaceId,
+          content: data.content,
         });
       } catch (syncError) {
         console.error("Todo sync failed on entry update:", syncError);

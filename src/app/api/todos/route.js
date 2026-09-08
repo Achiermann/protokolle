@@ -68,7 +68,9 @@ export async function GET() {
   }
 }
 
-// POST /api/todos — create a standalone todo (no linked traktandum).
+// POST /api/todos — create standalone todos (no linked traktandum). Accepts
+// `assignees` (array) or legacy `assignee` (string); one row is created per
+// assignee. `scheduled` is an optional ISO date shared by all created rows.
 export async function POST(request) {
   try {
     const cookieStore = await cookies();
@@ -91,7 +93,12 @@ export async function POST(request) {
         { status: 400 },
       );
     }
-    if (!body.assignee || !body.assignee.trim()) {
+    const assignees = (
+      Array.isArray(body.assignees) ? body.assignees : [body.assignee]
+    )
+      .map((name) => (typeof name === "string" ? name.trim() : ""))
+      .filter(Boolean);
+    if (assignees.length === 0) {
       return NextResponse.json(
         {
           error: { code: "VALIDATION_ERROR", message: "assignee is required" },
@@ -99,29 +106,34 @@ export async function POST(request) {
         { status: 400 },
       );
     }
+    const scheduled =
+      typeof body.scheduled === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(body.scheduled)
+        ? body.scheduled
+        : null;
 
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .schema("protokoll_app")
       .from("todos")
-      .insert([
-        {
+      .insert(
+        assignees.map((assignee) => ({
           entry_id: null,
           workspace_id: workspaceId,
-          assignee: body.assignee.trim(),
+          assignee,
           title: body.title.trim(),
           topic: body.topic?.trim() || null,
-        },
-      ])
-      .select("*")
-      .single();
+          scheduled,
+        })),
+      )
+      .select("*");
 
     if (error) {
       throw error;
     }
 
     return NextResponse.json(
-      { item: { ...data, entry_title: null } },
+      { items: (data || []).map((row) => ({ ...row, entry_title: null })) },
       { status: 201 },
     );
   } catch (error) {

@@ -108,7 +108,7 @@
   color: var(--color-text);
   display: inline;
   padding: 0.15em var(--space-2);
-  border-radius: 0;
+  border-radius: var(--radius-sm);
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
 }
@@ -438,6 +438,39 @@
 .entry-list-detail-panel-member-dropdown button {
   padding: var(--space-1) var(--space-3);
   font-size: 0.875rem;
+}
+
+/* + ToDo / + Ziel popup: member checkboxes plus a date row with OK/Abbrechen. */
+.entry-list-schedule-popup {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.entry-list-schedule-popup-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.entry-list-schedule-popup-date-label {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.entry-list-schedule-popup-row input[type="date"],
+.entry-list-schedule-popup-title {
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.875rem;
+  font-family: inherit;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-btn);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+}
+
+.entry-list-schedule-popup-title {
+  min-width: 14rem;
 }
 
 .entry-list-detail-panel-content-toolbar button {

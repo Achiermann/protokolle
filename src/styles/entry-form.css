@@ -16,6 +16,12 @@
   flex-direction: column;
 }
 
+/* Member multi-select uses the global .member-toggle pills; give the group a
+   little breathing room inside the form column. */
+.entry-form-field .member-toggle-group {
+  padding: var(--space-1) 0;
+}
+
 .entry-form-actions {
   display: flex;
   gap: var(--space-3);

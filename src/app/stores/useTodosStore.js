@@ -42,7 +42,7 @@ export const useTodosStore = create((set, get) => ({
   resetTodos: () =>
     set({ todos: [], loaded: false, loading: false, error: null }),
 
-  // Create a standalone todo (no linked traktandum).
+  // Create standalone todos (no linked traktandum) — one row per assignee.
   addTodo: async (todo) => {
     set({ error: null });
     try {
@@ -55,9 +55,10 @@ export const useTodosStore = create((set, get) => ({
         throw new Error("Failed to create todo");
       }
       const data = await response.json();
-      set((state) => ({ todos: [data.item, ...state.todos] }));
+      const items = data.items || [];
+      set((state) => ({ todos: [...items, ...state.todos] }));
       pingWorkspaceChange();
-      return data.item;
+      return items;
     } catch (error) {
       set({ error: error.message });
       throw error;

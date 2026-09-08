@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "../stores/useAuthStore";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useTodosStore } from "../stores/useTodosStore";
+import { useEventsStore } from "../stores/useEventsStore";
 import {
   getSupabaseBrowserClient,
   isRealtimeConfigured,
@@ -23,17 +24,18 @@ export function useRealtimeSync() {
     if (!workspaceId) return undefined;
     if (!isRealtimeConfigured()) {
       console.warn(
-        "Realtime sync disabled: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set."
+        "Realtime sync disabled: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY are not set.",
       );
       return undefined;
     }
 
     const supabase = getSupabaseBrowserClient();
     const refetchAll = () => {
-      // Always both: entry edits can also create or change todos via the
-      // server-side /todo marker sync.
+      // Always all three: entry edits can also create or change todos via the
+      // server-side /todo marker sync, and events feed the timeline.
       useEntriesStore.getState().fetchEntries({ silent: true });
       useTodosStore.getState().fetchTodos({ silent: true });
+      useEventsStore.getState().fetchEvents({ silent: true });
     };
 
     // Refetch on every (re)subscribe except the very first, which coincides
@@ -45,11 +47,13 @@ export function useRealtimeSync() {
       config: { broadcast: { self: false } },
     });
 
-    channel.on("broadcast", { event: "change" }, refetchAll).subscribe((status) => {
-      if (status !== "SUBSCRIBED") return;
-      if (hasSubscribedOnce) refetchAll();
-      hasSubscribedOnce = true;
-    });
+    channel
+      .on("broadcast", { event: "change" }, refetchAll)
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        if (hasSubscribedOnce) refetchAll();
+        hasSubscribedOnce = true;
+      });
 
     setWorkspaceChannel(channel);
 

@@ -111,13 +111,13 @@ h6 {
 
 /* Single source of truth for all table column-header typography.
    Prototype: the entry-list-table header. Structural rules (padding,
-   borders) stay on each table's own th selector. */
+   borders) stay on each table's own th selector. !important keeps the
+   face from being taken over by the global `.main-content *` rule. */
 .table-header-cell {
-  font-family: "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace !important;
+  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif !important;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);
-  letter-spacing: 0.05em;
   text-align: left;
   text-transform: none;
 }
@@ -265,9 +265,10 @@ mark.marker-pink {
   background-color: var(--marker-pink);
 }
 
-/* Todo / done lines in rich-text content */
+/* Todo / done / ziel lines in rich-text content */
 .todo-line,
-.done-line {
+.done-line,
+.ziel-line {
   border-radius: var(--radius-sm);
   padding: 0 2px;
   box-decoration-break: clone;
@@ -280,6 +281,38 @@ mark.marker-pink {
 
 .done-line {
   background-color: var(--marker-done);
+}
+
+.ziel-line {
+  background-color: var(--marker-pink);
+}
+
+/* Member multi-select as name pills (ToDo form + editor todo popup): one pill
+   per member toggles selection; selected fills dark. */
+.member-toggle-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+button.member-toggle {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.875rem;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  border: 1.9px solid var(--btn-bg);
+  border-radius: 999px;
+}
+
+button.member-toggle:hover {
+  background-color: var(--btn-bg);
+}
+
+button.member-toggle-selected,
+button.member-toggle-selected:hover {
+  background-color: var(--color-text);
+  border-color: var(--color-text);
+  color: #fff;
 }
 
 /* ================================
