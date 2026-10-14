@@ -17,6 +17,8 @@ export default function EntryForm({ onCancel, entry }) {
     // Optional planned date; scheduled traktanden show up on the timeline.
     scheduled: entry?.scheduled || "",
   });
+  // Create-only: drop the new traktandum straight into the Posteingang.
+  const [inPosteingang, setInPosteingang] = useState(false);
   const [isNewTopic, setIsNewTopic] = useState(false);
 
   const existingTopics = useMemo(() => {
@@ -66,12 +68,29 @@ export default function EntryForm({ onCancel, entry }) {
         });
         toast.success("Traktandum aktualisiert");
       } else {
+        // New arrivals go to the end of the Posteingang: one past the highest
+        // existing position (same rule as EntryList's "In Posteingang").
+        const posteingangFields = inPosteingang
+          ? {
+              in_posteingang: true,
+              posteingang_position:
+                entries.reduce(
+                  (max, e) =>
+                    (e.in_posteingang || e.topic === "posteingang") &&
+                    typeof e.posteingang_position === "number"
+                      ? Math.max(max, e.posteingang_position)
+                      : max,
+                  -1,
+                ) + 1,
+            }
+          : {};
         await addEntry({
           item_title: formData.item_title,
           topic: formData.topic || null,
           scheduled: formData.scheduled || null,
           content: null,
           members: [],
+          ...posteingangFields,
         });
         toast.success("Traktandum erstellt");
       }
@@ -81,6 +100,7 @@ export default function EntryForm({ onCancel, entry }) {
         topic: "",
         scheduled: "",
       });
+      setInPosteingang(false);
       if (onCancel) onCancel();
     } catch (error) {
       toast.error(
@@ -146,6 +166,17 @@ export default function EntryForm({ onCancel, entry }) {
             onChange={handleChange}
           />
         </div>
+
+        {!isEditing && (
+          <label className="entry-form-checkbox">
+            <input
+              type="checkbox"
+              checked={inPosteingang}
+              onChange={(e) => setInPosteingang(e.target.checked)}
+            />
+            In Posteingang
+          </label>
+        )}
       </div>
 
       <div className="entry-form-actions">

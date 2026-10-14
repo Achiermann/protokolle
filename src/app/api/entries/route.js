@@ -141,6 +141,10 @@ export async function POST(request) {
           topic: body.topic || null,
           scheduled: body.scheduled || null,
           members: body.members || [],
+          in_posteingang: body.in_posteingang === true,
+          posteingang_position: Number.isInteger(body.posteingang_position)
+            ? body.posteingang_position
+            : null,
           workspace_id: workspaceId,
           created_by: user.id,
         },
