@@ -187,6 +187,44 @@
   border-color: currentColor;
 }
 
+/* --- Projects --- */
+
+/* A project is a bar across its span in the band under the month header,
+   painted in its colour class (hashed from the name) and labelled inside. A
+   side cut off by the visible range loses its rounding, so the bar reads as
+   continuing past the edge. */
+.timeline-project {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.timeline-project-clipped-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.timeline-project-clipped-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Marks the project whose edit popover is open. */
+.timeline-project-hot {
+  border-color: currentColor;
+}
+
 /* --- Today marker --- */
 
 /* Starts below the month header (`top` is set inline) so it never crosses the

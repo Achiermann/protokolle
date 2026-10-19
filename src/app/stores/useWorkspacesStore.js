@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { useEntriesStore } from "./useEntriesStore";
 import { useTodosStore } from "./useTodosStore";
 import { useEventsStore } from "./useEventsStore";
+import { useProjectsStore } from "./useProjectsStore";
 
 export const useWorkspacesStore = create((set, get) => ({
   // *** VARIABLES ***
@@ -62,6 +63,7 @@ export const useWorkspacesStore = create((set, get) => ({
       useEntriesStore.getState().resetEntries();
       useTodosStore.getState().resetTodos();
       useEventsStore.getState().resetEvents();
+      useProjectsStore.getState().resetProjects();
       return true;
     } catch (error) {
       set({ error: error.message });

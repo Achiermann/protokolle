@@ -3,6 +3,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useTodosStore } from "../stores/useTodosStore";
 import { useEventsStore } from "../stores/useEventsStore";
+import { useProjectsStore } from "../stores/useProjectsStore";
 import {
   getSupabaseBrowserClient,
   isRealtimeConfigured,
@@ -31,11 +32,13 @@ export function useRealtimeSync() {
 
     const supabase = getSupabaseBrowserClient();
     const refetchAll = () => {
-      // Always all three: entry edits can also create or change todos via the
-      // server-side /todo marker sync, and events feed the timeline.
+      // Always all of them: entry edits can also create or change todos via the
+      // server-side /todo marker sync, and events and projects feed the
+      // timeline.
       useEntriesStore.getState().fetchEntries({ silent: true });
       useTodosStore.getState().fetchTodos({ silent: true });
       useEventsStore.getState().fetchEvents({ silent: true });
+      useProjectsStore.getState().fetchProjects({ silent: true });
     };
 
     // Refetch on every (re)subscribe except the very first, which coincides

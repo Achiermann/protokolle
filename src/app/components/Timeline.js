@@ -16,6 +16,7 @@ import toast from "react-hot-toast";
 import { useTodosStore } from "../stores/useTodosStore";
 import { useEventsStore } from "../stores/useEventsStore";
 import { useEntriesStore } from "../stores/useEntriesStore";
+import { useProjectsStore } from "../stores/useProjectsStore";
 import "../../styles/timeline.css";
 // Member/topic colour chips and the shared popup styling.
 import "../../styles/entry-list.css";
@@ -28,12 +29,16 @@ import "../../styles/entry-list.css";
 const MIN_SCOPE = 3;
 const MAX_SCOPE = 24;
 const SCOPE_STEP = 3;
-const DEFAULT_SCOPE = 6;
+const DEFAULT_SCOPE = 3;
 
 // Vertical layout: the month header on top, then open space the item lines
 // run through, then the zone where each line ends in its labelled tab.
 const LINE_RUN_HEIGHT = 150;
 const MONTHS_ROW_H = 24;
+// Projects sit in a band right under the month header, one bar per project;
+// overlapping projects stack into extra rows.
+const PROJECT_BAR_H = 22;
+const PROJECT_ROW_GAP = 4;
 // Every label tab has the same width and reads "dd. Titel" on one line; it
 // only wraps when the text doesn't fit, up to LABEL_MAX_LINES. Keep these in
 // step with .timeline-label in timeline.css: 0.8rem mono at line-height 1.25
@@ -51,11 +56,16 @@ const LABEL_GAP_X = 8;
 // Keep in step with .timeline-ziel-popover's width in timeline.css.
 const POPOVER_WIDTH = 280;
 
-// The three kinds of item on the timeline, in filter-bar order. ToDos are
-// numerous and fine-grained, so they're opt-in: off until toggled on.
-const TYPES = ["entry", "todo", "ziel"];
-const DEFAULT_TYPES = ["entry", "ziel"];
-const TYPE_LABELS = { entry: "Traktanden", todo: "ToDos", ziel: "Ziele" };
+// The kinds of item on the timeline, in filter-bar order. ToDos are numerous
+// and fine-grained, so they're opt-in: off until toggled on.
+const TYPES = ["entry", "todo", "ziel", "project"];
+const DEFAULT_TYPES = ["entry", "ziel", "project"];
+const TYPE_LABELS = {
+  entry: "Traktanden",
+  todo: "ToDos",
+  ziel: "Ziele",
+  project: "Projekte",
+};
 
 const MS_PER_DAY = 86400000;
 const MONTH_NAMES = [
@@ -174,6 +184,12 @@ export default function Timeline({ onOpenEntry }) {
   const entries = useEntriesStore((state) => state.entries);
   const entriesLoading = useEntriesStore((state) => state.loading);
   const ensureEntries = useEntriesStore((state) => state.ensureEntries);
+  const projects = useProjectsStore((state) => state.projects);
+  const projectsLoading = useProjectsStore((state) => state.loading);
+  const ensureProjects = useProjectsStore((state) => state.ensureProjects);
+  const addProject = useProjectsStore((state) => state.addProject);
+  const updateProject = useProjectsStore((state) => state.updateProject);
+  const deleteProject = useProjectsStore((state) => state.deleteProject);
 
   const [scopeMonths, setScopeMonths] = useState(DEFAULT_SCOPE);
   // Which item types are shown, on the strip and in the overview alike.
@@ -188,6 +204,13 @@ export default function Timeline({ onOpenEntry }) {
   const [zielDate, setZielDate] = useState("");
   // Edit popover for a workspace-only Ziel: draft fields + anchor position.
   const [editingZiel, setEditingZiel] = useState(null);
+  // "+ Projekt" popup: a name and an inclusive date span.
+  const [showProjectForm, setShowProjectForm] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectStart, setProjectStart] = useState("");
+  const [projectEnd, setProjectEnd] = useState("");
+  // Edit popover for a project bar, same shape as editingZiel.
+  const [editingProject, setEditingProject] = useState(null);
   const stripRef = useRef(null);
 
   const today = useMemo(() => startOfToday(), []);
@@ -203,6 +226,7 @@ export default function Timeline({ onOpenEntry }) {
     ensureTodos();
     ensureEvents();
     ensureEntries();
+    ensureProjects();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -234,8 +258,6 @@ export default function Timeline({ onOpenEntry }) {
   const pxPerDay = viewWidth > 0 ? viewWidth / range.totalDays : 4;
   const stripWidth = range.totalDays * pxPerDay;
 
-  const headerHeight = MONTHS_ROW_H;
-
   const months = useMemo(() => {
     const out = [];
     const cursor = new Date(range.start);
@@ -255,6 +277,55 @@ export default function Timeline({ onOpenEntry }) {
     }
     return out;
   }, [range]);
+
+  // Projects overlapping the visible range, clipped to it, packed into rows so
+  // that bars running at the same time never overlap.
+  const { projectBars, projectRowCount } = useMemo(() => {
+    if (!activeTypes.has("project")) {
+      return { projectBars: [], projectRowCount: 0 };
+    }
+    const lastIndex = range.totalDays - 1;
+    const visible = projects
+      .map((project) => ({
+        project,
+        startIndex: dayDiff(range.start, parseIsoDate(project.start_date)),
+        endIndex: dayDiff(range.start, parseIsoDate(project.end_date)),
+      }))
+      .filter((bar) => bar.endIndex >= 0 && bar.startIndex <= lastIndex)
+      .sort(
+        (a, b) =>
+          a.startIndex - b.startIndex ||
+          b.endIndex - a.endIndex ||
+          a.project.name.localeCompare(b.project.name),
+      );
+    const rowEnds = [];
+    const bars = visible.map((bar) => {
+      let row = rowEnds.findIndex((end) => end < bar.startIndex);
+      if (row === -1) {
+        row = rowEnds.length;
+        rowEnds.push(0);
+      }
+      rowEnds[row] = bar.endIndex;
+      const from = Math.max(bar.startIndex, 0);
+      const to = Math.min(bar.endIndex, lastIndex);
+      return {
+        ...bar,
+        row,
+        left: from * pxPerDay,
+        width: (to - from + 1) * pxPerDay,
+        clippedStart: bar.startIndex < 0,
+        clippedEnd: bar.endIndex > lastIndex,
+      };
+    });
+    return { projectBars: bars, projectRowCount: rowEnds.length };
+  }, [projects, activeTypes, range, pxPerDay]);
+
+  const projectBandHeight =
+    projectRowCount > 0
+      ? projectRowCount * (PROJECT_BAR_H + PROJECT_ROW_GAP) + PROJECT_ROW_GAP
+      : 0;
+  // Item lines start below the month header and the project band.
+  const headerHeight = MONTHS_ROW_H + projectBandHeight;
 
   const entriesById = useMemo(
     () => new Map(entries.map((entry) => [entry.id, entry])),
@@ -358,6 +429,7 @@ export default function Timeline({ onOpenEntry }) {
   // back that reads as broken, so the last one stays on.
   const handleToggleType = (type) => {
     setEditingZiel(null);
+    setEditingProject(null);
     setActiveTypes((prev) => {
       const next = new Set(prev);
       if (next.has(type)) {
@@ -372,6 +444,7 @@ export default function Timeline({ onOpenEntry }) {
 
   const handleScope = (delta) => {
     setEditingZiel(null);
+    setEditingProject(null);
     setScopeMonths((prev) =>
       Math.min(MAX_SCOPE, Math.max(MIN_SCOPE, prev + delta)),
     );
@@ -402,6 +475,7 @@ export default function Timeline({ onOpenEntry }) {
     // The popover lives outside the strip (whose overflow would clip it), so
     // it is placed in viewport coordinates: over the item's line, clamped to
     // stay fully on screen.
+    setEditingProject(null);
     const el = stripRef.current;
     const rect = el?.getBoundingClientRect();
     const anchorX = rect ? rect.left + item.x : 0;
@@ -458,6 +532,80 @@ export default function Timeline({ onOpenEntry }) {
     }
   };
 
+  const handleProjectFormSubmit = async (e) => {
+    e.preventDefault();
+    if (!projectName.trim() || !projectStart || !projectEnd) return;
+    if (projectEnd < projectStart) {
+      toast.error("Ende liegt vor dem Start");
+      return;
+    }
+    try {
+      await addProject({
+        name: projectName.trim(),
+        start_date: projectStart,
+        end_date: projectEnd,
+      });
+      toast.success("Projekt erstellt");
+      setShowProjectForm(false);
+    } catch (error) {
+      toast.error("Projekt konnte nicht erstellt werden");
+    }
+  };
+
+  // Same placement as the Ziel popover: viewport coordinates under the
+  // clicked bar, clamped to stay fully on screen.
+  const handleProjectClick = (bar, e) => {
+    setEditingZiel(null);
+    const rect = e.currentTarget.getBoundingClientRect();
+    // At the click for a mouse; keyboard events carry no pointer position, so
+    // the bar's centre (within the viewport) stands in.
+    const anchorX =
+      e.clientX ??
+      (Math.max(rect.left, 0) + Math.min(rect.right, window.innerWidth)) / 2;
+    setEditingProject({
+      id: bar.project.id,
+      name: bar.project.name,
+      start_date: bar.project.start_date,
+      end_date: bar.project.end_date,
+      left: Math.max(
+        8,
+        Math.min(
+          anchorX - POPOVER_WIDTH / 2,
+          window.innerWidth - POPOVER_WIDTH - 8,
+        ),
+      ),
+      top: rect.bottom + 8,
+    });
+  };
+
+  const handleProjectSave = async (e) => {
+    e.preventDefault();
+    const { id, name, start_date, end_date } = editingProject;
+    if (!name.trim() || !start_date || !end_date) return;
+    if (end_date < start_date) {
+      toast.error("Ende liegt vor dem Start");
+      return;
+    }
+    try {
+      await updateProject(id, { name: name.trim(), start_date, end_date });
+      setEditingProject(null);
+      toast.success("Projekt aktualisiert");
+    } catch (error) {
+      toast.error("Projekt konnte nicht aktualisiert werden");
+    }
+  };
+
+  const handleProjectDelete = async () => {
+    if (!confirm("Projekt wirklich löschen?")) return;
+    try {
+      await deleteProject(editingProject.id);
+      setEditingProject(null);
+      toast.success("Projekt gelöscht");
+    } catch (error) {
+      toast.error("Projekt konnte nicht gelöscht werden");
+    }
+  };
+
   const upcomingItems = useMemo(
     () => items.filter((item) => item.iso >= todayIso),
     [items, todayIso],
@@ -479,7 +627,8 @@ export default function Timeline({ onOpenEntry }) {
   };
   const isDone = (item) => item.type === "todo" && item.todo.done;
 
-  const loading = todosLoading || eventsLoading || entriesLoading;
+  const loading =
+    todosLoading || eventsLoading || entriesLoading || projectsLoading;
 
   // A row click highlights the item's line on the strip. Jumping to the
   // traktandum (or editing a free Ziel) lives on the action button, so the
@@ -609,10 +758,24 @@ export default function Timeline({ onOpenEntry }) {
             onClick={() => {
               setZielTitle("");
               setZielDate("");
+              setShowProjectForm(false);
               setShowZielForm((v) => !v);
             }}
           >
             + Ziel
+          </button>
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => {
+              setProjectName("");
+              setProjectStart("");
+              setProjectEnd("");
+              setShowZielForm(false);
+              setShowProjectForm((v) => !v);
+            }}
+          >
+            + Projekt
           </button>
           <div className="timeline-filter member-toggle-group">
             {TYPES.map((type) => (
@@ -691,12 +854,68 @@ export default function Timeline({ onOpenEntry }) {
         </form>
       )}
 
+      {showProjectForm && (
+        <form
+          className="entry-list-detail-panel-member-dropdown entry-list-schedule-popup"
+          onSubmit={handleProjectFormSubmit}
+        >
+          <div className="entry-list-schedule-popup-row">
+            <input
+              type="text"
+              className="entry-list-schedule-popup-title"
+              placeholder="Projekt..."
+              value={projectName}
+              onChange={(e) => setProjectName(e.target.value)}
+              autoFocus
+            />
+            <input
+              type="date"
+              aria-label="Start"
+              title="Start"
+              value={projectStart}
+              onChange={(e) => {
+                const value = e.target.value;
+                setProjectStart(value);
+                // Keep the span valid: an end before the new start follows it.
+                if (value && projectEnd && projectEnd < value) {
+                  setProjectEnd(value);
+                }
+              }}
+              required
+            />
+            <input
+              type="date"
+              aria-label="Ende"
+              title="Ende"
+              value={projectEnd}
+              min={projectStart || undefined}
+              onChange={(e) => setProjectEnd(e.target.value)}
+              required
+            />
+            <button
+              type="submit"
+              className="primary"
+              disabled={!projectName.trim() || !projectStart || !projectEnd}
+            >
+              OK
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setShowProjectForm(false)}
+            >
+              Abbrechen
+            </button>
+          </div>
+        </form>
+      )}
+
       {loading && <p>Timeline wird geladen...</p>}
 
-      {!loading && items.length === 0 && (
+      {!loading && items.length === 0 && projectBars.length === 0 && (
         <p className="timeline-empty">
-          Noch nichts geplant. Traktanden und ToDos mit Datum sowie Ziele
-          erscheinen hier.
+          Noch nichts geplant. Traktanden und ToDos mit Datum sowie Ziele und
+          Projekte erscheinen hier.
         </p>
       )}
 
@@ -724,7 +943,9 @@ export default function Timeline({ onOpenEntry }) {
               strip so it reaches all the way down past the labels. */}
           <div
             className="timeline-body"
-            style={{ height: LINE_RUN_HEIGHT + labelZoneHeight }}
+            style={{
+              height: projectBandHeight + LINE_RUN_HEIGHT + labelZoneHeight,
+            }}
           />
           {months.map((m) => (
             <div
@@ -732,6 +953,35 @@ export default function Timeline({ onOpenEntry }) {
               className="timeline-month-line"
               style={{ left: m.startIndex * pxPerDay, top: MONTHS_ROW_H }}
             />
+          ))}
+
+          {projectBars.map((bar) => (
+            // Not a <button> for the same reason as the item labels below.
+            <div
+              key={bar.project.id}
+              role="button"
+              tabIndex={0}
+              className={`timeline-project ${getTopicColorClass(bar.project.name)}${bar.clippedStart ? " timeline-project-clipped-start" : ""}${bar.clippedEnd ? " timeline-project-clipped-end" : ""}${editingProject?.id === bar.project.id ? " timeline-project-hot" : ""}`}
+              style={{
+                left: bar.left,
+                width: bar.width,
+                top:
+                  MONTHS_ROW_H +
+                  PROJECT_ROW_GAP +
+                  bar.row * (PROJECT_BAR_H + PROJECT_ROW_GAP),
+                height: PROJECT_BAR_H,
+              }}
+              title={`${bar.project.name} · ${formatDate(bar.project.start_date)} – ${formatDate(bar.project.end_date)}`}
+              onClick={(e) => handleProjectClick(bar, e)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  handleProjectClick(bar, e);
+                }
+              }}
+            >
+              {bar.project.name}
+            </div>
           ))}
 
           {items.map((item) => {
@@ -793,7 +1043,7 @@ export default function Timeline({ onOpenEntry }) {
 
           <div
             className="timeline-today-line"
-            style={{ left: todayX - 1, top: headerHeight }}
+            style={{ left: todayX - 1, top: MONTHS_ROW_H }}
           >
             <span className="timeline-today-label">Heute</span>
           </div>
@@ -850,6 +1100,82 @@ export default function Timeline({ onOpenEntry }) {
               className="secondary"
               onClick={handleZielDelete}
               title="Ziel löschen"
+            >
+              <Trash size={14} />
+            </button>
+          </div>
+        </form>
+      )}
+
+      {editingProject && (
+        <form
+          className="timeline-ziel-popover"
+          style={{ left: editingProject.left, top: editingProject.top }}
+          onSubmit={handleProjectSave}
+        >
+          <input
+            type="text"
+            value={editingProject.name}
+            onChange={(e) =>
+              setEditingProject((prev) => ({ ...prev, name: e.target.value }))
+            }
+            autoFocus
+          />
+          <input
+            type="date"
+            aria-label="Start"
+            title="Start"
+            value={editingProject.start_date}
+            onChange={(e) =>
+              setEditingProject((prev) => ({
+                ...prev,
+                start_date: e.target.value,
+                end_date:
+                  e.target.value && prev.end_date < e.target.value
+                    ? e.target.value
+                    : prev.end_date,
+              }))
+            }
+            required
+          />
+          <input
+            type="date"
+            aria-label="Ende"
+            title="Ende"
+            value={editingProject.end_date}
+            min={editingProject.start_date || undefined}
+            onChange={(e) =>
+              setEditingProject((prev) => ({
+                ...prev,
+                end_date: e.target.value,
+              }))
+            }
+            required
+          />
+          <div className="timeline-ziel-popover-actions">
+            <button
+              type="submit"
+              className="primary"
+              disabled={
+                !editingProject.name.trim() ||
+                !editingProject.start_date ||
+                !editingProject.end_date
+              }
+            >
+              Speichern
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={() => setEditingProject(null)}
+            >
+              Abbrechen
+            </button>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleProjectDelete}
+              title="Projekt löschen"
             >
               <Trash size={14} />
             </button>
