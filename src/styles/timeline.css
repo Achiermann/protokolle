@@ -159,7 +159,8 @@
    rule ties with .timeline-label on specificity, so the mono face only wins
    reliably at this higher specificity. The width estimate in Timeline.js
    assumes monospace metrics, so this must stay. */
-.main-content .timeline-label {
+.main-content .timeline-label,
+.main-content .timeline-project {
   font-family:
     "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
 }
@@ -190,7 +191,7 @@
 /* --- Projects --- */
 
 /* A project is a bar across its span in the band under the month header,
-   painted in its colour class (hashed from the name) and labelled inside. A
+   in the one project colour and labelled inside, styled like an item label. A
    side cut off by the visible range loses its rounding, so the bar reads as
    continuing past the edge. */
 .timeline-project {
@@ -201,13 +202,22 @@
   padding: 0 var(--space-2);
   border: 2px solid transparent;
   border-radius: var(--radius-sm);
-  font-size: 0.75rem;
+  font-family:
+    "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
+  font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   cursor: pointer;
   z-index: 2;
+}
+
+/* Slate: a hue no topic, member or Ziel colour uses, so projects never get
+   mistaken for a traktandum or todo. */
+.timeline-project-color {
+  color: #4f5d70;
+  background-color: #e2e8f0;
 }
 
 .timeline-project-clipped-start {

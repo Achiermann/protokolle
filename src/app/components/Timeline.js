@@ -36,7 +36,8 @@ const DEFAULT_SCOPE = 3;
 const LINE_RUN_HEIGHT = 150;
 const MONTHS_ROW_H = 24;
 // Projects sit in a band right under the month header, one bar per project;
-// overlapping projects stack into extra rows.
+// overlapping projects stack into extra rows. Item lines run through the band
+// behind the bars, so it never reads as an empty strip.
 const PROJECT_BAR_H = 22;
 const PROJECT_ROW_GAP = 4;
 // Every label tab has the same width and reads "dd. Titel" on one line; it
@@ -324,7 +325,8 @@ export default function Timeline({ onOpenEntry }) {
     projectRowCount > 0
       ? projectRowCount * (PROJECT_BAR_H + PROJECT_ROW_GAP) + PROJECT_ROW_GAP
       : 0;
-  // Item lines start below the month header and the project band.
+  // Where the open space for the item lines begins: below the month header
+  // and the project band.
   const headerHeight = MONTHS_ROW_H + projectBandHeight;
 
   const entriesById = useMemo(
@@ -961,7 +963,7 @@ export default function Timeline({ onOpenEntry }) {
               key={bar.project.id}
               role="button"
               tabIndex={0}
-              className={`timeline-project ${getTopicColorClass(bar.project.name)}${bar.clippedStart ? " timeline-project-clipped-start" : ""}${bar.clippedEnd ? " timeline-project-clipped-end" : ""}${editingProject?.id === bar.project.id ? " timeline-project-hot" : ""}`}
+              className={`timeline-project timeline-project-color${bar.clippedStart ? " timeline-project-clipped-start" : ""}${bar.clippedEnd ? " timeline-project-clipped-end" : ""}${editingProject?.id === bar.project.id ? " timeline-project-hot" : ""}`}
               style={{
                 left: bar.left,
                 width: bar.width,
@@ -987,8 +989,11 @@ export default function Timeline({ onOpenEntry }) {
           {items.map((item) => {
             const colorClass = itemColorClass(item);
             const hot = selectedKey === item.key;
-            const lineTop = headerHeight;
-            const lineHeight = LINE_RUN_HEIGHT + item.labelOffset + 10;
+            // Lines start right under the month header and pass behind the
+            // project bars; their labels still hang below the band.
+            const lineTop = MONTHS_ROW_H;
+            const lineHeight =
+              projectBandHeight + LINE_RUN_HEIGHT + item.labelOffset + 10;
             const labelTop = lineTop + lineHeight - 2;
             const tooltip = [
               item.title,
