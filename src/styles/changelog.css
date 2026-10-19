@@ -86,65 +86,45 @@
   color: var(--color-muted);
 }
 
-/* Shares the todo-list table look; fixed layout so all Vorgang tables align. */
-.changelog-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  table-layout: fixed;
-  padding: 0 var(--space-4) var(--space-3);
+/* One line per log: date · author chip · text · actions on the right. */
+.changelog-logs {
+  list-style: none;
+  margin: 0;
+  padding: 0 var(--space-4) var(--space-2);
 }
 
-.changelog-table th {
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
+.changelog-log {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0 var(--space-2) calc(16px + var(--space-3));
+  border-top: 1px solid var(--color-border-soft);
 }
 
-.changelog-table th:nth-child(1) {
-  width: 9rem;
-}
-
-.changelog-table th:nth-child(3) {
-  width: 7.5rem;
-}
-
-.changelog-table th:nth-child(4) {
-  width: 7rem;
-}
-
-.changelog-table td {
-  padding: var(--space-3) var(--space-4);
-  vertical-align: top;
-}
-
-.changelog-table-row td {
-  border-bottom: 1px solid var(--color-border-soft);
-}
-
-.changelog-table-row:last-child td {
-  border-bottom: none;
-}
-
-.changelog-table-row:hover td {
-  background-color: #fafafa;
-}
-
-.changelog-item-who {
+.changelog-log-date {
+  flex-shrink: 0;
   font-size: 0.875rem;
-  color: var(--color-text);
+  color: var(--color-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.changelog-log-who {
+  flex-shrink: 0;
 }
 
 /* Plaintext keeps its line breaks. */
-.changelog-item-change {
+.changelog-log-change {
+  flex: 1;
+  min-width: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   color: var(--color-text);
 }
 
-.changelog-item-date {
-  font-size: 0.875rem;
-  color: var(--color-muted);
-  white-space: nowrap;
+.changelog-log-actions {
+  flex-shrink: 0;
+  align-self: center;
 }
 
 @media (max-width: 768px) {
@@ -152,15 +132,16 @@
     margin-left: 0;
   }
 
-  .changelog-vorgang-bar {
+  .changelog-vorgang-bar,
+  .changelog-log {
     flex-wrap: wrap;
   }
 
-  .changelog-table th:nth-child(1) {
-    width: 5rem;
+  .changelog-log {
+    padding-left: 0;
   }
 
-  .changelog-table th:nth-child(3) {
-    width: 6rem;
+  .changelog-log-change {
+    flex-basis: 100%;
   }
 }

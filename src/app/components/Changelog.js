@@ -21,12 +21,22 @@ const getTopicColorClass = (value) => {
   return `entry-list-item-topic-c${Math.abs(hash) % 10}`;
 };
 
+// Same normalisation and capitalisation as the ToDo list, so an author gets
+// the same colour chip and label there and here.
+const normalizeMemberKey = (name) => (name || "").trim().toLowerCase();
+const formatMemberName = (name) =>
+  normalizeMemberKey(name)
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+
 // log_date is a plain YYYY-MM-DD; split it rather than going through Date,
-// which would read it as UTC midnight.
+// which would read it as UTC midnight. Shown as dd/mm/yy.
 const formatDate = (isoDate) => {
   if (!isoDate) return "-";
   const [year, month, day] = isoDate.split("-");
-  return `${day}.${month}.${year}`;
+  return `${day}/${month}/${year.slice(2)}`;
 };
 
 // Newest log first; same-day logs by creation time.
@@ -123,46 +133,48 @@ export default function Changelog() {
     }
   };
 
-  const renderLogsTable = (vorgangLogs) => (
-    <table className="changelog-table">
-      <thead>
-        <tr>
-          <th className="table-header-cell">Wer</th>
-          <th className="table-header-cell">Änderung</th>
-          <th className="table-header-cell">Datum</th>
-          <th className="table-header-cell"></th>
-        </tr>
-      </thead>
-      <tbody>
-        {vorgangLogs.map((log) => (
-          <tr key={log.id} className="changelog-table-row">
-            <td className="changelog-item-who">{log.created_by_name || "-"}</td>
-            <td className="changelog-item-change">{log.change}</td>
-            <td className="changelog-item-date">{formatDate(log.log_date)}</td>
-            <td>
-              <div className="entry-list-item-actions">
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => setEditingLog(log)}
-                  title="Log bearbeiten"
-                >
-                  <Pencil size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="secondary"
-                  onClick={() => handleDeleteLog(log)}
-                  title="Log löschen"
-                >
-                  <Trash size={16} />
-                </button>
-              </div>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+  // One line per log: date, author chip (as in the ToDo list), text, actions.
+  const renderLogs = (vorgangLogs) => (
+    <ul className="changelog-logs">
+      {vorgangLogs.map((log) => {
+        const name = formatMemberName(log.created_by_name);
+        return (
+          <li key={log.id} className="changelog-log">
+            <span className="changelog-log-date">
+              {formatDate(log.log_date)}
+            </span>
+            {name ? (
+              <span
+                className={`entry-list-item-topic changelog-log-who ${getTopicColorClass(normalizeMemberKey(log.created_by_name))}`}
+              >
+                {name}
+              </span>
+            ) : (
+              <span className="changelog-log-date">-</span>
+            )}
+            <span className="changelog-log-change">{log.change}</span>
+            <div className="entry-list-item-actions changelog-log-actions">
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setEditingLog(log)}
+                title="Log bearbeiten"
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => handleDeleteLog(log)}
+                title="Log löschen"
+              >
+                <Trash size={16} />
+              </button>
+            </div>
+          </li>
+        );
+      })}
+    </ul>
   );
 
   return (
@@ -265,7 +277,7 @@ export default function Changelog() {
 
                       {isVorgangOpen &&
                         vorgangLogs.length > 0 &&
-                        renderLogsTable(vorgangLogs)}
+                        renderLogs(vorgangLogs)}
                       {isVorgangOpen && vorgangLogs.length === 0 && (
                         <p className="changelog-vorgang-empty">
                           Noch keine Logs.
