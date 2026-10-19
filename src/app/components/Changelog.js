@@ -72,6 +72,20 @@ export default function Changelog() {
         .sort((a, b) => b.created_at.localeCompare(a.created_at)),
     [comments, seenSince, seenIds, unreadIds, userId, vorgaengeById],
   );
+  // One overview row per Vorgang with unread comments, newest first.
+  const unseenRows = useMemo(() => {
+    const rows = new Map();
+    for (const comment of unseenComments) {
+      if (!rows.has(comment.vorgang_id)) {
+        rows.set(comment.vorgang_id, {
+          vorgang: vorgaengeById.get(comment.vorgang_id),
+          comments: [],
+        });
+      }
+      rows.get(comment.vorgang_id).comments.push(comment);
+    }
+    return [...rows.values()];
+  }, [unseenComments, vorgaengeById]);
   const unseenIds = useMemo(
     () => new Set(unseenComments.map((comment) => comment.id)),
     [unseenComments],
@@ -244,31 +258,17 @@ export default function Changelog() {
             </button>
           </div>
           <ul className="changelog-unseen-list">
-            {unseenComments.map((comment) => {
-              const vorgang = vorgaengeById.get(comment.vorgang_id);
-              return (
-                <li
-                  key={comment.id}
-                  className="changelog-unseen-item"
-                  onClick={() => openVorgang(vorgang)}
-                >
-                  <span className="changelog-unseen-path">
-                    {vorgang.topic || NO_TOPIC} › {vorgang.name}
-                  </span>
-                  <span className="changelog-unseen-line">
-                    <span className="changelog-comments-date">
-                      {formatCommentDate(comment.created_at)}
-                    </span>
-                    <span className="changelog-comments-author">
-                      {comment.created_by_name || "?"}:
-                    </span>
-                    <span className="changelog-unseen-text">
-                      {comment.body}
-                    </span>
-                  </span>
-                </li>
-              );
-            })}
+            {unseenRows.map(({ vorgang, comments: rowComments }) => (
+              <li
+                key={vorgang.id}
+                className="changelog-unseen-item"
+                onClick={() => openVorgang(vorgang)}
+              >
+                {rowComments.length === 1
+                  ? `Neuer Kommentar von ${rowComments[0].created_by_name || "?"} in ${vorgang.name}`
+                  : `Neue Kommentare in ${vorgang.name}`}
+              </li>
+            ))}
           </ul>
         </div>
       )}
