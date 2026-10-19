@@ -31,17 +31,30 @@ const SCOPE_STEP = 3;
 const DEFAULT_SCOPE = 6;
 
 // Vertical layout: the month header on top, then open space the item lines
-// run through, then the lanes where each line ends in its labelled tab.
+// run through, then the zone where each line ends in its labelled tab.
 const LINE_RUN_HEIGHT = 150;
-// A label tab holds two lines (title over date) at chip size, so its lane
-// needs room for both.
-const LABEL_LANE_HEIGHT = 42;
 const MONTHS_ROW_H = 24;
+// Every label tab has the same width and reads "dd. Titel" on one line; it
+// only wraps when the text doesn't fit, up to LABEL_MAX_LINES. Keep these in
+// step with .timeline-label in timeline.css: 0.8rem mono at line-height 1.25
+// (16px per line, ~7.8px per character), --space-1 / --space-2 padding and a
+// 2px border.
+const LABEL_WIDTH = 176;
+const LABEL_LINE_PX = 16;
+const LABEL_CHROME_X = 2 * 8 + 2 * 2;
+const LABEL_CHROME_Y = 2 * 4 + 2 * 2;
+const LABEL_MAX_LINES = 3;
+const LABEL_CHARS_PER_LINE = Math.floor((LABEL_WIDTH - LABEL_CHROME_X) / 7.8);
+// Space kept between stacked labels, and between labels side by side.
+const LABEL_GAP_Y = 4;
+const LABEL_GAP_X = 8;
 // Keep in step with .timeline-ziel-popover's width in timeline.css.
 const POPOVER_WIDTH = 280;
 
-// The three kinds of item on the timeline, in filter-bar order.
+// The three kinds of item on the timeline, in filter-bar order. ToDos are
+// numerous and fine-grained, so they're opt-in: off until toggled on.
 const TYPES = ["entry", "todo", "ziel"];
+const DEFAULT_TYPES = ["entry", "ziel"];
 const TYPE_LABELS = { entry: "Traktanden", todo: "ToDos", ziel: "Ziele" };
 
 const MS_PER_DAY = 86400000;
@@ -95,10 +108,27 @@ const formatDate = (iso) =>
     day: "2-digit",
   });
 
-// Short form for the date line inside an item's label tab.
-const formatShortDate = (iso) => {
-  const [y, m, d] = iso.split("-");
-  return `${d}.${m}.${y.slice(2)}`;
+// A label's text: the day of the month in front of the title, e.g.
+// "05. Tour-Budget". The month is already given by the strip's header.
+const labelText = (item) => `${item.iso.slice(8, 10)}. ${item.title || ""}`;
+
+// How many lines `text` takes in a label, by greedy word wrap at the label's
+// character width (a word longer than a line is broken mid-word, as the CSS
+// `overflow-wrap: anywhere` does). Capped where the CSS line clamp cuts off.
+const countLabelLines = (text) => {
+  let lines = 1;
+  let used = 0;
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    const need = used === 0 ? word.length : used + 1 + word.length;
+    if (need <= LABEL_CHARS_PER_LINE) {
+      used = need;
+      continue;
+    }
+    if (used > 0) lines += 1;
+    lines += Math.floor((word.length - 1) / LABEL_CHARS_PER_LINE);
+    used = ((word.length - 1) % LABEL_CHARS_PER_LINE) + 1;
+  }
+  return Math.min(lines, LABEL_MAX_LINES);
 };
 
 // Same member colour hash + display casing as the ToDo table.
@@ -147,7 +177,7 @@ export default function Timeline({ onOpenEntry }) {
 
   const [scopeMonths, setScopeMonths] = useState(DEFAULT_SCOPE);
   // Which item types are shown, on the strip and in the overview alike.
-  const [activeTypes, setActiveTypes] = useState(() => new Set(TYPES));
+  const [activeTypes, setActiveTypes] = useState(() => new Set(DEFAULT_TYPES));
   const [viewWidth, setViewWidth] = useState(0);
   const [showPast, setShowPast] = useState(false);
   // The row picked in the overview table: its line stays highlighted.
@@ -232,9 +262,9 @@ export default function Timeline({ onOpenEntry }) {
   );
 
   // Merge the scheduled traktanden, todos and Ziele the filter bar leaves
-  // active into positioned items, and pack their hanging labels into lanes so
-  // they never overlap.
-  const { items, laneCount } = useMemo(() => {
+  // active into positioned items, and stack their hanging labels so they never
+  // overlap.
+  const { items, labelZoneHeight } = useMemo(() => {
     const list = [];
     for (const todo of activeTypes.has("todo") ? todos : []) {
       if (!todo.scheduled) continue;
@@ -280,34 +310,48 @@ export default function Timeline({ onOpenEntry }) {
         a.iso.localeCompare(b.iso) || (a.title || "").localeCompare(b.title),
     );
 
-    const laneEnds = [];
+    // Labels differ in height (one line unless the text wraps), so they're
+    // stacked by pixel offset rather than in fixed lanes: each goes to the
+    // highest spot where it clears every label it overlaps horizontally.
+    const stacked = [];
     const placed = list.map((item) => {
       const x = (item.index + 0.5) * pxPerDay;
-      // Wide enough for the title, but never narrower than the date line.
-      // 7.8px per character approximates JetBrains Mono at 0.8rem; the
-      // constant covers the label's horizontal padding (2 × --space-4) and
-      // border plus a few pixels of slack, so text never runs into the
-      // rounded edge.
-      const labelWidth = Math.min(
-        Math.max((item.title || "").length * 7.8 + 44, 102),
-        204,
-      );
+      const text = labelText(item);
+      const labelHeight =
+        countLabelLines(text) * LABEL_LINE_PX + LABEL_CHROME_Y;
       const labelLeft = Math.min(
-        Math.max(x - labelWidth / 2, 0),
-        Math.max(stripWidth - labelWidth, 0),
+        Math.max(x - LABEL_WIDTH / 2, 0),
+        Math.max(stripWidth - LABEL_WIDTH, 0),
       );
-      let lane = laneEnds.findIndex((end) => end <= labelLeft);
-      if (lane === -1) {
-        lane = laneEnds.length;
-        laneEnds.push(0);
-      }
-      laneEnds[lane] = labelLeft + labelWidth + 8;
-      return { ...item, x, labelWidth, labelLeft, lane };
+      const neighbours = stacked.filter(
+        (other) =>
+          other.left < labelLeft + LABEL_WIDTH + LABEL_GAP_X &&
+          labelLeft < other.left + LABEL_WIDTH + LABEL_GAP_X,
+      );
+      const candidates = [0, ...neighbours.map((o) => o.bottom + LABEL_GAP_Y)];
+      const labelOffset = Math.min(
+        ...candidates.filter((top) =>
+          neighbours.every(
+            (o) =>
+              top + labelHeight + LABEL_GAP_Y <= o.top ||
+              top >= o.bottom + LABEL_GAP_Y,
+          ),
+        ),
+      );
+      stacked.push({
+        left: labelLeft,
+        top: labelOffset,
+        bottom: labelOffset + labelHeight,
+      });
+      return { ...item, x, text, labelLeft, labelOffset };
     });
-    return { items: placed, laneCount: Math.max(laneEnds.length, 1) };
+    const zoneHeight = Math.max(0, ...stacked.map((o) => o.bottom)) + 8;
+    return {
+      items: placed,
+      labelZoneHeight: Math.max(zoneHeight, LABEL_LINE_PX + LABEL_CHROME_Y + 8),
+    };
   }, [todos, events, entries, activeTypes, range, pxPerDay, stripWidth]);
 
-  const labelZoneHeight = laneCount * LABEL_LANE_HEIGHT + 8;
   const todayX = (dayDiff(range.start, today) + 0.5) * pxPerDay;
 
   // Deselecting the last active type would leave an empty timeline with no way
@@ -694,8 +738,7 @@ export default function Timeline({ onOpenEntry }) {
             const colorClass = itemColorClass(item);
             const hot = selectedKey === item.key;
             const lineTop = headerHeight;
-            const lineHeight =
-              LINE_RUN_HEIGHT + item.lane * LABEL_LANE_HEIGHT + 10;
+            const lineHeight = LINE_RUN_HEIGHT + item.labelOffset + 10;
             const labelTop = lineTop + lineHeight - 2;
             const tooltip = [
               item.title,
@@ -731,7 +774,7 @@ export default function Timeline({ onOpenEntry }) {
                   style={{
                     left: item.labelLeft,
                     top: labelTop,
-                    maxWidth: item.labelWidth,
+                    width: LABEL_WIDTH,
                   }}
                   title={tooltip}
                   onClick={() => handleItemClick(item)}
@@ -742,10 +785,7 @@ export default function Timeline({ onOpenEntry }) {
                     }
                   }}
                 >
-                  <span className="timeline-label-title">{item.title}</span>
-                  <span className="timeline-label-date">
-                    {formatShortDate(item.iso)}
-                  </span>
+                  {item.text}
                 </div>
               </div>
             );

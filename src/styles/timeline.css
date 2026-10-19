@@ -125,15 +125,19 @@
 }
 
 /* The labelled end of a line: same type and rounding as an
-   .entry-list-item-topic chip, with roomier padding because it carries two
-   lines inside a fixed width. The colour class supplies the one fill and text
-   colour the whole item uses. */
+   .entry-list-item-topic chip. Every label has the same width (set inline)
+   and reads "dd. Titel" on one line, wrapping only when the text needs it,
+   clamped at three lines. The colour class supplies the one fill and text
+   colour the whole item uses. Width, padding, border, font size and line
+   height feed the stacking maths in Timeline.js, so change them together. */
 .timeline-label {
   position: absolute;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  padding: var(--space-1) var(--space-4);
+  box-sizing: border-box;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  padding: var(--space-1) var(--space-2);
   /* Transparent by default and only coloured when the item is selected, so
      the border never changes the label's size or position. */
   border: 2px solid transparent;
@@ -142,8 +146,10 @@
     "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
   font-size: 0.8rem;
   font-weight: 600;
-  text-align: center;
+  text-align: left;
   line-height: 1.25;
+  white-space: normal;
+  overflow-wrap: anywhere;
   overflow: hidden;
   cursor: pointer;
   z-index: 2;
@@ -156,21 +162,6 @@
 .main-content .timeline-label {
   font-family:
     "JetBrains Mono", Menlo, Monaco, "SF Mono", "Courier New", monospace;
-}
-
-/* A flex item won't shrink below its own content by default, so without
-   `min-width: 0` a long title pushes straight out past the label's edge
-   instead of being cut with an ellipsis. */
-.timeline-label-title,
-.timeline-label-date {
-  min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.timeline-label-date {
-  font-size: 0.68rem;
 }
 
 .timeline-ziel-color {
