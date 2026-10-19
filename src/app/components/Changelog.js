@@ -32,7 +32,9 @@ export default function Changelog() {
   const deleteVorgang = useChangelogStore((state) => state.deleteVorgang);
   const seenSince = useChangelogStore((state) => state.seenSince);
   const seenIds = useChangelogStore((state) => state.seenIds);
+  const unreadIds = useChangelogStore((state) => state.unreadIds);
   const markSeen = useChangelogStore((state) => state.markSeen);
+  const markUnread = useChangelogStore((state) => state.markUnread);
   const userId = useAuthStore((state) => state.user?.id);
 
   // { topic } while the "Neuer Vorgang" form is open (topic preset from a
@@ -43,6 +45,9 @@ export default function Changelog() {
   const [collapsedTopics, setCollapsedTopics] = useState(new Set());
   const [openVorgaenge, setOpenVorgaenge] = useState(new Set());
   const [search, setSearch] = useState("");
+  // Comments marked unread by hand while their Vorgang is open: kept unread
+  // (not auto-seen) until that Vorgang is unfolded again.
+  const [heldUnread, setHeldUnread] = useState(new Set());
 
   const vorgaengeById = useMemo(
     () => new Map(vorgaenge.map((v) => [v.id, v])),
@@ -59,13 +64,17 @@ export default function Changelog() {
     return map;
   }, [comments]);
 
-  // Overview rows for unseen comments, newest first.
+  // Overview rows for unread comments, newest first.
   const unseenComments = useMemo(
     () =>
-      getUnseen({ comments, seenSince, seenIds }, userId)
+      getUnseen({ comments, seenSince, seenIds, unreadIds }, userId)
         .filter((comment) => vorgaengeById.has(comment.vorgang_id))
         .sort((a, b) => b.created_at.localeCompare(a.created_at)),
-    [comments, seenSince, seenIds, userId, vorgaengeById],
+    [comments, seenSince, seenIds, unreadIds, userId, vorgaengeById],
+  );
+  const unseenIds = useMemo(
+    () => new Set(unseenComments.map((comment) => comment.id)),
+    [unseenComments],
   );
 
   // Thema → Vorgänge. Themen and Vorgänge alphabetical, "Ohne Thema" last.
@@ -116,19 +125,51 @@ export default function Changelog() {
   }, [ensureChangelog]);
 
   // A comment counts as seen once its Vorgang (and Thema) is unfolded by
-  // hand; search-unfolding doesn't count.
+  // hand; search-unfolding doesn't count, nor do comments held unread.
   useEffect(() => {
     const ids = unseenComments
       .filter((comment) => {
         const vorgang = vorgaengeById.get(comment.vorgang_id);
         return (
+          !heldUnread.has(comment.id) &&
           openVorgaenge.has(comment.vorgang_id) &&
           !collapsedTopics.has(vorgang.topic || "")
         );
       })
       .map((comment) => comment.id);
     if (ids.length > 0) markSeen(ids);
-  }, [unseenComments, openVorgaenge, collapsedTopics, vorgaengeById, markSeen]);
+  }, [
+    unseenComments,
+    heldUnread,
+    openVorgaenge,
+    collapsedTopics,
+    vorgaengeById,
+    markSeen,
+  ]);
+
+  // Unfolding a Vorgang again lets its held-unread comments become seen.
+  const releaseHeldUnread = (vorgangId) => {
+    setHeldUnread((prev) => {
+      const next = new Set(
+        [...prev].filter(
+          (id) =>
+            comments.find((comment) => comment.id === id)?.vorgang_id !==
+            vorgangId,
+        ),
+      );
+      return next.size === prev.size ? prev : next;
+    });
+  };
+
+  const handleToggleVorgang = (vorgangId) => {
+    if (!openVorgaenge.has(vorgangId)) releaseHeldUnread(vorgangId);
+    toggleInSet(setOpenVorgaenge, vorgangId);
+  };
+
+  const handleMarkUnread = (comment) => {
+    setHeldUnread((prev) => new Set(prev).add(comment.id));
+    markUnread([comment.id]);
+  };
 
   const toggleInSet = (setter, key) => {
     setter((prev) => {
@@ -143,6 +184,7 @@ export default function Changelog() {
   // overview (which thereby marks the comments seen) and after creating one.
   const openVorgang = (vorgang) => {
     setSearch("");
+    releaseHeldUnread(vorgang.id);
     setCollapsedTopics((prev) => {
       const next = new Set(prev);
       next.delete(vorgang.topic || "");
@@ -192,7 +234,7 @@ export default function Changelog() {
       {unseenComments.length > 0 && (
         <div className="changelog-unseen">
           <div className="changelog-unseen-header">
-            <h3>Neu ({unseenComments.length})</h3>
+            <h3>Ungelesen ({unseenComments.length})</h3>
             <button
               type="button"
               className="secondary"
@@ -312,9 +354,7 @@ export default function Changelog() {
                     >
                       <div
                         className="changelog-vorgang-bar"
-                        onClick={() =>
-                          toggleInSet(setOpenVorgaenge, vorgang.id)
-                        }
+                        onClick={() => handleToggleVorgang(vorgang.id)}
                       >
                         {isVorgangOpen ? (
                           <ChevronDown size={16} />
@@ -364,6 +404,8 @@ export default function Changelog() {
                         <VorgangComments
                           vorgang={vorgang}
                           comments={vorgangComments}
+                          unseenIds={unseenIds}
+                          onMarkUnread={handleMarkUnread}
                         />
                       )}
                     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash } from "lucide-react";
+import { Mail, Pencil, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { useChangelogStore } from "../stores/useChangelogStore";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -22,8 +22,14 @@ const rowsFor = (text) => Math.min(MAX_ROWS, text.split("\n").length);
 
 // Thread under an unfolded Vorgang: "Name - dd/mm/yy" above the text, oldest
 // first, with an input below (Enter sends, Shift/Alt+Enter adds a line).
-// Authors can edit and delete their own comments.
-export default function VorgangComments({ vorgang, comments }) {
+// Authors can edit and delete their own comments; any comment can be marked
+// unread (`onMarkUnread`) unless it already is (`unseenIds`).
+export default function VorgangComments({
+  vorgang,
+  comments,
+  unseenIds,
+  onMarkUnread,
+}) {
   // *** VARIABLES ***
   const addComment = useChangelogStore((state) => state.addComment);
   const updateComment = useChangelogStore((state) => state.updateComment);
@@ -111,24 +117,38 @@ export default function VorgangComments({ vorgang, comments }) {
                   <span className="changelog-comments-date">
                     - {formatCommentDate(comment.created_at)}
                   </span>
-                  {isOwn && editingId !== comment.id && (
+                  {editingId !== comment.id && (
                     <div className="entry-list-item-actions changelog-comments-actions">
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => handleStartEdit(comment)}
-                        title="Kommentar bearbeiten"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="secondary"
-                        onClick={() => handleDelete(comment)}
-                        title="Kommentar löschen"
-                      >
-                        <Trash size={14} />
-                      </button>
+                      {!unseenIds.has(comment.id) && (
+                        <button
+                          type="button"
+                          className="secondary"
+                          onClick={() => onMarkUnread(comment)}
+                          title="Als ungelesen markieren"
+                        >
+                          <Mail size={14} />
+                        </button>
+                      )}
+                      {isOwn && (
+                        <>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => handleStartEdit(comment)}
+                            title="Kommentar bearbeiten"
+                          >
+                            <Pencil size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() => handleDelete(comment)}
+                            title="Kommentar löschen"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

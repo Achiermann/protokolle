@@ -35,6 +35,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   const changelogComments = useChangelogStore((state) => state.comments);
   const seenSince = useChangelogStore((state) => state.seenSince);
   const seenIds = useChangelogStore((state) => state.seenIds);
+  const unreadIds = useChangelogStore((state) => state.unreadIds);
 
   // Single source of truth for keeping the caches warm: the Sidebar is
   // mounted for the whole session, so one subscription here serves every view.
@@ -56,13 +57,13 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
     return count;
   }, [entries]);
 
-  // New comments from others, for the Changelog badge.
+  // Unread comments, for the Changelog badge.
   const unseenChangelogCount = useMemo(() => {
     return getUnseen(
-      { comments: changelogComments, seenSince, seenIds },
+      { comments: changelogComments, seenSince, seenIds, unreadIds },
       userId,
     ).length;
-  }, [changelogComments, seenSince, seenIds, userId]);
+  }, [changelogComments, seenSince, seenIds, unreadIds, userId]);
 
   // *** FUNCTIONS/HANDLERS ***
   // The badge needs the changelog from the start, not only once it's opened.

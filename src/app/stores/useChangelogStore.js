@@ -1,18 +1,39 @@
 import { create } from "zustand";
 import { pingWorkspaceChange } from "@/db/supabase-browser";
 
-// Comments the user hasn't seen yet: written by someone else, after the
-// user's `seenSince` baseline, and not in `seenIds`.
+// Unread comments: marked unread by hand (any comment), or written by
+// someone else after the user's `seenSince` baseline and not yet seen.
 export const getUnseen = (state, userId) => {
   if (!userId || !state.seenSince) return [];
   const since = Date.parse(state.seenSince);
   return state.comments.filter(
     (comment) =>
-      comment.created_by !== userId &&
-      Date.parse(comment.created_at) > since &&
-      !state.seenIds.has(comment.id),
+      state.unreadIds.has(comment.id) ||
+      (comment.created_by !== userId &&
+        Date.parse(comment.created_at) > since &&
+        !state.seenIds.has(comment.id)),
   );
 };
+
+// Apply local read-state changes still on their way to the server, so a
+// background refetch can't flip them back. `pending` maps id → unread flag.
+const applyPending = (seenIds, unreadIds, pending) => {
+  const seen = new Set(seenIds);
+  const unread = new Set(unreadIds);
+  for (const [id, isUnread] of pending) {
+    if (isUnread) {
+      unread.add(id);
+      seen.delete(id);
+    } else {
+      seen.add(id);
+      unread.delete(id);
+    }
+  }
+  return { seenIds: seen, unreadIds: unread };
+};
+
+// Module-level so it survives store updates; only touched by setReadState.
+const pendingReadState = new Map();
 
 // Client source of truth for the changelog: Vorgänge (named strands of work
 // under an optional Thema) and the comments on them. Mirrors
@@ -22,9 +43,10 @@ export const useChangelogStore = create((set, get) => ({
   // *** VARIABLES ***
   vorgaenge: [],
   comments: [],
-  // Per-user seen state (see getUnseen).
+  // Per-user read state (see getUnseen).
   seenSince: null,
   seenIds: new Set(),
+  unreadIds: new Set(),
   loaded: false,
   loading: false,
   error: null,
@@ -40,15 +62,18 @@ export const useChangelogStore = create((set, get) => ({
         throw new Error("Failed to fetch changelog");
       }
       const data = await response.json();
-      // Union with local ids so a markSeen still in flight doesn't flicker.
-      set((state) => ({
+      set({
         vorgaenge: data.vorgaenge || [],
         comments: data.comments || [],
         seenSince: data.seen?.since ?? null,
-        seenIds: new Set([...state.seenIds, ...(data.seen?.ids || [])]),
+        ...applyPending(
+          data.seen?.ids || [],
+          data.seen?.unreadIds || [],
+          pendingReadState,
+        ),
         loaded: true,
         loading: false,
-      }));
+      });
     } catch (error) {
       if (silent) return;
       set({ error: error.message, loading: false });
@@ -209,23 +234,41 @@ export const useChangelogStore = create((set, get) => ({
     }
   },
 
-  // Optimistic: the ids count as seen locally right away. Personal state, so
-  // no workspace ping.
-  markSeen: async (ids) => {
-    const fresh = ids.filter((id) => !get().seenIds.has(id));
-    if (fresh.length === 0) return;
-    set((state) => ({ seenIds: new Set([...state.seenIds, ...fresh]) }));
+  // Optimistic: the read state changes locally right away, then is saved.
+  // Personal state, so no workspace ping.
+  setReadState: async (ids, unread) => {
+    const { seenIds, unreadIds } = get();
+    const changed = ids.filter((id) =>
+      unread ? !unreadIds.has(id) : !seenIds.has(id) || unreadIds.has(id),
+    );
+    if (changed.length === 0) return;
+    for (const id of changed) pendingReadState.set(id, unread);
+    set((state) =>
+      applyPending(
+        state.seenIds,
+        state.unreadIds,
+        changed.map((id) => [id, unread]),
+      ),
+    );
     try {
       const response = await fetch("/api/changelog/seen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: fresh }),
+        body: JSON.stringify({ ids: changed, unread }),
       });
       if (!response.ok) {
-        throw new Error("Failed to mark as seen");
+        throw new Error("Failed to save read state");
       }
     } catch (error) {
       set({ error: error.message });
+    } finally {
+      for (const id of changed) {
+        if (pendingReadState.get(id) === unread) pendingReadState.delete(id);
+      }
     }
   },
+
+  markSeen: (ids) => get().setReadState(ids, false),
+
+  markUnread: (ids) => get().setReadState(ids, true),
 }));

@@ -3,9 +3,9 @@ import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
 import { attachCreatorNames } from "@/lib/changelog";
 
-// The caller's seen state: `since` (their first changelog load in this
-// workspace — older items count as seen; registered on the first call) and
-// the ids of comments they have seen since.
+// The caller's read state: `since` (their first changelog load in this
+// workspace — older items count as seen; registered on the first call), the
+// ids of comments they have seen and those they marked unread by hand.
 async function loadSeenState(supabase, workspaceId) {
   const {
     data: { user },
@@ -31,14 +31,19 @@ async function loadSeenState(supabase, workspaceId) {
     supabase
       .schema("protokoll_app")
       .from("changelog_seen")
-      .select("item_id")
+      .select("item_id, unread")
       .eq("user_id", user.id)
       .eq("workspace_id", workspaceId),
   ]);
 
   return {
     since: readerResult.data?.since ?? null,
-    ids: (seenResult.data || []).map((row) => row.item_id),
+    ids: (seenResult.data || [])
+      .filter((row) => !row.unread)
+      .map((row) => row.item_id),
+    unreadIds: (seenResult.data || [])
+      .filter((row) => row.unread)
+      .map((row) => row.item_id),
   };
 }
 

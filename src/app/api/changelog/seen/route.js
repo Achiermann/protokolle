@@ -5,8 +5,9 @@ import { cookies } from "next/headers";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// POST /api/changelog/seen — mark comments as seen by the caller.
-// Body: `ids` (array of comment ids). Idempotent.
+// POST /api/changelog/seen — set the caller's read state for comments.
+// Body: `ids` (array of comment ids) and optional `unread` (true = mark
+// unread by hand, default false = seen). Idempotent.
 export async function POST(request) {
   try {
     const cookieStore = await cookies();
@@ -53,8 +54,10 @@ export async function POST(request) {
           user_id: user.id,
           workspace_id: workspaceId,
           item_id: itemId,
+          unread: body.unread === true,
+          seen_at: new Date().toISOString(),
         })),
-        { onConflict: "user_id,item_id", ignoreDuplicates: true },
+        { onConflict: "user_id,item_id" },
       );
 
     if (error) {
