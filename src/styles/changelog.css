@@ -93,12 +93,31 @@
   padding: 0 var(--space-4) var(--space-2);
 }
 
+.changelog-log-item {
+  border-top: 1px solid var(--color-border-soft);
+}
+
+/* Clickable: unfolds the comment thread below. */
 .changelog-log {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
   padding: var(--space-2) 0 var(--space-2) calc(16px + var(--space-3));
-  border-top: 1px solid var(--color-border-soft);
+  cursor: pointer;
+}
+
+.changelog-log:hover,
+.changelog-log-open {
+  background-color: #fafafa;
+}
+
+.changelog-log-comment-count {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 0.875rem;
+  color: var(--color-muted);
 }
 
 .changelog-log-date {
@@ -127,7 +146,87 @@
   align-self: center;
 }
 
+/* Chat-style thread: "dd/mm/yy Name: text", aligned with the log text. */
+.log-comments {
+  padding: var(--space-2) 0 var(--space-3) calc(16px + var(--space-3));
+  background-color: #fafafa;
+}
+
+.log-comments-list {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+}
+
+.log-comments-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: 0.875rem;
+}
+
+.log-comments-date {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-comments-text {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.log-comments-author {
+  font-weight: 600;
+}
+
+.log-comments-edit-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Edit/delete on own comments show on hover only, keeping the thread calm. */
+.log-comments-actions {
+  flex-shrink: 0;
+  align-self: center;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.log-comments-item:hover .log-comments-actions,
+.log-comments-actions:focus-within {
+  opacity: 1;
+}
+
+.log-comments-actions button {
+  padding: var(--space-1) var(--space-2);
+}
+
+.log-comments-new {
+  display: flex;
+  gap: var(--space-2);
+  padding-right: var(--space-4);
+}
+
+.log-comments-new input {
+  flex: 1;
+  min-width: 0;
+}
+
 @media (max-width: 768px) {
+  .log-comments {
+    padding-left: 0;
+  }
+
+  .log-comments-actions {
+    opacity: 1;
+  }
+
   .changelog-vorgang {
     margin-left: 0;
   }

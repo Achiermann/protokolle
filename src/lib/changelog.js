@@ -4,7 +4,7 @@ export const isIsoDate = (value) =>
   typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
 
 // Attach `created_by_name` (profile name, else the local part of the email)
-// to each log row, mirroring how entries resolve their creator.
+// to each log or comment row, mirroring how entries resolve their creator.
 export async function attachCreatorNames(supabase, logs) {
   const creatorIds = [
     ...new Set(logs.map((log) => log.created_by).filter(Boolean)),

@@ -2,12 +2,13 @@ import { create } from "zustand";
 import { pingWorkspaceChange } from "@/db/supabase-browser";
 
 // Client source of truth for the changelog: Vorgänge (named strands of work
-// under an optional Thema) and their logs. Mirrors useProjectsStore: fetched
+// under an optional Thema), their logs and the comments on those logs. Mirrors useProjectsStore: fetched
 // from /api/changelog (scoped to the active workspace by cookie) and cached.
 export const useChangelogStore = create((set, get) => ({
   // *** VARIABLES ***
   vorgaenge: [],
   logs: [],
+  comments: [],
   loaded: false,
   loading: false,
   error: null,
@@ -26,6 +27,7 @@ export const useChangelogStore = create((set, get) => ({
       set({
         vorgaenge: data.vorgaenge || [],
         logs: data.logs || [],
+        comments: data.comments || [],
         loaded: true,
         loading: false,
       });
@@ -106,7 +108,10 @@ export const useChangelogStore = create((set, get) => ({
       if (!response.ok) {
         throw new Error("Failed to delete log");
       }
-      set((state) => ({ logs: state.logs.filter((log) => log.id !== id) }));
+      set((state) => ({
+        logs: state.logs.filter((log) => log.id !== id),
+        comments: state.comments.filter((comment) => comment.log_id !== id),
+      }));
       pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
@@ -139,7 +144,8 @@ export const useChangelogStore = create((set, get) => ({
     }
   },
 
-  // Deleting a Vorgang removes its logs too (cascade in the DB).
+  // Deleting a Vorgang removes its logs and their comments too (cascade in
+  // the DB).
   deleteVorgang: async (id) => {
     set({ error: null });
     try {
@@ -149,9 +155,83 @@ export const useChangelogStore = create((set, get) => ({
       if (!response.ok) {
         throw new Error("Failed to delete Vorgang");
       }
+      set((state) => {
+        const removedLogIds = new Set(
+          state.logs.filter((log) => log.vorgang_id === id).map((l) => l.id),
+        );
+        return {
+          vorgaenge: state.vorgaenge.filter((vorgang) => vorgang.id !== id),
+          logs: state.logs.filter((log) => !removedLogIds.has(log.id)),
+          comments: state.comments.filter(
+            (comment) => !removedLogIds.has(comment.log_id),
+          ),
+        };
+      });
+      pingWorkspaceChange();
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  addComment: async (logId, body) => {
+    set({ error: null });
+    try {
+      const response = await fetch("/api/changelog/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ log_id: logId, body }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to create comment");
+      }
+      const data = await response.json();
+      set((state) => ({ comments: [...state.comments, data.item] }));
+      pingWorkspaceChange();
+      return data.item;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  // Only the author's own comments can be changed (enforced server-side).
+  updateComment: async (id, body) => {
+    set({ error: null });
+    try {
+      const response = await fetch(`/api/changelog/comments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to update comment");
+      }
+      const data = await response.json();
       set((state) => ({
-        vorgaenge: state.vorgaenge.filter((vorgang) => vorgang.id !== id),
-        logs: state.logs.filter((log) => log.vorgang_id !== id),
+        comments: state.comments.map((comment) =>
+          comment.id === id ? data.item : comment,
+        ),
+      }));
+      pingWorkspaceChange();
+      return data.item;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  deleteComment: async (id) => {
+    set({ error: null });
+    try {
+      const response = await fetch(`/api/changelog/comments/${id}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to delete comment");
+      }
+      set((state) => ({
+        comments: state.comments.filter((comment) => comment.id !== id),
       }));
       pingWorkspaceChange();
     } catch (error) {
