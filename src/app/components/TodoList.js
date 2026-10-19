@@ -10,12 +10,14 @@ import {
   ChevronDown,
   ChevronUp,
   ClipboardList,
+  History,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { useTodosStore } from "../stores/useTodosStore";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import RichTextEditor from "./RichTextEditor";
 import TodoForm from "./TodoForm";
+import LogForm from "./LogForm";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/todo-list.css";
 // Member names, the comment panel, toolbar and filters reuse entry-list styling.
@@ -70,6 +72,8 @@ export default function TodoList({ onOpenEntry }) {
   const [showTodoForm, setShowTodoForm] = useState(false);
   // The todo whose edit form is open, if any.
   const [editingTodo, setEditingTodo] = useState(null);
+  // The todo a changelog entry is being written for, if any.
+  const [loggingTodo, setLoggingTodo] = useState(null);
   const [showDone, setShowDone] = useState(false);
   const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -445,6 +449,14 @@ export default function TodoList({ onOpenEntry }) {
                     <button
                       type="button"
                       className="secondary"
+                      onClick={() => setLoggingTodo(todo)}
+                      title="Log erstellen"
+                    >
+                      <History size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary"
                       onClick={() => setEditingTodo(todo)}
                       title="ToDo bearbeiten"
                     >
@@ -568,6 +580,23 @@ export default function TodoList({ onOpenEntry }) {
         >
           <div onClick={(e) => e.stopPropagation()}>
             <TodoForm onCancel={() => setShowTodoForm(false)} />
+          </div>
+        </div>
+      )}
+
+      {loggingTodo && (
+        <div
+          className="entry-form-overlay"
+          onClick={() => setLoggingTodo(null)}
+        >
+          <div onClick={(e) => e.stopPropagation()}>
+            <LogForm
+              initial={{
+                topic: loggingTodo.topic || "",
+                change: loggingTodo.title,
+              }}
+              onCancel={() => setLoggingTodo(null)}
+            />
           </div>
         </div>
       )}

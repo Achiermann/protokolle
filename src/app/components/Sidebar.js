@@ -12,6 +12,7 @@ import {
   Settings,
   LogOut,
   Archive,
+  History,
   Menu,
   X,
 } from "lucide-react";
@@ -115,6 +116,14 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             >
               <CalendarRange size={20} />
               Timeline
+            </button>
+
+            <button
+              className={`sidebar-button ${activeView === "changelog" ? "active" : ""}`}
+              onClick={() => handleViewChange("changelog")}
+            >
+              <History size={20} />
+              Changelog
             </button>
           </nav>
         )}

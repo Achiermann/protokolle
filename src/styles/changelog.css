@@ -1,0 +1,166 @@
+.changelog {
+  width: 100%;
+}
+
+.changelog-header {
+  margin-bottom: var(--space-5);
+}
+
+.changelog-header h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+}
+
+.changelog-empty {
+  text-align: center;
+  padding: var(--space-7);
+  color: var(--color-muted);
+}
+
+.changelog-topic {
+  margin-bottom: var(--space-5);
+}
+
+/* Collapsible bars behave like buttons: pointer cursor everywhere inside,
+   chevron flips between folded (right) and unfolded (down). */
+.changelog-topic-bar,
+.changelog-vorgang-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+}
+
+.changelog-topic-bar * {
+  cursor: pointer;
+}
+
+.changelog-topic-bar {
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-2);
+}
+
+.changelog-topic-bar:hover .changelog-count {
+  color: var(--color-text);
+}
+
+.changelog-count {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.changelog-vorgang {
+  margin-left: var(--space-5);
+  margin-bottom: var(--space-2);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-lg);
+}
+
+.changelog-vorgang-bar {
+  padding: var(--space-3) var(--space-4);
+}
+
+.changelog-vorgang-bar:hover {
+  background-color: #fafafa;
+  border-radius: var(--radius-lg);
+}
+
+.changelog-vorgang-name {
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+/* Actions sit at the far right of the Vorgang bar. */
+.changelog-vorgang-actions {
+  margin-left: auto;
+}
+
+.changelog-vorgang-empty {
+  padding: 0 var(--space-4) var(--space-3)
+    calc(var(--space-4) + 16px + var(--space-3));
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+/* Shares the todo-list table look; fixed layout so all Vorgang tables align. */
+.changelog-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  padding: 0 var(--space-4) var(--space-3);
+}
+
+.changelog-table th {
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.changelog-table th:nth-child(1) {
+  width: 9rem;
+}
+
+.changelog-table th:nth-child(3) {
+  width: 7.5rem;
+}
+
+.changelog-table th:nth-child(4) {
+  width: 7rem;
+}
+
+.changelog-table td {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: top;
+}
+
+.changelog-table-row td {
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.changelog-table-row:last-child td {
+  border-bottom: none;
+}
+
+.changelog-table-row:hover td {
+  background-color: #fafafa;
+}
+
+.changelog-item-who {
+  font-size: 0.875rem;
+  color: var(--color-text);
+}
+
+/* Plaintext keeps its line breaks. */
+.changelog-item-change {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text);
+}
+
+.changelog-item-date {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .changelog-vorgang {
+    margin-left: 0;
+  }
+
+  .changelog-vorgang-bar {
+    flex-wrap: wrap;
+  }
+
+  .changelog-table th:nth-child(1) {
+    width: 5rem;
+  }
+
+  .changelog-table th:nth-child(3) {
+    width: 6rem;
+  }
+}

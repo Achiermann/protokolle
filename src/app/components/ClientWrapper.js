@@ -10,6 +10,7 @@ import TodoList from "./TodoList";
 import Timeline from "./Timeline";
 import Settings from "./Settings";
 import ArchiveList from "./ArchiveList";
+import Changelog from "./Changelog";
 import Forderbereiche from "./stiftungen/Forderbereiche";
 import Eingabefristen from "./stiftungen/Eingabefristen";
 
@@ -87,6 +88,7 @@ export default function ClientWrapper() {
         {activeApp === "p" && activeView === "timeline" && (
           <Timeline onOpenEntry={handleOpenEntry} />
         )}
+        {activeApp === "p" && activeView === "changelog" && <Changelog />}
         {activeApp === "p" && activeView === "archiv" && (
           <ArchiveList focusEntryId={focusEntryId} />
         )}
