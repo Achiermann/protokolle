@@ -197,6 +197,18 @@
   width: 100%;
 }
 
+/* Comment fields grow with their text (rows set per line in JS; field-sizing
+   also covers soft wraps where supported), capped at about 8 lines. Overrides
+   the global textarea min-height. */
+.changelog-comments-edit-input,
+.changelog-comments-new textarea {
+  resize: none;
+  field-sizing: content;
+  min-height: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
 /* Edit/delete on own comments show on hover only, keeping the thread calm. */
 .changelog-comments-actions {
   margin-left: auto;
@@ -215,10 +227,11 @@
 
 .changelog-comments-new {
   display: flex;
+  align-items: flex-end;
   gap: var(--space-2);
 }
 
-.changelog-comments-new input {
+.changelog-comments-new textarea {
   flex: 1;
   min-width: 0;
 }

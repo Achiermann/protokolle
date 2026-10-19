@@ -15,9 +15,14 @@ export const formatCommentDate = (isoDateTime) => {
   return `${day}/${month}/${year}`;
 };
 
+// Textarea height in rows: one per line of text, capped (CSS field-sizing
+// additionally grows it for soft-wrapped lines where supported).
+const MAX_ROWS = 8;
+const rowsFor = (text) => Math.min(MAX_ROWS, text.split("\n").length);
+
 // Thread under an unfolded Vorgang: "Name - dd/mm/yy" above the text, oldest
-// first, with a one-line input below (Enter sends). Authors can edit and
-// delete their own comments.
+// first, with an input below (Enter sends, Shift/Alt+Enter adds a line).
+// Authors can edit and delete their own comments.
 export default function VorgangComments({ vorgang, comments }) {
   // *** VARIABLES ***
   const addComment = useChangelogStore((state) => state.addComment);
@@ -68,10 +73,22 @@ export default function VorgangComments({ vorgang, comments }) {
     }
   };
 
-  // Enter submits; the IME check keeps composing (e.g. accents) from sending.
-  const handleKeyDown = (e, onSubmit, onCancel) => {
+  // Enter submits, Shift+Enter or Alt+Enter adds a line break; the IME
+  // check keeps composing (e.g. accents) from sending. Shift+Enter breaks
+  // natively in a textarea, Alt+Enter doesn't, so that one is inserted here.
+  const handleKeyDown = (e, setValue, onSubmit, onCancel) => {
     if (e.nativeEvent.isComposing) return;
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && e.altKey) {
+      e.preventDefault();
+      const field = e.target;
+      const { selectionStart, selectionEnd, value } = field;
+      setValue(
+        value.slice(0, selectionStart) + "\n" + value.slice(selectionEnd),
+      );
+      requestAnimationFrame(() =>
+        field.setSelectionRange(selectionStart + 1, selectionStart + 1),
+      );
+    } else if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       onSubmit();
     } else if (e.key === "Escape" && onCancel) {
@@ -116,13 +133,15 @@ export default function VorgangComments({ vorgang, comments }) {
                   )}
                 </div>
                 {editingId === comment.id ? (
-                  <input
-                    type="text"
+                  <textarea
                     className="changelog-comments-edit-input"
+                    rows={rowsFor(editDraft)}
                     value={editDraft}
                     onChange={(e) => setEditDraft(e.target.value)}
                     onKeyDown={(e) =>
-                      handleKeyDown(e, handleSaveEdit, () => setEditingId(null))
+                      handleKeyDown(e, setEditDraft, handleSaveEdit, () =>
+                        setEditingId(null),
+                      )
                     }
                     onBlur={() => setEditingId(null)}
                     autoFocus
@@ -137,12 +156,12 @@ export default function VorgangComments({ vorgang, comments }) {
       )}
 
       <div className="changelog-comments-new">
-        <input
-          type="text"
+        <textarea
+          rows={rowsFor(draft)}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => handleKeyDown(e, handleSend)}
-          placeholder="Kommentar schreiben..."
+          onKeyDown={(e) => handleKeyDown(e, setDraft, handleSend)}
+          placeholder="Kommentar schreiben... (Shift+Enter für neue Zeile)"
           disabled={isSending}
         />
         <button
