@@ -6,8 +6,7 @@ import toast from "react-hot-toast";
 import { useChangelogStore } from "../stores/useChangelogStore";
 import { useAuthStore } from "../stores/useAuthStore";
 
-// Comment timestamps are full ISO datetimes; shown as a local dd/mm/yy date to
-// the rest of the changelog.
+// Comment timestamps are full ISO datetimes; shown as a local dd/mm/yy date.
 export const formatCommentDate = (isoDateTime) => {
   const date = new Date(isoDateTime);
   const day = String(date.getDate()).padStart(2, "0");
@@ -16,7 +15,7 @@ export const formatCommentDate = (isoDateTime) => {
   return `${day}/${month}/${year}`;
 };
 
-// Chat-style thread under an unfolded Vorgang: "dd/mm/yy Name: text", oldest
+// Thread under an unfolded Vorgang: "Name - dd/mm/yy" above the text, oldest
 // first, with a one-line input below (Enter sends). Authors can edit and
 // delete their own comments.
 export default function VorgangComments({ vorgang, comments }) {
@@ -88,9 +87,34 @@ export default function VorgangComments({ vorgang, comments }) {
             const isOwn = userId && comment.created_by === userId;
             return (
               <li key={comment.id} className="changelog-comments-item">
-                <span className="changelog-comments-date">
-                  {formatCommentDate(comment.created_at)}
-                </span>
+                <div className="changelog-comments-meta">
+                  <span className="changelog-comments-author">
+                    {comment.created_by_name || "?"}
+                  </span>
+                  <span className="changelog-comments-date">
+                    - {formatCommentDate(comment.created_at)}
+                  </span>
+                  {isOwn && editingId !== comment.id && (
+                    <div className="entry-list-item-actions changelog-comments-actions">
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => handleStartEdit(comment)}
+                        title="Kommentar bearbeiten"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={() => handleDelete(comment)}
+                        title="Kommentar löschen"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {editingId === comment.id ? (
                   <input
                     type="text"
@@ -104,32 +128,7 @@ export default function VorgangComments({ vorgang, comments }) {
                     autoFocus
                   />
                 ) : (
-                  <span className="changelog-comments-text">
-                    <span className="changelog-comments-author">
-                      {comment.created_by_name || "?"}:
-                    </span>{" "}
-                    {comment.body}
-                  </span>
-                )}
-                {isOwn && editingId !== comment.id && (
-                  <div className="entry-list-item-actions changelog-comments-actions">
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => handleStartEdit(comment)}
-                      title="Kommentar bearbeiten"
-                    >
-                      <Pencil size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="secondary"
-                      onClick={() => handleDelete(comment)}
-                      title="Kommentar löschen"
-                    >
-                      <Trash size={14} />
-                    </button>
-                  </div>
+                  <p className="changelog-comments-text">{comment.body}</p>
                 )}
               </li>
             );
