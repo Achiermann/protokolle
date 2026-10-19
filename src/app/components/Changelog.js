@@ -10,13 +10,15 @@ import {
   Trash,
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { useChangelogStore } from "../stores/useChangelogStore";
+import { useChangelogStore, getUnseen } from "../stores/useChangelogStore";
+import { useAuthStore } from "../stores/useAuthStore";
 import LogForm from "./LogForm";
-import LogComments from "./LogComments";
+import LogComments, { formatCommentDate } from "./LogComments";
 import VorgangForm from "./VorgangForm";
 import "../../styles/changelog.css";
 // The new-button, topic colours and action buttons reuse entry-list styling.
 import "../../styles/entry-list.css";
+import "../../styles/filters.css";
 
 const NO_TOPIC = "Ohne Thema";
 
@@ -61,6 +63,10 @@ export default function Changelog() {
   const ensureChangelog = useChangelogStore((state) => state.ensureChangelog);
   const deleteLog = useChangelogStore((state) => state.deleteLog);
   const deleteVorgang = useChangelogStore((state) => state.deleteVorgang);
+  const seenSince = useChangelogStore((state) => state.seenSince);
+  const seenIds = useChangelogStore((state) => state.seenIds);
+  const markSeen = useChangelogStore((state) => state.markSeen);
+  const userId = useAuthStore((state) => state.user?.id);
 
   const [showLogForm, setShowLogForm] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
@@ -70,6 +76,34 @@ export default function Changelog() {
   const [openVorgaenge, setOpenVorgaenge] = useState(new Set());
   // Logs whose comment thread is unfolded (closed by default).
   const [openLogs, setOpenLogs] = useState(new Set());
+  const [search, setSearch] = useState("");
+
+  const vorgaengeById = useMemo(
+    () => new Map(vorgaenge.map((v) => [v.id, v])),
+    [vorgaenge],
+  );
+  const logsById = useMemo(() => new Map(logs.map((l) => [l.id, l])), [logs]);
+
+  const unseen = useMemo(
+    () => getUnseen({ logs, comments, seenSince, seenIds }, userId),
+    [logs, comments, seenSince, seenIds, userId],
+  );
+
+  // Overview rows for unseen logs and comments, newest first.
+  const unseenItems = useMemo(
+    () =>
+      [
+        ...unseen.logs.map((log) => ({ type: "log", item: log, log })),
+        ...unseen.comments.map((comment) => ({
+          type: "comment",
+          item: comment,
+          log: logsById.get(comment.log_id),
+        })),
+      ]
+        .filter((row) => row.log && vorgaengeById.has(row.log.vorgang_id))
+        .sort((a, b) => b.item.created_at.localeCompare(a.item.created_at)),
+    [unseen, logsById, vorgaengeById],
+  );
 
   // Comments per log, oldest first (the API already sorts them).
   const commentsByLog = useMemo(() => {
@@ -116,10 +150,101 @@ export default function Changelog() {
       });
   }, [vorgaenge, logs]);
 
+  // Search across Thema, Vorgang, log text, comments and names. A Vorgang hit
+  // keeps all its logs; otherwise only matching logs stay. Logs that match
+  // through a comment get their thread unfolded.
+  const query = search.trim().toLowerCase();
+  const { visibleGroups, searchOpenLogs } = useMemo(() => {
+    if (!query) return { visibleGroups: groups, searchOpenLogs: new Set() };
+    const hit = (text) => (text || "").toLowerCase().includes(query);
+    const openThreads = new Set();
+    const result = [];
+    for (const group of groups) {
+      const items = [];
+      for (const { vorgang, logs: vorgangLogs } of group.items) {
+        const vorgangHit = hit(vorgang.name) || hit(group.topic);
+        const matching = vorgangLogs.filter((log) => {
+          const commentHit = (commentsByLog.get(log.id) || []).some(
+            (c) => hit(c.body) || hit(c.created_by_name),
+          );
+          if (commentHit) openThreads.add(log.id);
+          return hit(log.change) || hit(log.created_by_name) || commentHit;
+        });
+        if (vorgangHit || matching.length > 0) {
+          items.push({ vorgang, logs: vorgangHit ? vorgangLogs : matching });
+        }
+      }
+      if (items.length > 0) result.push({ topic: group.topic, items });
+    }
+    return { visibleGroups: result, searchOpenLogs: openThreads };
+  }, [groups, query, commentsByLog]);
+  const isSearching = query.length > 0;
+
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
     ensureChangelog();
   }, [ensureChangelog]);
+
+  // "Seen" means unfolded by hand: a log once its Vorgang (and Thema) is
+  // open, a comment once its log thread is open too. Search-unfolding
+  // doesn't count.
+  useEffect(() => {
+    const isVorgangVisible = (vorgangId) => {
+      const vorgang = vorgaengeById.get(vorgangId);
+      return (
+        vorgang &&
+        openVorgaenge.has(vorgangId) &&
+        !collapsedTopics.has(vorgang.topic || "")
+      );
+    };
+    const ids = [
+      ...unseen.logs
+        .filter((log) => isVorgangVisible(log.vorgang_id))
+        .map((log) => log.id),
+      ...unseen.comments
+        .filter((comment) => {
+          const log = logsById.get(comment.log_id);
+          return (
+            log && openLogs.has(log.id) && isVorgangVisible(log.vorgang_id)
+          );
+        })
+        .map((comment) => comment.id),
+    ];
+    if (ids.length > 0) markSeen(ids);
+  }, [
+    unseen,
+    openVorgaenge,
+    openLogs,
+    collapsedTopics,
+    vorgaengeById,
+    logsById,
+    markSeen,
+  ]);
+
+  // Unfold the path to an overview item (which marks it seen) and scroll to
+  // its log line once rendered.
+  const handleJump = ({ type, log }) => {
+    const vorgang = vorgaengeById.get(log.vorgang_id);
+    setSearch("");
+    setCollapsedTopics((prev) => {
+      const next = new Set(prev);
+      next.delete(vorgang?.topic || "");
+      return next;
+    });
+    setOpenVorgaenge((prev) => new Set(prev).add(log.vorgang_id));
+    if (type === "comment") {
+      setOpenLogs((prev) => new Set(prev).add(log.id));
+    }
+    setTimeout(() => {
+      document
+        .getElementById(`changelog-log-${log.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  };
+
+  const handleMarkAllSeen = () => {
+    markSeen(unseenItems.map((row) => row.item.id));
+  };
 
   const toggleInSet = (setter, key) => {
     setter((prev) => {
@@ -161,9 +286,13 @@ export default function Changelog() {
       {vorgangLogs.map((log) => {
         const name = formatMemberName(log.created_by_name);
         const logComments = commentsByLog.get(log.id) || [];
-        const isLogOpen = openLogs.has(log.id);
+        const isLogOpen = openLogs.has(log.id) || searchOpenLogs.has(log.id);
         return (
-          <li key={log.id} className="changelog-log-item">
+          <li
+            key={log.id}
+            id={`changelog-log-${log.id}`}
+            className="changelog-log-item"
+          >
             <div
               className={`changelog-log${isLogOpen ? " changelog-log-open" : ""}`}
               onClick={() => toggleInSet(setOpenLogs, log.id)}
@@ -234,6 +363,64 @@ export default function Changelog() {
         <h2>Changelog</h2>
       </div>
 
+      {unseenItems.length > 0 && (
+        <div className="changelog-unseen">
+          <div className="changelog-unseen-header">
+            <h3>Neu ({unseenItems.length})</h3>
+            <button
+              type="button"
+              className="secondary"
+              onClick={handleMarkAllSeen}
+            >
+              Alle als gelesen markieren
+            </button>
+          </div>
+          <ul className="changelog-unseen-list">
+            {unseenItems.map((row) => {
+              const vorgang = vorgaengeById.get(row.log.vorgang_id);
+              return (
+                <li
+                  key={row.item.id}
+                  className="changelog-unseen-item"
+                  onClick={() => handleJump(row)}
+                >
+                  <span className="changelog-unseen-path">
+                    {vorgang.topic || NO_TOPIC} › {vorgang.name}
+                  </span>
+                  <span className="changelog-unseen-line">
+                    <span className="changelog-log-date">
+                      {row.type === "log"
+                        ? formatDate(row.item.log_date)
+                        : formatCommentDate(row.item.created_at)}
+                    </span>
+                    <span className="log-comments-author">
+                      {row.item.created_by_name || "?"}
+                      {row.type === "comment" ? " (Kommentar)" : ""}:
+                    </span>
+                    <span className="changelog-unseen-text">
+                      {row.type === "log" ? row.item.change : row.item.body}
+                    </span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
+
+      <div className="filters-container">
+        <div className="filter-field">
+          <label htmlFor="changelog-search">Suche</label>
+          <input
+            type="text"
+            id="changelog-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nach Begriff filtern..."
+          />
+        </div>
+      </div>
+
       {loading && <p>Changelog wird geladen...</p>}
 
       {!loading && groups.length === 0 && (
@@ -242,9 +429,15 @@ export default function Changelog() {
         </div>
       )}
 
+      {!loading && groups.length > 0 && visibleGroups.length === 0 && (
+        <div className="changelog-empty">
+          <p>Keine Logs entsprechen deiner Suche.</p>
+        </div>
+      )}
+
       {!loading &&
-        groups.map((group) => {
-          const isTopicOpen = !collapsedTopics.has(group.topic);
+        visibleGroups.map((group) => {
+          const isTopicOpen = isSearching || !collapsedTopics.has(group.topic);
           return (
             <section key={group.topic || NO_TOPIC} className="changelog-topic">
               <div
@@ -269,7 +462,8 @@ export default function Changelog() {
 
               {isTopicOpen &&
                 group.items.map(({ vorgang, logs: vorgangLogs }) => {
-                  const isVorgangOpen = openVorgaenge.has(vorgang.id);
+                  const isVorgangOpen =
+                    isSearching || openVorgaenge.has(vorgang.id);
                   return (
                     <div key={vorgang.id} className="changelog-vorgang">
                       <div

@@ -35,14 +35,12 @@ export function useRealtimeSync() {
     const refetchAll = () => {
       // Always all of them: entry edits can also create or change todos via the
       // server-side /todo marker sync, and events and projects feed the
-      // timeline. The changelog only refetches once it has been opened.
+      // timeline; the changelog feeds its sidebar badge.
       useEntriesStore.getState().fetchEntries({ silent: true });
       useTodosStore.getState().fetchTodos({ silent: true });
       useEventsStore.getState().fetchEvents({ silent: true });
       useProjectsStore.getState().fetchProjects({ silent: true });
-      if (useChangelogStore.getState().loaded) {
-        useChangelogStore.getState().fetchChangelog({ silent: true });
-      }
+      useChangelogStore.getState().fetchChangelog({ silent: true });
     };
 
     // Refetch on every (re)subscribe except the very first, which coincides

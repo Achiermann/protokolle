@@ -23,6 +23,80 @@
   margin-bottom: var(--space-5);
 }
 
+/* Overview of logs and comments the user hasn't seen yet. */
+.changelog-unseen {
+  margin-bottom: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-bg);
+  border-radius: var(--radius-lg);
+  border-left: 3px solid var(--color-title);
+}
+
+.changelog-unseen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.changelog-unseen-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.changelog-unseen-header button {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+}
+
+.changelog-unseen-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.changelog-unseen-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-top: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.changelog-unseen-item:hover {
+  background-color: #fafafa;
+}
+
+.changelog-unseen-path {
+  font-size: 0.8125rem;
+  color: var(--color-muted);
+}
+
+.changelog-unseen-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: 0.875rem;
+  min-width: 0;
+}
+
+/* One-line preview; the full text is in the thread. */
+.changelog-unseen-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text);
+}
+
+.changelog .filters-container {
+  margin-bottom: var(--space-5);
+}
+
 /* Collapsible bars behave like buttons: pointer cursor everywhere inside,
    chevron flips between folded (right) and unfolded (down). */
 .changelog-topic-bar,

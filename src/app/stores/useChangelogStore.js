@@ -4,11 +4,29 @@ import { pingWorkspaceChange } from "@/db/supabase-browser";
 // Client source of truth for the changelog: Vorgänge (named strands of work
 // under an optional Thema), their logs and the comments on those logs. Mirrors useProjectsStore: fetched
 // from /api/changelog (scoped to the active workspace by cookie) and cached.
+// Logs and comments the user hasn't seen yet: written by someone else, after
+// the user's `seenSince` baseline, and not in `seenIds`.
+export const getUnseen = (state, userId) => {
+  if (!userId || !state.seenSince) return { logs: [], comments: [] };
+  const since = Date.parse(state.seenSince);
+  const isUnseen = (item) =>
+    item.created_by !== userId &&
+    Date.parse(item.created_at) > since &&
+    !state.seenIds.has(item.id);
+  return {
+    logs: state.logs.filter(isUnseen),
+    comments: state.comments.filter(isUnseen),
+  };
+};
+
 export const useChangelogStore = create((set, get) => ({
   // *** VARIABLES ***
   vorgaenge: [],
   logs: [],
   comments: [],
+  // Per-user seen state (see getUnseen).
+  seenSince: null,
+  seenIds: new Set(),
   loaded: false,
   loading: false,
   error: null,
@@ -24,13 +42,16 @@ export const useChangelogStore = create((set, get) => ({
         throw new Error("Failed to fetch changelog");
       }
       const data = await response.json();
-      set({
+      // Union with local ids so a markSeen still in flight doesn't flicker.
+      set((state) => ({
         vorgaenge: data.vorgaenge || [],
         logs: data.logs || [],
         comments: data.comments || [],
+        seenSince: data.seen?.since ?? null,
+        seenIds: new Set([...state.seenIds, ...(data.seen?.ids || [])]),
         loaded: true,
         loading: false,
-      });
+      }));
     } catch (error) {
       if (silent) return;
       set({ error: error.message, loading: false });
@@ -237,6 +258,26 @@ export const useChangelogStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.message });
       throw error;
+    }
+  },
+
+  // Optimistic: the ids count as seen locally right away. Personal state, so
+  // no workspace ping.
+  markSeen: async (ids) => {
+    const fresh = ids.filter((id) => !get().seenIds.has(id));
+    if (fresh.length === 0) return;
+    set((state) => ({ seenIds: new Set([...state.seenIds, ...fresh]) }));
+    try {
+      const response = await fetch("/api/changelog/seen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: fresh }),
+      });
+      if (!response.ok) {
+        throw new Error("Failed to mark as seen");
+      }
+    } catch (error) {
+      set({ error: error.message });
     }
   },
 }));

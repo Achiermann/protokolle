@@ -8,7 +8,7 @@ import { useAuthStore } from "../stores/useAuthStore";
 
 // Comment timestamps are full ISO datetimes; shown as a local dd/mm/yy date to
 // match the log lines.
-const formatCommentDate = (isoDateTime) => {
+export const formatCommentDate = (isoDateTime) => {
   const date = new Date(isoDateTime);
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");

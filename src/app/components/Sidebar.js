@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CalendarRange,
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { useChangelogStore, getUnseen } from "../stores/useChangelogStore";
 import { useEntriesSync } from "../hooks/useEntriesSync";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { parseTodoMarkers } from "../../lib/richText";
@@ -30,6 +31,11 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   const entries = useEntriesStore((state) => state.entries);
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
+  const userId = useAuthStore((state) => state.user?.id);
+  const changelogLogs = useChangelogStore((state) => state.logs);
+  const changelogComments = useChangelogStore((state) => state.comments);
+  const seenSince = useChangelogStore((state) => state.seenSince);
+  const seenIds = useChangelogStore((state) => state.seenIds);
 
   // Single source of truth for keeping the caches warm: the Sidebar is
   // mounted for the whole session, so one subscription here serves every view.
@@ -51,7 +57,26 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
     return count;
   }, [entries]);
 
+  // New logs and comments from others, for the Changelog badge.
+  const unseenChangelogCount = useMemo(() => {
+    const unseen = getUnseen(
+      {
+        logs: changelogLogs,
+        comments: changelogComments,
+        seenSince,
+        seenIds,
+      },
+      userId,
+    );
+    return unseen.logs.length + unseen.comments.length;
+  }, [changelogLogs, changelogComments, seenSince, seenIds, userId]);
+
   // *** FUNCTIONS/HANDLERS ***
+  // The badge needs the changelog from the start, not only once it's opened.
+  useEffect(() => {
+    if (workspace) useChangelogStore.getState().ensureChangelog();
+  }, [workspace]);
+
   const handleViewChange = (view) => {
     onViewChange(view);
     setIsOpen(false);
@@ -124,6 +149,11 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             >
               <History size={20} />
               Changelog
+              {unseenChangelogCount > 0 && (
+                <span className="sidebar-button-todo-count">
+                  {unseenChangelogCount}
+                </span>
+              )}
             </button>
           </nav>
         )}
