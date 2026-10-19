@@ -487,19 +487,18 @@ export default function TodoList({ onOpenEntry }) {
 
   return (
     <div className="todo-list">
-      <button
-        type="button"
-        className="entry-list-new-button"
-        onClick={() => setShowTodoForm(true)}
-      >
-        <Plus size={18} />
-        Neues ToDo
-      </button>
-
       <div className="entry-list-toolbar">
         <div className="todo-list-header">
-          <h2>Offen</h2>
+          <h2 className="section-title">Offen</h2>
         </div>
+        <button
+          type="button"
+          className="entry-list-new-button"
+          onClick={() => setShowTodoForm(true)}
+        >
+          <Plus size={18} />
+          Neues ToDo
+        </button>
         <div className="filters-container">
           <div className="filter-field">
             <label htmlFor="todo-filter-search">Suche</label>
@@ -566,7 +565,7 @@ export default function TodoList({ onOpenEntry }) {
             className="todo-list-header todo-list-header-done"
             onClick={() => setShowDone(!showDone)}
           >
-            <h2>Erledigt ({doneTodos.length})</h2>
+            <h2 className="section-title">Erledigt ({doneTodos.length})</h2>
             {showDone ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
           </div>
           {showDone && renderTodoTable(doneTodos, "done")}

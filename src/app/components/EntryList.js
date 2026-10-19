@@ -667,7 +667,7 @@ export default function EntryList({
       {contentFilter === "without" ? (
         <>
           <div className="entry-list-header">
-            <h2>{title}</h2>
+            <h2 className="section-title">{title}</h2>
           </div>
           <button
             type="button"
@@ -689,7 +689,7 @@ export default function EntryList({
       ) : (
         <div className="entry-list-toolbar">
           <div className="entry-list-header">
-            <h2>{title}</h2>
+            <h2 className="section-title">{title}</h2>
           </div>
           <div className="filters-container">
             <div className="filter-field">

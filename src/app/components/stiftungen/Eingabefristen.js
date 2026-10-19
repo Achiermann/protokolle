@@ -86,7 +86,7 @@ export default function Eingabefristen() {
   return (
     <div className="eingabefristen">
       <div className="eingabefristen-header">
-        <h2>Eingabefristen</h2>
+        <h2 className="section-title">Eingabefristen</h2>
         {oldestVerifiedAt && (
           <span className="eingabefristen-stand">Stand {formatDate(oldestVerifiedAt)}</span>
         )}

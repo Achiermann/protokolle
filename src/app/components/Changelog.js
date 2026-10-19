@@ -176,6 +176,10 @@ export default function Changelog() {
 
   return (
     <div className="changelog">
+      <div className="changelog-header">
+        <h2 className="section-title">Changelog</h2>
+      </div>
+
       <button
         type="button"
         className="entry-list-new-button"
@@ -184,10 +188,6 @@ export default function Changelog() {
         <Plus size={18} />
         Neuer Vorgang
       </button>
-
-      <div className="changelog-header">
-        <h2>Changelog</h2>
-      </div>
 
       {unseenComments.length > 0 && (
         <div className="changelog-unseen">

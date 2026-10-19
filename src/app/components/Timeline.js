@@ -749,7 +749,7 @@ export default function Timeline({ onOpenEntry }) {
   return (
     <div className="timeline">
       <div className="timeline-toolbar">
-        <h2>Timeline</h2>
+        <h2 className="section-title">Timeline</h2>
       </div>
 
       <div className="timeline-filter-row">

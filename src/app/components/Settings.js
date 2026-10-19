@@ -38,7 +38,7 @@ export default function Settings() {
   return (
     <div className="settings">
       <div className="settings-header">
-        <h2>Einstellungen</h2>
+        <h2 className="section-title">Einstellungen</h2>
       </div>
 
       <section className="settings-section">

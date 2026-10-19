@@ -122,7 +122,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
   return (
     <div className="entry-list">
       <div className="entry-list-header">
-        <h2>{title}</h2>
+        <h2 className="section-title">{title}</h2>
       </div>
       {selectedGroup && (
         <div className="entry-list-detail-panel">

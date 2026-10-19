@@ -6,13 +6,6 @@
   margin-bottom: var(--space-5);
 }
 
-.todo-list-header h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text);
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
-}
-
 /* Shares the entry-list table design (card background, inset, cell spacing,
    row dividers, hover) so ToDo and Alle Traktanden look identical. Collapse
    would swallow the table's own padding, hence separate + spacing 0. */

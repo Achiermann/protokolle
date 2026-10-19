@@ -186,7 +186,7 @@ export default function ArchiveList({ focusEntryId = null }) {
   return (
     <div className="entry-list">
       <div className="entry-list-header">
-        <h2>Archiv</h2>
+        <h2 className="section-title">Archiv</h2>
       </div>
 
       {loading && <p>Wird geladen...</p>}

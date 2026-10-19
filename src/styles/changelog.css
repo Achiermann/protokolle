@@ -6,13 +6,6 @@
   margin-bottom: var(--space-5);
 }
 
-.changelog-header h2 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-text);
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
-}
-
 .changelog-empty {
   text-align: center;
   padding: var(--space-7);

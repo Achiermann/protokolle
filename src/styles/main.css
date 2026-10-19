@@ -109,6 +109,17 @@ h6 {
   color: var(--color-text);
 }
 
+/* Single source of truth for every section's page title (the <h2> at the
+   top of a view, always above its buttons). Prototype: the Changelog
+   heading. Scoped under .main-content so it outranks the global
+   `.main-content *` font rule. */
+.main-content .section-title {
+  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
 /* Single source of truth for all table column-header typography.
    Prototype: the entry-list-table header. Structural rules (padding,
    borders) stay on each table's own th selector. !important keeps the
