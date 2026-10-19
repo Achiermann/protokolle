@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
-import { attachCreatorNames } from "@/lib/changelog";
+import { attachCreatorNames, resolveVorgang } from "@/lib/changelog";
 
-// POST /api/changelog/comments — comment on a log. Body: `log_id`, `body`.
-// The author is the logged-in user.
+// POST /api/changelog/comments — comment on a Vorgang. Body: `body` and
+// either `vorgang_id` or `new_vorgang: { name, topic }`. The author is the
+// logged-in user. Returns the comment and, when one was created, the Vorgang.
 export async function POST(request) {
   try {
     const cookieStore = await cookies();
@@ -21,14 +22,9 @@ export async function POST(request) {
 
     const body = await request.json();
 
-    if (!body.log_id || !body.body || !body.body.trim()) {
+    if (!body.body || !body.body.trim()) {
       return NextResponse.json(
-        {
-          error: {
-            code: "VALIDATION_ERROR",
-            message: "log_id and body are required",
-          },
-        },
+        { error: { code: "VALIDATION_ERROR", message: "body is required" } },
         { status: 400 },
       );
     }
@@ -46,19 +42,11 @@ export async function POST(request) {
       );
     }
 
-    // The log must belong to the active workspace.
-    const { data: log } = await supabase
-      .schema("protokoll_app")
-      .from("changelog_logs")
-      .select("id")
-      .eq("id", body.log_id)
-      .eq("workspace_id", workspaceId)
-      .single();
-
-    if (!log) {
+    const resolved = await resolveVorgang(supabase, workspaceId, body);
+    if (resolved.error) {
       return NextResponse.json(
-        { error: { code: "NOT_FOUND", message: "Log not found" } },
-        { status: 404 },
+        { error: { code: "VALIDATION_ERROR", message: resolved.error } },
+        { status: 400 },
       );
     }
 
@@ -68,7 +56,7 @@ export async function POST(request) {
       .insert([
         {
           workspace_id: workspaceId,
-          log_id: log.id,
+          vorgang_id: resolved.vorgang.id,
           created_by: user.id,
           body: body.body.trim(),
         },
@@ -82,7 +70,10 @@ export async function POST(request) {
 
     const [item] = await attachCreatorNames(supabase, [data]);
 
-    return NextResponse.json({ item }, { status: 201 });
+    return NextResponse.json(
+      { item, vorgang: resolved.created ? resolved.vorgang : null },
+      { status: 201 },
+    );
   } catch (error) {
     return NextResponse.json(
       {

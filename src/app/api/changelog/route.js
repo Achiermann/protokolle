@@ -5,7 +5,7 @@ import { attachCreatorNames } from "@/lib/changelog";
 
 // The caller's seen state: `since` (their first changelog load in this
 // workspace — older items count as seen; registered on the first call) and
-// the ids of logs/comments they have seen since.
+// the ids of comments they have seen since.
 async function loadSeenState(supabase, workspaceId) {
   const {
     data: { user },
@@ -42,9 +42,9 @@ async function loadSeenState(supabase, workspaceId) {
   };
 }
 
-// GET /api/changelog — all Vorgänge of the workspace plus all their logs and
-// the comments on those logs, and the caller's "seen" state.
-// The client groups them (Thema → Vorgang → Logs), so one round trip suffices.
+// GET /api/changelog — all Vorgänge of the workspace, their comments (oldest
+// first) and the caller's "seen" state. The client groups them
+// (Thema → Vorgang → Kommentare), so one round trip suffices.
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -60,19 +60,12 @@ export async function GET() {
     }
 
     const supabase = await createSupabaseServerClient();
-    const [vorgaengeResult, logsResult, commentsResult] = await Promise.all([
+    const [vorgaengeResult, commentsResult] = await Promise.all([
       supabase
         .schema("protokoll_app")
         .from("vorgaenge")
         .select("*")
         .eq("workspace_id", workspaceId),
-      supabase
-        .schema("protokoll_app")
-        .from("changelog_logs")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("log_date", { ascending: false })
-        .order("created_at", { ascending: false }),
       supabase
         .schema("protokoll_app")
         .from("changelog_comments")
@@ -82,19 +75,17 @@ export async function GET() {
     ]);
 
     if (vorgaengeResult.error) throw vorgaengeResult.error;
-    if (logsResult.error) throw logsResult.error;
     if (commentsResult.error) throw commentsResult.error;
 
-    const [logs, comments] = await Promise.all([
-      attachCreatorNames(supabase, logsResult.data || []),
-      attachCreatorNames(supabase, commentsResult.data || []),
-    ]);
+    const comments = await attachCreatorNames(
+      supabase,
+      commentsResult.data || [],
+    );
 
     const seen = await loadSeenState(supabase, workspaceId);
 
     return NextResponse.json({
       vorgaenge: vorgaengeResult.data || [],
-      logs,
       comments,
       seen,
     });

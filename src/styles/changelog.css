@@ -148,91 +148,27 @@
   color: var(--color-text);
 }
 
-/* Actions sit at the far right of the Vorgang bar. */
+/* Actions sit at the far right of the Thema and Vorgang bars. */
+.changelog-topic-actions,
 .changelog-vorgang-actions {
   margin-left: auto;
 }
 
-.changelog-vorgang-empty {
+/* Chat-style thread right under the Vorgang bar: "dd/mm/yy Name: text",
+   aligned with the Vorgang name. */
+.changelog-comments {
   padding: 0 var(--space-4) var(--space-3)
     calc(var(--space-4) + 16px + var(--space-3));
-  font-size: 0.875rem;
-  color: var(--color-muted);
 }
 
-/* One line per log: date · author chip · text · actions on the right. */
-.changelog-logs {
+.changelog-comments-list {
   list-style: none;
-  margin: 0;
-  padding: 0 var(--space-4) var(--space-2);
-}
-
-.changelog-log-item {
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2) 0 0;
   border-top: 1px solid var(--color-border-soft);
 }
 
-/* Clickable: unfolds the comment thread below. */
-.changelog-log {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-3);
-  padding: var(--space-2) 0 var(--space-2) calc(16px + var(--space-3));
-  cursor: pointer;
-}
-
-.changelog-log:hover,
-.changelog-log-open {
-  background-color: #fafafa;
-}
-
-.changelog-log-comment-count {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.changelog-log-date {
-  flex-shrink: 0;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.changelog-log-who {
-  flex-shrink: 0;
-}
-
-/* Plaintext keeps its line breaks. */
-.changelog-log-change {
-  flex: 1;
-  min-width: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  color: var(--color-text);
-}
-
-.changelog-log-actions {
-  flex-shrink: 0;
-  align-self: center;
-}
-
-/* Chat-style thread: "dd/mm/yy Name: text", aligned with the log text. */
-.log-comments {
-  padding: var(--space-2) 0 var(--space-3) calc(16px + var(--space-3));
-  background-color: #fafafa;
-}
-
-.log-comments-list {
-  list-style: none;
-  margin: 0 0 var(--space-2);
-  padding: 0;
-}
-
-.log-comments-item {
+.changelog-comments-item {
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
@@ -240,14 +176,15 @@
   font-size: 0.875rem;
 }
 
-.log-comments-date {
+.changelog-comments-date {
   flex-shrink: 0;
   color: var(--color-muted);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
-.log-comments-text {
+/* Plaintext keeps its line breaks. */
+.changelog-comments-text {
   flex: 1;
   min-width: 0;
   white-space: pre-wrap;
@@ -255,49 +192,48 @@
   color: var(--color-text);
 }
 
-.log-comments-author {
+.changelog-comments-author {
   font-weight: 600;
 }
 
-.log-comments-edit-input {
+.changelog-comments-edit-input {
   flex: 1;
   min-width: 0;
 }
 
 /* Edit/delete on own comments show on hover only, keeping the thread calm. */
-.log-comments-actions {
+.changelog-comments-actions {
   flex-shrink: 0;
   align-self: center;
   opacity: 0;
   transition: opacity 0.15s ease;
 }
 
-.log-comments-item:hover .log-comments-actions,
-.log-comments-actions:focus-within {
+.changelog-comments-item:hover .changelog-comments-actions,
+.changelog-comments-actions:focus-within {
   opacity: 1;
 }
 
-.log-comments-actions button {
+.changelog-comments-actions button {
   padding: var(--space-1) var(--space-2);
 }
 
-.log-comments-new {
+.changelog-comments-new {
   display: flex;
   gap: var(--space-2);
-  padding-right: var(--space-4);
 }
 
-.log-comments-new input {
+.changelog-comments-new input {
   flex: 1;
   min-width: 0;
 }
 
 @media (max-width: 768px) {
-  .log-comments {
-    padding-left: 0;
+  .changelog-comments {
+    padding-left: var(--space-4);
   }
 
-  .log-comments-actions {
+  .changelog-comments-actions {
     opacity: 1;
   }
 
@@ -305,16 +241,7 @@
     margin-left: 0;
   }
 
-  .changelog-vorgang-bar,
-  .changelog-log {
+  .changelog-vorgang-bar {
     flex-wrap: wrap;
-  }
-
-  .changelog-log {
-    padding-left: 0;
-  }
-
-  .changelog-log-change {
-    flex-basis: 100%;
   }
 }

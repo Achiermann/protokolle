@@ -17,7 +17,7 @@ import { useTodosStore } from "../stores/useTodosStore";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import RichTextEditor from "./RichTextEditor";
 import TodoForm from "./TodoForm";
-import LogForm from "./LogForm";
+import ChangelogCommentForm from "./ChangelogCommentForm";
 import { sanitizeHtml, decorateTodos } from "../../lib/richText";
 import "../../styles/todo-list.css";
 // Member names, the comment panel, toolbar and filters reuse entry-list styling.
@@ -72,8 +72,8 @@ export default function TodoList({ onOpenEntry }) {
   const [showTodoForm, setShowTodoForm] = useState(false);
   // The todo whose edit form is open, if any.
   const [editingTodo, setEditingTodo] = useState(null);
-  // The todo a changelog entry is being written for, if any.
-  const [loggingTodo, setLoggingTodo] = useState(null);
+  // The todo a changelog comment is being written for, if any.
+  const [commentingTodo, setCommentingTodo] = useState(null);
   const [showDone, setShowDone] = useState(false);
   const [filterSearch, setFilterSearch] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -449,8 +449,8 @@ export default function TodoList({ onOpenEntry }) {
                     <button
                       type="button"
                       className="secondary"
-                      onClick={() => setLoggingTodo(todo)}
-                      title="Log erstellen"
+                      onClick={() => setCommentingTodo(todo)}
+                      title="Kommentar im Changelog"
                     >
                       <History size={16} />
                     </button>
@@ -584,18 +584,18 @@ export default function TodoList({ onOpenEntry }) {
         </div>
       )}
 
-      {loggingTodo && (
+      {commentingTodo && (
         <div
           className="entry-form-overlay"
-          onClick={() => setLoggingTodo(null)}
+          onClick={() => setCommentingTodo(null)}
         >
           <div onClick={(e) => e.stopPropagation()}>
-            <LogForm
+            <ChangelogCommentForm
               initial={{
-                topic: loggingTodo.topic || "",
-                change: loggingTodo.title,
+                topic: commentingTodo.topic || "",
+                body: commentingTodo.title,
               }}
-              onCancel={() => setLoggingTodo(null)}
+              onCancel={() => setCommentingTodo(null)}
             />
           </div>
         </div>

@@ -7,7 +7,7 @@ import { useChangelogStore } from "../stores/useChangelogStore";
 import { useAuthStore } from "../stores/useAuthStore";
 
 // Comment timestamps are full ISO datetimes; shown as a local dd/mm/yy date to
-// match the log lines.
+// the rest of the changelog.
 export const formatCommentDate = (isoDateTime) => {
   const date = new Date(isoDateTime);
   const day = String(date.getDate()).padStart(2, "0");
@@ -16,10 +16,10 @@ export const formatCommentDate = (isoDateTime) => {
   return `${day}/${month}/${year}`;
 };
 
-// Chat-style thread under an unfolded log: "dd/mm/yy Name: text", oldest
+// Chat-style thread under an unfolded Vorgang: "dd/mm/yy Name: text", oldest
 // first, with a one-line input below (Enter sends). Authors can edit and
 // delete their own comments.
-export default function LogComments({ log, comments }) {
+export default function VorgangComments({ vorgang, comments }) {
   // *** VARIABLES ***
   const addComment = useChangelogStore((state) => state.addComment);
   const updateComment = useChangelogStore((state) => state.updateComment);
@@ -36,7 +36,7 @@ export default function LogComments({ log, comments }) {
     if (!draft.trim() || isSending) return;
     setIsSending(true);
     try {
-      await addComment(log.id, draft.trim());
+      await addComment({ vorgang_id: vorgang.id, body: draft.trim() });
       setDraft("");
     } catch (error) {
       toast.error("Kommentar konnte nicht gespeichert werden");
@@ -81,20 +81,20 @@ export default function LogComments({ log, comments }) {
   };
 
   return (
-    <div className="log-comments">
+    <div className="changelog-comments">
       {comments.length > 0 && (
-        <ul className="log-comments-list">
+        <ul className="changelog-comments-list">
           {comments.map((comment) => {
             const isOwn = userId && comment.created_by === userId;
             return (
-              <li key={comment.id} className="log-comments-item">
-                <span className="log-comments-date">
+              <li key={comment.id} className="changelog-comments-item">
+                <span className="changelog-comments-date">
                   {formatCommentDate(comment.created_at)}
                 </span>
                 {editingId === comment.id ? (
                   <input
                     type="text"
-                    className="log-comments-edit-input"
+                    className="changelog-comments-edit-input"
                     value={editDraft}
                     onChange={(e) => setEditDraft(e.target.value)}
                     onKeyDown={(e) =>
@@ -104,15 +104,15 @@ export default function LogComments({ log, comments }) {
                     autoFocus
                   />
                 ) : (
-                  <span className="log-comments-text">
-                    <span className="log-comments-author">
+                  <span className="changelog-comments-text">
+                    <span className="changelog-comments-author">
                       {comment.created_by_name || "?"}:
                     </span>{" "}
                     {comment.body}
                   </span>
                 )}
                 {isOwn && editingId !== comment.id && (
-                  <div className="entry-list-item-actions log-comments-actions">
+                  <div className="entry-list-item-actions changelog-comments-actions">
                     <button
                       type="button"
                       className="secondary"
@@ -137,7 +137,7 @@ export default function LogComments({ log, comments }) {
         </ul>
       )}
 
-      <div className="log-comments-new">
+      <div className="changelog-comments-new">
         <input
           type="text"
           value={draft}

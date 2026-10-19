@@ -32,7 +32,6 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
   const userId = useAuthStore((state) => state.user?.id);
-  const changelogLogs = useChangelogStore((state) => state.logs);
   const changelogComments = useChangelogStore((state) => state.comments);
   const seenSince = useChangelogStore((state) => state.seenSince);
   const seenIds = useChangelogStore((state) => state.seenIds);
@@ -57,19 +56,13 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
     return count;
   }, [entries]);
 
-  // New logs and comments from others, for the Changelog badge.
+  // New comments from others, for the Changelog badge.
   const unseenChangelogCount = useMemo(() => {
-    const unseen = getUnseen(
-      {
-        logs: changelogLogs,
-        comments: changelogComments,
-        seenSince,
-        seenIds,
-      },
+    return getUnseen(
+      { comments: changelogComments, seenSince, seenIds },
       userId,
-    );
-    return unseen.logs.length + unseen.comments.length;
-  }, [changelogLogs, changelogComments, seenSince, seenIds, userId]);
+    ).length;
+  }, [changelogComments, seenSince, seenIds, userId]);
 
   // *** FUNCTIONS/HANDLERS ***
   // The badge needs the changelog from the start, not only once it's opened.

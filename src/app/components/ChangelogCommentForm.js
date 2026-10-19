@@ -9,38 +9,24 @@ import "../../styles/entry-form.css";
 
 const NEW = "__new__";
 
-// Today as YYYY-MM-DD in local time (toISOString would shift to UTC).
-const todayIso = () => {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-};
-
-// Creating (`initial` may preset topic/change, e.g. from a ToDo) or editing
-// (`log` given) a changelog entry. The Thema narrows the Vorgang dropdown;
-// both can be created on the spot. The author is set server-side.
-export default function LogForm({ onCancel, log = null, initial = {} }) {
+// Writes a changelog comment from outside the changelog (the ToDo list's
+// "Kommentar im Changelog"); `initial` presets topic and text. The Thema
+// narrows the Vorgang dropdown; both can be created on the spot. The author
+// is set server-side.
+export default function ChangelogCommentForm({ onCancel, initial = {} }) {
   // *** VARIABLES ***
   const vorgaenge = useChangelogStore((state) => state.vorgaenge);
   const ensureChangelog = useChangelogStore((state) => state.ensureChangelog);
-  const addLog = useChangelogStore((state) => state.addLog);
-  const updateLog = useChangelogStore((state) => state.updateLog);
+  const addComment = useChangelogStore((state) => state.addComment);
   const entries = useEntriesStore((state) => state.entries);
   const ensureEntries = useEntriesStore((state) => state.ensureEntries);
   const todos = useTodosStore((state) => state.todos);
 
-  const isEditing = !!log;
-  const logVorgang = isEditing
-    ? vorgaenge.find((v) => v.id === log.vorgang_id)
-    : null;
-
-  const [topic, setTopic] = useState(logVorgang?.topic || initial.topic || "");
+  const [topic, setTopic] = useState(initial.topic || "");
   const [isNewTopic, setIsNewTopic] = useState(false);
-  const [vorgangId, setVorgangId] = useState(log?.vorgang_id || "");
+  const [vorgangId, setVorgangId] = useState("");
   const [newVorgangName, setNewVorgangName] = useState("");
-  const [change, setChange] = useState(log?.change || initial.change || "");
-  const [logDate, setLogDate] = useState(log?.log_date || todayIso());
+  const [body, setBody] = useState(initial.body || "");
 
   // Topics from Traktanden, ToDos and existing Vorgänge.
   const existingTopics = useMemo(() => {
@@ -80,8 +66,8 @@ export default function LogForm({ onCancel, log = null, initial = {} }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!change.trim()) {
-      toast.error("Änderung ist erforderlich");
+    if (!body.trim()) {
+      toast.error("Kommentar ist erforderlich");
       return;
     }
     if (isNewVorgang && !newVorgangName.trim()) {
@@ -93,49 +79,43 @@ export default function LogForm({ onCancel, log = null, initial = {} }) {
       return;
     }
 
-    const payload = {
-      change: change.trim(),
-      log_date: logDate || todayIso(),
-      ...(isNewVorgang
-        ? { new_vorgang: { name: newVorgangName.trim(), topic: topic.trim() } }
-        : { vorgang_id: vorgangId }),
-    };
-
     try {
-      if (isEditing) {
-        await updateLog(log.id, payload);
-        toast.success("Log aktualisiert");
-      } else {
-        await addLog(payload);
-        toast.success("Log erstellt");
-      }
+      await addComment({
+        body: body.trim(),
+        ...(isNewVorgang
+          ? {
+              new_vorgang: { name: newVorgangName.trim(), topic: topic.trim() },
+            }
+          : { vorgang_id: vorgangId }),
+      });
+      toast.success("Kommentar erstellt");
       if (onCancel) onCancel();
     } catch (error) {
-      toast.error(
-        isEditing
-          ? "Log konnte nicht aktualisiert werden"
-          : "Log konnte nicht erstellt werden",
-      );
+      toast.error("Kommentar konnte nicht erstellt werden");
     }
   };
 
   return (
     <form className="entry-form card" onSubmit={handleSubmit}>
-      <h2>{isEditing ? "Log bearbeiten" : "Neuer Log"}</h2>
+      <h2>Kommentar im Changelog</h2>
       <div className="entry-form-fields">
         <div className="entry-form-field">
-          <label htmlFor="log-topic">Thema</label>
+          <label htmlFor="changelog-comment-topic">Thema</label>
           {isNewTopic ? (
             <input
               type="text"
-              id="log-topic"
+              id="changelog-comment-topic"
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               placeholder="Neues Thema eingeben..."
               autoFocus
             />
           ) : (
-            <select id="log-topic" value={topic} onChange={handleTopicSelect}>
+            <select
+              id="changelog-comment-topic"
+              value={topic}
+              onChange={handleTopicSelect}
+            >
               <option value="">– Ohne Thema –</option>
               {existingTopics.map((t) => (
                 <option key={t} value={t}>
@@ -148,10 +128,10 @@ export default function LogForm({ onCancel, log = null, initial = {} }) {
         </div>
 
         <div className="entry-form-field">
-          <label htmlFor="log-vorgang">Vorgang *</label>
+          <label htmlFor="changelog-comment-vorgang">Vorgang *</label>
           {topicVorgaenge.length > 0 && (
             <select
-              id="log-vorgang"
+              id="changelog-comment-vorgang"
               value={vorgangId}
               onChange={(e) => setVorgangId(e.target.value)}
             >
@@ -167,7 +147,11 @@ export default function LogForm({ onCancel, log = null, initial = {} }) {
           {isNewVorgang && (
             <input
               type="text"
-              id={topicVorgaenge.length > 0 ? undefined : "log-vorgang"}
+              id={
+                topicVorgaenge.length > 0
+                  ? undefined
+                  : "changelog-comment-vorgang"
+              }
               value={newVorgangName}
               onChange={(e) => setNewVorgangName(e.target.value)}
               placeholder="Neuen Vorgang eingeben, z.B. Filmer finden"
@@ -176,31 +160,19 @@ export default function LogForm({ onCancel, log = null, initial = {} }) {
         </div>
 
         <div className="entry-form-field">
-          <label htmlFor="log-change">Änderung *</label>
+          <label htmlFor="changelog-comment-body">Kommentar *</label>
           <textarea
-            id="log-change"
-            value={change}
-            onChange={(e) => setChange(e.target.value)}
+            id="changelog-comment-body"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
             rows={3}
             required
-          />
-        </div>
-
-        <div className="entry-form-field">
-          <label htmlFor="log-date">Datum</label>
-          <input
-            type="date"
-            id="log-date"
-            value={logDate}
-            onChange={(e) => setLogDate(e.target.value)}
           />
         </div>
       </div>
 
       <div className="entry-form-actions">
-        <button type="submit">
-          {isEditing ? "Speichern" : "Log erstellen"}
-        </button>
+        <button type="submit">Kommentar erstellen</button>
         <button type="button" className="secondary" onClick={onCancel}>
           Abbrechen
         </button>

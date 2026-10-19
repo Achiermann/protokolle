@@ -1,28 +1,26 @@
 import { create } from "zustand";
 import { pingWorkspaceChange } from "@/db/supabase-browser";
 
-// Client source of truth for the changelog: Vorgänge (named strands of work
-// under an optional Thema), their logs and the comments on those logs. Mirrors useProjectsStore: fetched
-// from /api/changelog (scoped to the active workspace by cookie) and cached.
-// Logs and comments the user hasn't seen yet: written by someone else, after
-// the user's `seenSince` baseline, and not in `seenIds`.
+// Comments the user hasn't seen yet: written by someone else, after the
+// user's `seenSince` baseline, and not in `seenIds`.
 export const getUnseen = (state, userId) => {
-  if (!userId || !state.seenSince) return { logs: [], comments: [] };
+  if (!userId || !state.seenSince) return [];
   const since = Date.parse(state.seenSince);
-  const isUnseen = (item) =>
-    item.created_by !== userId &&
-    Date.parse(item.created_at) > since &&
-    !state.seenIds.has(item.id);
-  return {
-    logs: state.logs.filter(isUnseen),
-    comments: state.comments.filter(isUnseen),
-  };
+  return state.comments.filter(
+    (comment) =>
+      comment.created_by !== userId &&
+      Date.parse(comment.created_at) > since &&
+      !state.seenIds.has(comment.id),
+  );
 };
 
+// Client source of truth for the changelog: Vorgänge (named strands of work
+// under an optional Thema) and the comments on them. Mirrors
+// useProjectsStore: fetched from /api/changelog (scoped to the active
+// workspace by cookie) and cached here.
 export const useChangelogStore = create((set, get) => ({
   // *** VARIABLES ***
   vorgaenge: [],
-  logs: [],
   comments: [],
   // Per-user seen state (see getUnseen).
   seenSince: null,
@@ -45,7 +43,6 @@ export const useChangelogStore = create((set, get) => ({
       // Union with local ids so a markSeen still in flight doesn't flicker.
       set((state) => ({
         vorgaenge: data.vorgaenge || [],
-        logs: data.logs || [],
         comments: data.comments || [],
         seenSince: data.seen?.since ?? null,
         seenIds: new Set([...state.seenIds, ...(data.seen?.ids || [])]),
@@ -66,74 +63,27 @@ export const useChangelogStore = create((set, get) => ({
     return get().fetchChangelog();
   },
 
-  // `log` carries `change`, `log_date` and either `vorgang_id` or
-  // `new_vorgang: { name, topic }`; a Vorgang created on the way is cached too.
-  addLog: async (log) => {
+  // `vorgang` carries `name`, `topic` and an optional first `comment`.
+  addVorgang: async (vorgang) => {
     set({ error: null });
     try {
-      const response = await fetch("/api/changelog/logs", {
+      const response = await fetch("/api/changelog/vorgaenge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(log),
+        body: JSON.stringify(vorgang),
       });
       if (!response.ok) {
-        throw new Error("Failed to create log");
+        throw new Error("Failed to create Vorgang");
       }
       const data = await response.json();
       set((state) => ({
-        logs: [data.item, ...state.logs],
-        vorgaenge: data.vorgang
-          ? [...state.vorgaenge, data.vorgang]
-          : state.vorgaenge,
+        vorgaenge: [...state.vorgaenge, data.item],
+        comments: data.comment
+          ? [...state.comments, data.comment]
+          : state.comments,
       }));
       pingWorkspaceChange();
       return data.item;
-    } catch (error) {
-      set({ error: error.message });
-      throw error;
-    }
-  },
-
-  updateLog: async (id, updates) => {
-    set({ error: null });
-    try {
-      const response = await fetch(`/api/changelog/logs/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
-      if (!response.ok) {
-        throw new Error("Failed to update log");
-      }
-      const data = await response.json();
-      set((state) => ({
-        logs: state.logs.map((log) => (log.id === id ? data.item : log)),
-        vorgaenge: data.vorgang
-          ? [...state.vorgaenge, data.vorgang]
-          : state.vorgaenge,
-      }));
-      pingWorkspaceChange();
-      return data.item;
-    } catch (error) {
-      set({ error: error.message });
-      throw error;
-    }
-  },
-
-  deleteLog: async (id) => {
-    set({ error: null });
-    try {
-      const response = await fetch(`/api/changelog/logs/${id}`, {
-        method: "DELETE",
-      });
-      if (!response.ok) {
-        throw new Error("Failed to delete log");
-      }
-      set((state) => ({
-        logs: state.logs.filter((log) => log.id !== id),
-        comments: state.comments.filter((comment) => comment.log_id !== id),
-      }));
-      pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
       throw error;
@@ -165,8 +115,7 @@ export const useChangelogStore = create((set, get) => ({
     }
   },
 
-  // Deleting a Vorgang removes its logs and their comments too (cascade in
-  // the DB).
+  // Deleting a Vorgang removes its comments too (cascade in the DB).
   deleteVorgang: async (id) => {
     set({ error: null });
     try {
@@ -176,18 +125,10 @@ export const useChangelogStore = create((set, get) => ({
       if (!response.ok) {
         throw new Error("Failed to delete Vorgang");
       }
-      set((state) => {
-        const removedLogIds = new Set(
-          state.logs.filter((log) => log.vorgang_id === id).map((l) => l.id),
-        );
-        return {
-          vorgaenge: state.vorgaenge.filter((vorgang) => vorgang.id !== id),
-          logs: state.logs.filter((log) => !removedLogIds.has(log.id)),
-          comments: state.comments.filter(
-            (comment) => !removedLogIds.has(comment.log_id),
-          ),
-        };
-      });
+      set((state) => ({
+        vorgaenge: state.vorgaenge.filter((vorgang) => vorgang.id !== id),
+        comments: state.comments.filter((comment) => comment.vorgang_id !== id),
+      }));
       pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
@@ -195,19 +136,26 @@ export const useChangelogStore = create((set, get) => ({
     }
   },
 
-  addComment: async (logId, body) => {
+  // `comment` carries `body` and either `vorgang_id` or
+  // `new_vorgang: { name, topic }`; a Vorgang created on the way is cached too.
+  addComment: async (comment) => {
     set({ error: null });
     try {
       const response = await fetch("/api/changelog/comments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ log_id: logId, body }),
+        body: JSON.stringify(comment),
       });
       if (!response.ok) {
         throw new Error("Failed to create comment");
       }
       const data = await response.json();
-      set((state) => ({ comments: [...state.comments, data.item] }));
+      set((state) => ({
+        comments: [...state.comments, data.item],
+        vorgaenge: data.vorgang
+          ? [...state.vorgaenge, data.vorgang]
+          : state.vorgaenge,
+      }));
       pingWorkspaceChange();
       return data.item;
     } catch (error) {

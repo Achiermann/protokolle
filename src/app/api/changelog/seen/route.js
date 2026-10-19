@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// POST /api/changelog/seen — mark logs/comments as seen by the caller.
-// Body: `ids` (array of log or comment ids). Idempotent.
+// POST /api/changelog/seen — mark comments as seen by the caller.
+// Body: `ids` (array of comment ids). Idempotent.
 export async function POST(request) {
   try {
     const cookieStore = await cookies();
