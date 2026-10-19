@@ -45,6 +45,10 @@ export async function GET(request, { params }) {
   }
 }
 
+// Fields whose change counts as editing the traktandum and so bumps its
+// "Datum" (date_modified). Archiving, Posteingang moves and reordering don't.
+const CONTENT_FIELDS = ["item_title", "topic", "scheduled", "content"];
+
 // PATCH /api/entries/:id
 export async function PATCH(request, { params }) {
   try {
@@ -53,13 +57,17 @@ export async function PATCH(request, { params }) {
     const cookieStore = await cookies();
     const workspaceId = cookieStore.get("workspace_id")?.value;
 
+    const now = new Date().toISOString();
+    const isContentEdit = CONTENT_FIELDS.some((field) => field in body);
+
     const supabase = await createSupabaseServerClient();
     const { data, error } = await supabase
       .schema("protokoll_app")
       .from("entries")
       .update({
         ...body,
-        updated_at: new Date().toISOString(),
+        updated_at: now,
+        ...(isContentEdit && { date_modified: now }),
       })
       .eq("id", id)
       .eq("workspace_id", workspaceId)

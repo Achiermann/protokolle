@@ -125,12 +125,14 @@ export async function PATCH(request, { params }) {
           },
         );
         if (rewritten !== null) {
+          const now = new Date().toISOString();
           await supabase
             .schema("protokoll_app")
             .from("entries")
             .update({
               content: rewritten,
-              updated_at: new Date().toISOString(),
+              updated_at: now,
+              date_modified: now,
             })
             .eq("id", before.entry_id)
             .eq("workspace_id", workspaceId);

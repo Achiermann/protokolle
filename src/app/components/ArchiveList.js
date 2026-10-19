@@ -27,8 +27,8 @@ export default function ArchiveList({ focusEntryId = null }) {
         .filter((e) => e.archived)
         .sort(
           (a, b) =>
-            new Date(b.date_created).getTime() -
-            new Date(a.date_created).getTime(),
+            new Date(b.date_modified).getTime() -
+            new Date(a.date_modified).getTime(),
         ),
     [entries],
   );
@@ -124,7 +124,15 @@ export default function ArchiveList({ focusEntryId = null }) {
               </span>
             )}
             <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">Datum</span>
+              <span className="entry-list-detail-panel-meta-label">
+                Geändert
+              </span>
+              <span>{formatDate(selectedEntry.date_modified)}</span>
+            </span>
+            <span className="entry-list-detail-panel-meta-item">
+              <span className="entry-list-detail-panel-meta-label">
+                Erstellt
+              </span>
               <span>{formatDate(selectedEntry.date_created)}</span>
             </span>
           </div>
@@ -231,7 +239,7 @@ export default function ArchiveList({ focusEntryId = null }) {
                     </td>
                     <td>
                       <div className="entry-list-item-date">
-                        {formatDate(entry.date_created)}
+                        {formatDate(entry.date_modified)}
                       </div>
                     </td>
                     <td>

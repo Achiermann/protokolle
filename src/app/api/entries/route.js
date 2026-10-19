@@ -25,7 +25,7 @@ export async function GET() {
       .from("entries")
       .select("*", { count: "exact" })
       .eq("workspace_id", workspaceId)
-      .order("date_created", { ascending: false });
+      .order("date_modified", { ascending: false });
 
     if (error) {
       throw error;

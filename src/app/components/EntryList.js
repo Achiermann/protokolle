@@ -266,7 +266,7 @@ export default function EntryList({
     // `scheduled` is an ISO date string, so string order is date order; "~"
     // sorts after any digit, pushing unscheduled entries to the end.
     if (column === "scheduled") return entry.scheduled || "~";
-    return new Date(entry.date_created).getTime();
+    return new Date(entry.date_modified).getTime();
   };
 
   const sortIndicator = (column) => {
@@ -310,14 +310,16 @@ export default function EntryList({
     if (filterDateFrom) {
       const fromDate = new Date(filterDateFrom);
       result = result.filter(
-        (entry) => new Date(entry.date_created) >= fromDate,
+        (entry) => new Date(entry.date_modified) >= fromDate,
       );
     }
 
     if (filterDateTo) {
       const toDate = new Date(filterDateTo);
       toDate.setHours(23, 59, 59, 999);
-      result = result.filter((entry) => new Date(entry.date_created) <= toDate);
+      result = result.filter(
+        (entry) => new Date(entry.date_modified) <= toDate,
+      );
     }
 
     result.sort((a, b) => {
@@ -546,7 +548,15 @@ export default function EntryList({
               </span>
             )}
             <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">Datum</span>
+              <span className="entry-list-detail-panel-meta-label">
+                Geändert
+              </span>
+              <span>{formatDate(selectedEntry.date_modified)}</span>
+            </span>
+            <span className="entry-list-detail-panel-meta-item">
+              <span className="entry-list-detail-panel-meta-label">
+                Erstellt
+              </span>
               <span>{formatDate(selectedEntry.date_created)}</span>
             </span>
             {selectedEntry.scheduled && (
@@ -874,7 +884,7 @@ export default function EntryList({
                     </td>
                     <td>
                       <div className="entry-list-item-date">
-                        {formatDate(entry.date_created)}
+                        {formatDate(entry.date_modified)}
                       </div>
                     </td>
                     <td>

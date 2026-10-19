@@ -59,8 +59,8 @@ export default function GroupedList({ field, title, emptyLabel }) {
       .filter((e) => e.content && !e.archived && e[field] === selectedGroup)
       .sort(
         (a, b) =>
-          new Date(b.date_created).getTime() -
-          new Date(a.date_created).getTime(),
+          new Date(b.date_modified).getTime() -
+          new Date(a.date_modified).getTime(),
       );
   }, [entries, field, selectedGroup]);
 
@@ -166,7 +166,7 @@ export default function GroupedList({ field, title, emptyLabel }) {
                         )}
                       </strong>
                       <span className="grouped-list-traktanden-date">
-                        {formatDate(entry.date_created)}
+                        {formatDate(entry.date_modified)}
                       </span>
                     </div>
                     {editingId === entry.id ? (
