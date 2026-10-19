@@ -120,15 +120,6 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             </button>
 
             <button
-              className={`sidebar-button ${activeView === "todo" ? "active" : ""}`}
-              onClick={() => handleViewChange("todo")}
-            >
-              <ListTodo size={20} />
-              ToDo
-              <span className="sidebar-button-todo-count">{todoCount}</span>
-            </button>
-
-            <button
               className={`sidebar-button ${activeView === "timeline" ? "active" : ""}`}
               onClick={() => handleViewChange("timeline")}
             >
@@ -147,6 +138,15 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
                   {unseenChangelogCount}
                 </span>
               )}
+            </button>
+
+            <button
+              className={`sidebar-button ${activeView === "todo" ? "active" : ""}`}
+              onClick={() => handleViewChange("todo")}
+            >
+              <ListTodo size={20} />
+              ToDo
+              <span className="sidebar-button-todo-count">{todoCount}</span>
             </button>
           </nav>
         )}
