@@ -333,7 +333,7 @@ export default function Changelog() {
                     onClick={() => setCreatingVorgang({ topic: group.topic })}
                     title="Neuer Vorgang in diesem Thema"
                   >
-                    <Plus size={16} />
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>

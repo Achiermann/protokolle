@@ -148,7 +148,8 @@
 
 /* The Thema's "+" sits in a slim bar, so it gets a tighter button. */
 .changelog-topic-actions button {
-  padding: var(--space-1) var(--space-2);
+  display: inline-flex;
+  padding: 2px;
 }
 
 /* Chat-style thread right under the Vorgang bar: "dd/mm/yy Name: text",
