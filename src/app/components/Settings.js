@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../stores/useAuthStore";
 import MembersList from "./MembersList";
+import TopicsList from "./TopicsList";
 import "../../styles/settings.css";
 
 export default function Settings() {
@@ -66,6 +67,8 @@ export default function Settings() {
           </button>
         </form>
       </section>
+
+      <TopicsList />
 
       {role === "owner" && <MembersList />}
     </div>

@@ -1,0 +1,36 @@
+.topics-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.topics-list-item {
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.topics-list-name,
+.topics-list-name:hover {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 500;
+  text-align: left;
+  cursor: text;
+}
+
+.topics-list-name:hover {
+  background: var(--color-app-bg);
+}
+
+.topics-list-input {
+  width: 100%;
+  margin: var(--space-1) 0;
+}
+
+.topics-list-empty {
+  color: var(--color-muted);
+}
