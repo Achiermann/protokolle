@@ -20,6 +20,23 @@ export const formatCommentDate = (isoDateTime) => {
 const MAX_ROWS = 8;
 const rowsFor = (text) => Math.min(MAX_ROWS, text.split("\n").length);
 
+// Avatar placeholder colours; each author keeps one, picked by hashing their id.
+const AVATAR_COLORS = [
+  "#9b2fae",
+  "#2f6fd6",
+  "#1f9d74",
+  "#d9822b",
+  "#c2366b",
+  "#5a50c8",
+  "#0f8fa8",
+  "#7a8a1f",
+];
+const avatarColorFor = (key = "") => {
+  let hash = 0;
+  for (const char of key) hash = (hash * 31 + char.charCodeAt(0)) | 0;
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+
 // Thread under an unfolded Vorgang: "Name - dd/mm/yy" above the text, oldest
 // first, with an input below (Enter sends, Shift/Alt+Enter adds a line).
 // Authors can edit and delete their own comments; any comment can be marked
@@ -110,65 +127,81 @@ export default function VorgangComments({
             const isOwn = userId && comment.created_by === userId;
             return (
               <li key={comment.id} className="changelog-comments-item">
-                <div className="changelog-comments-meta">
-                  <span className="changelog-comments-author">
-                    {comment.created_by_name || "?"}
-                  </span>
-                  <span className="changelog-comments-date">
-                    - {formatCommentDate(comment.created_at)}
-                  </span>
-                  {editingId !== comment.id && (
-                    <div className="entry-list-item-actions changelog-comments-actions">
-                      {!unseenIds.has(comment.id) && (
-                        <button
-                          type="button"
-                          className="secondary"
-                          onClick={() => onMarkUnread(comment)}
-                          title="Als ungelesen markieren"
-                        >
-                          <Mail size={14} />
-                        </button>
-                      )}
-                      {isOwn && (
-                        <>
+                <div
+                  className="changelog-comments-avatar"
+                  style={{
+                    backgroundColor: avatarColorFor(
+                      comment.created_by || comment.created_by_name,
+                    ),
+                  }}
+                  aria-hidden="true"
+                >
+                  <svg viewBox="0 0 36 36">
+                    <circle cx="18" cy="14" r="7" />
+                    <ellipse cx="18" cy="34" rx="13" ry="10" />
+                  </svg>
+                </div>
+                <div className="changelog-comments-body">
+                  <div className="changelog-comments-meta">
+                    <span className="changelog-comments-author">
+                      {comment.created_by_name || "?"}
+                    </span>
+                    <span className="changelog-comments-date">
+                      - {formatCommentDate(comment.created_at)}
+                    </span>
+                    {editingId !== comment.id && (
+                      <div className="entry-list-item-actions changelog-comments-actions">
+                        {!unseenIds.has(comment.id) && (
                           <button
                             type="button"
                             className="secondary"
-                            onClick={() => handleStartEdit(comment)}
-                            title="Kommentar bearbeiten"
+                            onClick={() => onMarkUnread(comment)}
+                            title="Als ungelesen markieren"
                           >
-                            <Pencil size={14} />
+                            <Mail size={14} />
                           </button>
-                          <button
-                            type="button"
-                            className="secondary"
-                            onClick={() => handleDelete(comment)}
-                            title="Kommentar löschen"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        </>
-                      )}
-                    </div>
+                        )}
+                        {isOwn && (
+                          <>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => handleStartEdit(comment)}
+                              title="Kommentar bearbeiten"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary"
+                              onClick={() => handleDelete(comment)}
+                              title="Kommentar löschen"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  {editingId === comment.id ? (
+                    <textarea
+                      className="changelog-comments-edit-input"
+                      rows={rowsFor(editDraft)}
+                      value={editDraft}
+                      onChange={(e) => setEditDraft(e.target.value)}
+                      onKeyDown={(e) =>
+                        handleKeyDown(e, setEditDraft, handleSaveEdit, () =>
+                          setEditingId(null),
+                        )
+                      }
+                      onBlur={() => setEditingId(null)}
+                      autoFocus
+                    />
+                  ) : (
+                    <p className="changelog-comments-text">{comment.body}</p>
                   )}
                 </div>
-                {editingId === comment.id ? (
-                  <textarea
-                    className="changelog-comments-edit-input"
-                    rows={rowsFor(editDraft)}
-                    value={editDraft}
-                    onChange={(e) => setEditDraft(e.target.value)}
-                    onKeyDown={(e) =>
-                      handleKeyDown(e, setEditDraft, handleSaveEdit, () =>
-                        setEditingId(null),
-                      )
-                    }
-                    onBlur={() => setEditingId(null)}
-                    autoFocus
-                  />
-                ) : (
-                  <p className="changelog-comments-text">{comment.body}</p>
-                )}
               </li>
             );
           })}

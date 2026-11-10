@@ -40,6 +40,12 @@ export default function RichTextEditor({
   // *** VARIABLES ***
   const editorRef = useRef(null);
   const markerRef = useRef(null);
+  const emojiRef = useRef(null);
+  const emojiPickerHostRef = useRef(null);
+  // Selection (character offsets) when the emoji picker opened: typing in its
+  // search field moves focus out of the editor, so the insertion point is
+  // restored from here.
+  const emojiSelectionRef = useRef(null);
   // undo/redo: stacks of { html, caret } snapshots. `present` is the last
   // committed state; `timer` debounces a typing burst; `applying` suppresses the
   // input events our own programmatic edits fire.
@@ -57,6 +63,7 @@ export default function RichTextEditor({
   const [zielTitle, setZielTitle] = useState("");
   const [zielDate, setZielDate] = useState("");
   const [showColorDropdown, setShowColorDropdown] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [activeColor, setActiveColor] = useState(MARKER_COLORS[0].className);
   // Caret offset captured when a popup opens: interacting with the popup's
   // inputs moves focus (and thus the selection) out of the editor, so the
@@ -85,6 +92,57 @@ export default function RichTextEditor({
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, [showColorDropdown]);
+
+  // Same for the emoji picker; Escape closes it too.
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const onDocMouseDown = (e) => {
+      if (emojiRef.current && !emojiRef.current.contains(e.target)) {
+        setShowEmojiPicker(false);
+      }
+    };
+    const onKeyDown = (e) => {
+      if (e.key === "Escape") setShowEmojiPicker(false);
+    };
+    document.addEventListener("mousedown", onDocMouseDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onDocMouseDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showEmojiPicker]);
+
+  // The full emoji picker (emoji-mart, German search/labels) is loaded only
+  // when it is first opened, so its ~400 KB of emoji data never weighs on the
+  // editor itself. It is a web component, mounted into the host div.
+  useEffect(() => {
+    if (!showEmojiPicker) return;
+    const host = emojiPickerHostRef.current;
+    let cancelled = false;
+    Promise.all([
+      import("emoji-mart"),
+      import("@emoji-mart/data"),
+      import("@emoji-mart/data/i18n/de.json"),
+    ]).then(([{ Picker }, data, i18n]) => {
+      if (cancelled || !host) return;
+      const picker = new Picker({
+        data: data.default || data,
+        i18n: i18n.default || i18n,
+        locale: "de",
+        theme: "light",
+        skinTonePosition: "none",
+        previewPosition: "none",
+        autoFocus: true,
+        onEmojiSelect: (emoji) => handleInsertEmoji(emoji.native),
+      });
+      host.appendChild(picker);
+    });
+    return () => {
+      cancelled = true;
+      if (host) host.replaceChildren();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showEmojiPicker]);
 
   const emitChange = () => {
     if (editorRef.current) onChange(sanitizeHtml(editorRef.current.innerHTML));
@@ -322,28 +380,65 @@ export default function RichTextEditor({
     }
   };
 
-  // The <mark> enclosing the whole selection, if any (the highlighted phrase the
-  // user re-clicked). Null when the selection is unmarked or spans a mix.
-  const getEnclosingMark = (range) => {
+  // *** HIGHLIGHTING ***
+  // Highlighting works on character offsets over the editor's text nodes, not on
+  // existing <mark> elements: the selection is turned into a [start, end) span
+  // of text, every text node in that span is cut out exactly at the boundaries,
+  // lifted out of whatever mark it was in, and (when colouring) wrapped in a
+  // fresh mark. A final cleanup merges neighbouring same-colour marks and drops
+  // empty / edge-whitespace ones, which are what used to show up as little
+  // colour slivers at the start of lines (mark has 2px padding).
+
+  // All text nodes of the editor in document order.
+  const editorTextNodes = () => {
     const editor = editorRef.current;
-    let node = range.commonAncestorContainer;
-    while (node && node !== editor) {
-      if (node.nodeType === 1 && node.tagName === "MARK") return node;
-      node = node.parentNode;
-    }
-    return null;
+    const nodes = [];
+    const walker = document.createTreeWalker(editor, NodeFilter.SHOW_TEXT);
+    let n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    return nodes;
   };
 
-  const unwrap = (mark) => {
-    const parent = mark.parentNode;
-    while (mark.firstChild) parent.insertBefore(mark.firstChild, mark);
-    parent.removeChild(mark);
+  // A DOM boundary point → character offset from the editor start.
+  const offsetOf = (container, offset) => {
+    const pre = document.createRange();
+    pre.selectNodeContents(editorRef.current);
+    pre.setEnd(container, offset);
+    return pre.toString().length;
+  };
+
+  // Restore a [start, end) selection from character offsets.
+  const selectOffsets = (start, end) => {
+    const sel = window.getSelection();
+    if (!sel) return;
+    const range = document.createRange();
+    let pos = 0;
+    let startSet = false;
+    let endSet = false;
+    for (const node of editorTextNodes()) {
+      const len = node.nodeValue.length;
+      // Start prefers the beginning of the next node, end the close of this one,
+      // so the selection hugs the highlighted text.
+      if (!startSet && start < pos + len) {
+        range.setStart(node, start - pos);
+        startSet = true;
+      }
+      if (startSet && !endSet && end <= pos + len) {
+        range.setEnd(node, end - pos);
+        endSet = true;
+        break;
+      }
+      pos += len;
+    }
+    if (!startSet || !endSet) return;
+    sel.removeAllRanges();
+    sel.addRange(range);
   };
 
   // The nearest <mark> ancestor of `node` within the editor, if any.
   const closestMark = (node) => {
     const editor = editorRef.current;
-    let n = node;
+    let n = node.parentNode;
     while (n && n !== editor) {
       if (n.nodeType === 1 && n.tagName === "MARK") return n;
       n = n.parentNode;
@@ -351,34 +446,83 @@ export default function RichTextEditor({
     return null;
   };
 
-  // Every text node the range touches, in document order. Walking the text
-  // nodes in place — rather than range.extractContents() — is what keeps the
-  // highlight inline: block wrappers (the <div> line breaks contentEditable
-  // inserts on Enter) are left untouched, so a multi-line selection no longer
-  // gets stuffed into one inline <mark> and rendered as full-width colour bars.
-  const collectSelectedTextNodes = (range) => {
-    const editor = editorRef.current;
-    const root = range.commonAncestorContainer;
-    if (root.nodeType === 3) return editor.contains(root) ? [root] : [];
-    const nodes = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-      acceptNode(n) {
-        if (!n.nodeValue) return NodeFilter.FILTER_REJECT;
-        return range.intersectsNode(n)
-          ? NodeFilter.FILTER_ACCEPT
-          : NodeFilter.FILTER_REJECT;
-      },
-    });
-    let n;
-    while ((n = walker.nextNode())) {
-      if (editor.contains(n)) nodes.push(n);
-    }
-    return nodes;
+  const unwrap = (el) => {
+    const parent = el.parentNode;
+    while (el.firstChild) parent.insertBefore(el.firstChild, el);
+    parent.removeChild(el);
   };
 
-  // Highlight the selection with `className`. If it is already highlighted in
-  // that same colour, the highlight is removed (toggle); a different colour
-  // recolours it instead.
+  // Take `node` out of every mark around it. The parts of a mark before and
+  // after the node stay highlighted (in copies of that mark); only the node
+  // itself ends up unmarked — so un-highlighting a few words inside a long
+  // highlight no longer clears the whole thing.
+  const liftOutOfMarks = (node) => {
+    let mark;
+    while ((mark = closestMark(node))) {
+      const before = document.createRange();
+      before.setStart(mark, 0);
+      before.setEndBefore(node);
+      if (!before.collapsed) {
+        const head = mark.cloneNode(false);
+        head.appendChild(before.extractContents());
+        mark.parentNode.insertBefore(head, mark);
+      }
+      const after = document.createRange();
+      after.setStartAfter(node);
+      after.setEnd(mark, mark.childNodes.length);
+      if (!after.collapsed) {
+        const tail = mark.cloneNode(false);
+        tail.appendChild(after.extractContents());
+        mark.parentNode.insertBefore(tail, mark.nextSibling);
+      }
+      unwrap(mark);
+    }
+  };
+
+  const isBlockish = (n) =>
+    !n || (n.nodeType === 1 && ["DIV", "P", "BR"].includes(n.tagName));
+
+  // A mark with no visible text that sits at a line edge (or is empty) only
+  // renders as a padding sliver — those are dropped.
+  const isStrayMark = (mark) => {
+    if (mark.textContent.trim()) return false;
+    if (!mark.textContent) return true;
+    return isBlockish(mark.previousSibling) || isBlockish(mark.nextSibling);
+  };
+
+  // Tidy marks after an edit: merge adjacent same-colour siblings, drop stray
+  // whitespace marks, remove inline wrappers the splitting left empty.
+  const cleanupMarks = () => {
+    const editor = editorRef.current;
+    editor.normalize();
+    editor.querySelectorAll("mark").forEach((mark) => {
+      if (!mark.isConnected) return;
+      let next = mark.nextSibling;
+      while (
+        next &&
+        next.nodeType === 1 &&
+        next.tagName === "MARK" &&
+        next.className === mark.className
+      ) {
+        while (next.firstChild) mark.appendChild(next.firstChild);
+        next.remove();
+        next = mark.nextSibling;
+      }
+    });
+    editor.querySelectorAll("mark").forEach((mark) => {
+      if (isStrayMark(mark)) unwrap(mark);
+    });
+    editor.querySelectorAll("b, strong, i, em, u").forEach((el) => {
+      if (!el.textContent && !el.querySelector("br")) el.remove();
+    });
+    editor.normalize();
+  };
+
+  // Highlight the selection with `className`, or remove highlighting when
+  // `className` is null (eraser). Clicking a colour on text that is entirely
+  // highlighted in that colour removes it again (toggle). The selection is
+  // trimmed of surrounding whitespace and widened to whole words, and stays
+  // selected afterwards so the next click can toggle or recolour it.
   const applyColor = (className) => {
     const editor = editorRef.current;
     if (!editor) return;
@@ -387,50 +531,74 @@ export default function RichTextEditor({
     const range = selection.getRangeAt(0);
     if (!editor.contains(range.commonAncestorContainer)) return;
 
-    // Re-clicking inside a single highlighted phrase toggles it off (same
-    // colour) or recolours the whole phrase (different colour).
-    const enclosing = getEnclosingMark(range);
-    if (enclosing) {
-      const current = MARKER_COLORS.find((c) =>
-        enclosing.classList.contains(c.className),
-      );
-      if (current && current.className === className) {
-        unwrap(enclosing); // same colour → toggle off
-      } else {
-        enclosing.className = className; // different colour → recolour
+    const nodes = editorTextNodes();
+    const text = nodes.map((n) => n.nodeValue).join("");
+    let start = offsetOf(range.startContainer, range.startOffset);
+    let end = offsetOf(range.endContainer, range.endOffset);
+
+    // Trim surrounding whitespace (incl. the line break a triple-click adds).
+    while (start < end && /\s/.test(text[start])) start++;
+    while (end > start && /\s/.test(text[end - 1])) end--;
+    if (start >= end) return;
+
+    // Widen to whole words — within the boundary text node only, so a word
+    // never bleeds across a line break into the neighbouring line.
+    let pos = 0;
+    for (const node of nodes) {
+      const v = node.nodeValue;
+      const len = v.length;
+      if (start >= pos && start < pos + len) {
+        let local = start - pos;
+        while (local > 0 && /\S/.test(v[local - 1])) local--;
+        start = pos + local;
       }
-      selection.removeAllRanges();
-      return;
+      if (end > pos && end <= pos + len) {
+        let local = end - pos;
+        while (local < len && /\S/.test(v[local])) local++;
+        end = pos + local;
+      }
+      pos += len;
     }
 
-    // Wrap exactly the selected text in each text node it spans, leaving the
-    // surrounding block structure alone. Offsets are read up front; only the
-    // boundary nodes are partially covered, every node between them fully.
-    const { startContainer, startOffset, endContainer, endOffset } = range;
-    collectSelectedTextNodes(range).forEach((node) => {
-      const from = node === startContainer ? startOffset : 0;
-      const to = node === endContainer ? endOffset : node.nodeValue.length;
-      if (to <= from) return;
-      // A fully-covered text node that already *is* a single-colour mark is
-      // recoloured in place, so re-highlighting never nests <mark>s.
-      const parentMark = closestMark(node);
-      if (
-        parentMark &&
-        from === 0 &&
-        to === node.nodeValue.length &&
-        parentMark.childNodes.length === 1
-      ) {
-        parentMark.className = className;
-        return;
+    // The slice of each text node inside [start, end).
+    const segments = [];
+    pos = 0;
+    for (const node of nodes) {
+      const len = node.nodeValue.length;
+      const from = Math.max(start, pos) - pos;
+      const to = Math.min(end, pos + len) - pos;
+      if (to > from) segments.push({ node, from, to });
+      pos += len;
+    }
+
+    // Toggle: everything visible in the span already has this colour → remove.
+    const visible = segments.filter((s) =>
+      s.node.nodeValue.slice(s.from, s.to).trim(),
+    );
+    const allSame =
+      className &&
+      visible.length > 0 &&
+      visible.every((s) => {
+        const mark = closestMark(s.node);
+        return mark && mark.classList.contains(className);
+      });
+    const target = allSame ? null : className;
+
+    segments.forEach(({ node, from, to }) => {
+      let piece = node;
+      if (to < piece.nodeValue.length) piece.splitText(to);
+      if (from > 0) piece = piece.splitText(from);
+      liftOutOfMarks(piece);
+      if (target) {
+        const mark = document.createElement("mark");
+        mark.className = target;
+        piece.parentNode.insertBefore(mark, piece);
+        mark.appendChild(piece);
       }
-      const sub = document.createRange();
-      sub.setStart(node, from);
-      sub.setEnd(node, to);
-      const mark = document.createElement("mark");
-      mark.className = className;
-      sub.surroundContents(mark);
     });
-    selection.removeAllRanges();
+
+    cleanupMarks();
+    selectOffsets(start, end);
   };
 
   const handleApplyActiveColor = () => {
@@ -444,7 +612,53 @@ export default function RichTextEditor({
     runWithHistory(() => applyColor(className));
   };
 
+  const handleErase = () => {
+    setShowColorDropdown(false);
+    runWithHistory(() => applyColor(null));
+  };
+
   const handleToggleColorDropdown = () => setShowColorDropdown((v) => !v);
+
+  // Remember where the emoji goes before the picker's search field takes focus:
+  // the selection as character offsets, or null when the caret isn't in the
+  // editor (the emoji is then appended at the end).
+  const handleToggleEmojiPicker = () => {
+    if (!showEmojiPicker) {
+      const editor = editorRef.current;
+      const sel = window.getSelection();
+      const range = sel && sel.rangeCount ? sel.getRangeAt(0) : null;
+      emojiSelectionRef.current =
+        editor && range && editor.contains(range.commonAncestorContainer)
+          ? {
+              start: offsetOf(range.startContainer, range.startOffset),
+              end: offsetOf(range.endContainer, range.endOffset),
+            }
+          : null;
+    }
+    setShowEmojiPicker((v) => !v);
+  };
+
+  // Insert the emoji at the remembered caret, replacing a selection.
+  const handleInsertEmoji = (emoji) => {
+    setShowEmojiPicker(false);
+    const editor = editorRef.current;
+    if (!editor) return;
+    editor.focus();
+    const saved = emojiSelectionRef.current;
+    if (saved) {
+      setCaret(saved.start);
+      const sel = window.getSelection();
+      const startRange = sel.getRangeAt(0).cloneRange();
+      setCaret(saved.end);
+      const range = sel.getRangeAt(0).cloneRange();
+      range.setStart(startRange.startContainer, startRange.startOffset);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } else {
+      setCaret(Number.MAX_SAFE_INTEGER); // falls back to the end
+    }
+    runWithHistory(() => document.execCommand("insertText", false, emoji));
+  };
 
   const activeMarker =
     MARKER_COLORS.find((c) => c.className === activeColor) || MARKER_COLORS[0];
@@ -618,7 +832,32 @@ export default function RichTextEditor({
                   onClick={() => handlePickColor(c.className)}
                 />
               ))}
+              <button
+                type="button"
+                className="entry-list-marker-button entry-list-marker-eraser"
+                aria-label="Markierung entfernen"
+                title="Markierung entfernen"
+                onMouseDown={keepSelection}
+                onClick={handleErase}
+              >
+                ✕
+              </button>
             </div>
+          )}
+        </div>
+        <div className="entry-list-emoji" ref={emojiRef}>
+          <button
+            type="button"
+            className="secondary"
+            aria-label="Emoji einfügen"
+            title="Emoji einfügen"
+            onMouseDown={keepSelection}
+            onClick={handleToggleEmojiPicker}
+          >
+            😊
+          </button>
+          {showEmojiPicker && (
+            <div className="entry-list-emoji-picker" ref={emojiPickerHostRef} />
           )}
         </div>
         {showTodoButton && (

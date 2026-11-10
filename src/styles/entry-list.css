@@ -513,6 +513,20 @@
   box-shadow: var(--shadow-lg);
 }
 
+.entry-list-emoji {
+  position: relative;
+  display: inline-flex;
+}
+
+.entry-list-emoji-picker {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 3;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
 .entry-list-marker-button.marker-yellow {
   background-color: var(--marker-yellow);
 }
@@ -527,6 +541,13 @@
 
 .entry-list-marker-button.marker-pink {
   background-color: var(--marker-pink);
+}
+
+.entry-list-marker-button.entry-list-marker-eraser {
+  background-color: var(--color-bg);
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1;
 }
 
 .entry-list-marker-button:hover {

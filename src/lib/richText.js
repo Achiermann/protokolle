@@ -40,6 +40,23 @@ export function sanitizeHtml(html) {
       return `<${name}>`;
     },
   );
+  return cleanupMarks(out);
+}
+
+// Tidy highlight markup (runs on the already-rebuilt, canonical tags): drop
+// marks without visible text — they only render as a padding sliver, e.g. at
+// the start of a line — and merge directly adjacent same-colour marks.
+const EMPTY_MARK = /<mark(?: class="[^"]*")?>((?:\s|&nbsp;|<br>)*)<\/mark>/g;
+const ADJACENT_MARKS =
+  /<mark class="(marker-[a-z]+)">((?:(?!<\/?mark)[\s\S])*)<\/mark><mark class="\1">/g;
+
+function cleanupMarks(html) {
+  let out = html.replace(EMPTY_MARK, "$1");
+  let prev;
+  do {
+    prev = out;
+    out = out.replace(ADJACENT_MARKS, '<mark class="$1">$2');
+  } while (out !== prev);
   return out;
 }
 
