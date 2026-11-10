@@ -795,3 +795,16 @@
     padding-right: var(--space-4);
   }
 }
+
+/* Traktandum titles in Inter. Only the title text itself: the appended spans
+   (Erläuterung, "erstellt von …") still match `.main-content *` and stay in
+   the content font. */
+.main-content .entry-list-open-item-title,
+.main-content .entry-list-item-title,
+.main-content .grouped-list-traktanden-title {
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    sans-serif;
+}

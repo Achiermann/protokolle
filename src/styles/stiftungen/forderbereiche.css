@@ -23,7 +23,7 @@
 .forderbereiche-headings span {
   flex: 1 1 0;
   padding: 0 var(--space-2);
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+  font-family: Menlo, Monaco, "Courier New", monospace;
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--color-muted);

@@ -114,7 +114,7 @@ h6 {
    heading. Scoped under .main-content so it outranks the global
    `.main-content *` font rule. */
 .main-content .section-title {
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+  font-family: Menlo, Monaco, "Courier New", monospace;
   font-size: 1rem;
   font-weight: 600;
   color: var(--color-text);
@@ -125,7 +125,7 @@ h6 {
    borders) stay on each table's own th selector. !important keeps the
    face from being taken over by the global `.main-content *` rule. */
 .table-header-cell {
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif !important;
+  font-family: Menlo, Monaco, "Courier New", monospace !important;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--color-text);

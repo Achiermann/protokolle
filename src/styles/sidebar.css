@@ -128,7 +128,7 @@
 
 .main-content,
 .main-content * {
-  font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+  font-family: Menlo, Monaco, "Courier New", monospace;
 }
 
 .main-content {

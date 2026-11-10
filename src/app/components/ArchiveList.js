@@ -102,18 +102,6 @@ export default function ArchiveList({ focusEntryId = null }) {
     return (
       <div className="entry-list-detail-panel">
         <div className="entry-list-detail-panel-top" onClick={handleClosePanel}>
-          <div className="entry-list-detail-panel-header">
-            <h3 className="entry-list-detail-panel-title">
-              {selectedEntry.item_title}
-              {selectedEntry.created_by_name && (
-                <span className="entry-list-item-creator">
-                  {" - "}
-                  {selectedEntry.created_by_name}
-                </span>
-              )}
-            </h3>
-          </div>
-
           <div className="entry-list-detail-panel-meta">
             {selectedEntry.topic && (
               <span className="entry-list-detail-panel-meta-item">
