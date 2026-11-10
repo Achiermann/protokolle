@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/db/supabase-server";
 import { cookies } from "next/headers";
 import { reconcileEntryTodos, reconcileEntryZiele } from "@/lib/todoSync";
+import { buildAusgangslage, hasVisibleText } from "@/lib/richText";
 
 // GET /api/entries/:id
 export async function GET(request, { params }) {
@@ -47,7 +48,13 @@ export async function GET(request, { params }) {
 
 // Fields whose change counts as editing the traktandum and so bumps its
 // "Datum" (date_modified). Archiving, Posteingang moves and reordering don't.
-const CONTENT_FIELDS = ["item_title", "topic", "scheduled", "content"];
+const CONTENT_FIELDS = [
+  "item_title",
+  "topic",
+  "scheduled",
+  "content",
+  "erlaeuterung",
+];
 
 // PATCH /api/entries/:id
 export async function PATCH(request, { params }) {
@@ -61,6 +68,32 @@ export async function PATCH(request, { params }) {
     const isContentEdit = CONTENT_FIELDS.some((field) => field in body);
 
     const supabase = await createSupabaseServerClient();
+
+    if ("erlaeuterung" in body) {
+      body.erlaeuterung =
+        typeof body.erlaeuterung === "string" && body.erlaeuterung.trim()
+          ? body.erlaeuterung.trim()
+          : null;
+    }
+
+    // First notes on an open traktandum: put its Erläuterung on top as
+    // "Ausgangslage: …". Only when the stored notes are still empty, so later
+    // saves never add it twice.
+    if ("content" in body && hasVisibleText(body.content)) {
+      const { data: current } = await supabase
+        .schema("protokoll_app")
+        .from("entries")
+        .select("content, erlaeuterung")
+        .eq("id", id)
+        .eq("workspace_id", workspaceId)
+        .single();
+      const erlaeuterung =
+        "erlaeuterung" in body ? body.erlaeuterung : current?.erlaeuterung;
+      if (current && !hasVisibleText(current.content) && erlaeuterung) {
+        body.content = `${buildAusgangslage(erlaeuterung)}<div><br></div>${body.content}`;
+      }
+    }
+
     const { data, error } = await supabase
       .schema("protokoll_app")
       .from("entries")

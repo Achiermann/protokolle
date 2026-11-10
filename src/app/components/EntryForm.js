@@ -16,7 +16,14 @@ export default function EntryForm({ onCancel, entry }) {
     topic: entry?.topic || "",
     // Optional planned date; scheduled traktanden show up on the timeline.
     scheduled: entry?.scheduled || "",
+    erlaeuterung: entry?.erlaeuterung || "",
   });
+  // The Erläuterung only applies while the traktandum is open (no notes yet):
+  // once notes exist it already sits on top of them as "Ausgangslage".
+  const canErlaeutern = !isEditing || !entry.content;
+  const [showErlaeuterung, setShowErlaeuterung] = useState(
+    !!entry?.erlaeuterung,
+  );
   // Create-only: drop the new traktandum straight into the Posteingang.
   const [inPosteingang, setInPosteingang] = useState(false);
   const [isNewTopic, setIsNewTopic] = useState(false);
@@ -65,6 +72,9 @@ export default function EntryForm({ onCancel, entry }) {
           item_title: formData.item_title,
           topic: formData.topic || null,
           scheduled: formData.scheduled || null,
+          ...(canErlaeutern && {
+            erlaeuterung: formData.erlaeuterung.trim() || null,
+          }),
         });
         toast.success("Traktandum aktualisiert");
       } else {
@@ -88,6 +98,7 @@ export default function EntryForm({ onCancel, entry }) {
           item_title: formData.item_title,
           topic: formData.topic || null,
           scheduled: formData.scheduled || null,
+          erlaeuterung: formData.erlaeuterung.trim() || null,
           content: null,
           members: [],
           ...posteingangFields,
@@ -99,8 +110,10 @@ export default function EntryForm({ onCancel, entry }) {
         item_title: "",
         topic: "",
         scheduled: "",
+        erlaeuterung: "",
       });
       setInPosteingang(false);
+      setShowErlaeuterung(false);
       if (onCancel) onCancel();
     } catch (error) {
       toast.error(
@@ -126,6 +139,30 @@ export default function EntryForm({ onCancel, entry }) {
             required
           />
         </div>
+
+        {canErlaeutern &&
+          (showErlaeuterung ? (
+            <div className="entry-form-field">
+              <label htmlFor="erlaeuterung">Erläuterung</label>
+              <textarea
+                id="erlaeuterung"
+                name="erlaeuterung"
+                rows={3}
+                value={formData.erlaeuterung}
+                onChange={handleChange}
+                placeholder="Traktandum etwas ausführen..."
+                autoFocus={!entry?.erlaeuterung}
+              />
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="secondary entry-form-erlaeutern"
+              onClick={() => setShowErlaeuterung(true)}
+            >
+              Erläutern
+            </button>
+          ))}
 
         <div className="entry-form-field">
           <label htmlFor="topic">Thema</label>
@@ -191,6 +228,7 @@ export default function EntryForm({ onCancel, entry }) {
               item_title: "",
               topic: "",
               scheduled: "",
+              erlaeuterung: "",
             });
             if (onCancel) onCancel();
           }}

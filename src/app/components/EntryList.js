@@ -431,6 +431,12 @@ export default function EntryList({
       <span className="entry-list-open-item-title">
         {group.name === "posteingang" && `${index + 1}. `}
         {entry.item_title}
+        {entry.erlaeuterung && !entry.content && (
+          <span className="entry-list-item-erlaeuterung">
+            {" - "}
+            <i>{entry.erlaeuterung}</i>
+          </span>
+        )}
         {(entry.created_by_name || entry.scheduled) && (
           <span className="entry-list-item-creator">
             {" - "}
@@ -537,7 +543,6 @@ export default function EntryList({
               )}
             </h3>
           </div>
-
           <div className="entry-list-detail-panel-meta">
             {selectedEntry.topic && (
               <span className="entry-list-detail-panel-meta-item">

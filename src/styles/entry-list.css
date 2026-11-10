@@ -246,6 +246,12 @@
   color: var(--color-text);
 }
 
+/* Erläuterung of an open traktandum: same colour as the title, italic. */
+.entry-list-item-erlaeuterung {
+  color: inherit;
+  font-weight: inherit;
+}
+
 .entry-list-open-item-title-input {
   font-size: 1.1rem;
   color: var(--color-text);

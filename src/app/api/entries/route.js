@@ -140,6 +140,7 @@ export async function POST(request) {
           content: body.content || null,
           topic: body.topic || null,
           scheduled: body.scheduled || null,
+          erlaeuterung: body.erlaeuterung?.trim() || null,
           members: body.members || [],
           in_posteingang: body.in_posteingang === true,
           posteingang_position: Number.isInteger(body.posteingang_position)

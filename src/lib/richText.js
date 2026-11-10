@@ -253,3 +253,31 @@ export function decorateTodos(html) {
     },
   );
 }
+
+// True when the HTML holds any visible text (ignores tags, <br>, &nbsp;).
+export function hasVisibleText(html) {
+  if (!html) return false;
+  return (
+    String(html)
+      .replace(/<[^>]*>/g, "")
+      .replace(/&nbsp;/g, " ")
+      .trim() !== ""
+  );
+}
+
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+// Notes block for a traktandum's Erläuterung (plain text, line breaks kept),
+// put on top of the notes when they're saved for the first time.
+export function buildAusgangslage(erlaeuterung) {
+  const text = escapeHtml(String(erlaeuterung).trim()).replace(
+    /\r?\n/g,
+    "<br>",
+  );
+  return `<div><b>Ausgangslage: </b>${text}</div>`;
+}

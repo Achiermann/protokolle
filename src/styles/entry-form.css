@@ -75,3 +75,8 @@
     overflow-y: auto;
   }
 }
+
+/* "Erläutern" reveals the Erläuterung field; keep it button-sized, left. */
+.entry-form-erlaeutern {
+  justify-self: start;
+}
