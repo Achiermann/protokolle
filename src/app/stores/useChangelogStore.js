@@ -43,6 +43,8 @@ export const useChangelogStore = create((set, get) => ({
   // *** VARIABLES ***
   vorgaenge: [],
   comments: [],
+  // { comment_id, user_id, user_name, emoji }, at most one per user and comment.
+  reactions: [],
   // Per-user read state (see getUnseen).
   seenSince: null,
   seenIds: new Set(),
@@ -65,6 +67,7 @@ export const useChangelogStore = create((set, get) => ({
       set({
         vorgaenge: data.vorgaenge || [],
         comments: data.comments || [],
+        reactions: data.reactions || [],
         seenSince: data.seen?.since ?? null,
         ...applyPending(
           data.seen?.ids || [],
@@ -226,10 +229,55 @@ export const useChangelogStore = create((set, get) => ({
       }
       set((state) => ({
         comments: state.comments.filter((comment) => comment.id !== id),
+        reactions: state.reactions.filter(
+          (reaction) => reaction.comment_id !== id,
+        ),
       }));
       pingWorkspaceChange();
     } catch (error) {
       set({ error: error.message });
+      throw error;
+    }
+  },
+
+  // Set, replace (other emoji) or remove (`emoji` null) the user's own
+  // reaction on a comment. Optimistic; rolled back if saving fails.
+  setReaction: async (commentId, emoji, user) => {
+    const previous = get().reactions;
+    const others = previous.filter(
+      (r) => !(r.comment_id === commentId && r.user_id === user.id),
+    );
+    set({
+      error: null,
+      reactions: emoji
+        ? [
+            ...others,
+            {
+              comment_id: commentId,
+              user_id: user.id,
+              user_name: user.name,
+              emoji,
+            },
+          ]
+        : others,
+    });
+    try {
+      const response = await fetch(
+        `/api/changelog/comments/${commentId}/reaction`,
+        emoji
+          ? {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ emoji }),
+            }
+          : { method: "DELETE" },
+      );
+      if (!response.ok) {
+        throw new Error("Failed to save reaction");
+      }
+      pingWorkspaceChange();
+    } catch (error) {
+      set({ reactions: previous, error: error.message });
       throw error;
     }
   },

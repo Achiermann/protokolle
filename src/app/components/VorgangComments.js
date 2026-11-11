@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { Mail, Pencil, Trash } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Mail, Pencil, SmilePlus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { useChangelogStore } from "../stores/useChangelogStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { REACTION_EMOJIS } from "@/lib/changelogReactions";
 
 // Comment timestamps are full ISO datetimes; shown as a local dd/mm/yy date.
 export const formatCommentDate = (isoDateTime) => {
@@ -40,7 +41,10 @@ const avatarColorFor = (key = "") => {
 // Thread under an unfolded Vorgang: "Name - dd/mm/yy" above the text, oldest
 // first, with an input below (Enter sends, Shift/Alt+Enter adds a line).
 // Authors can edit and delete their own comments; any comment can be marked
-// unread (`onMarkUnread`) unless it already is (`unseenIds`).
+// unread (`onMarkUnread`) unless it already is (`unseenIds`). Everyone can
+// react with one emoji per comment (WhatsApp-style): picked from the smiley
+// button, shown as chips with counts below the text; clicking a chip sets or
+// removes one's own reaction, hovering it names who reacted.
 export default function VorgangComments({
   vorgang,
   comments,
@@ -51,12 +55,59 @@ export default function VorgangComments({
   const addComment = useChangelogStore((state) => state.addComment);
   const updateComment = useChangelogStore((state) => state.updateComment);
   const deleteComment = useChangelogStore((state) => state.deleteComment);
-  const userId = useAuthStore((state) => state.user?.id);
+  const reactions = useChangelogStore((state) => state.reactions);
+  const setReaction = useChangelogStore((state) => state.setReaction);
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id;
 
   const [draft, setDraft] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [editDraft, setEditDraft] = useState("");
+  // Id of the comment whose emoji picker is open.
+  const [pickerFor, setPickerFor] = useState(null);
+  const pickerRef = useRef(null);
+
+  // Per comment: chips in picker order, each { emoji, names, mine }.
+  const chipsByComment = useMemo(() => {
+    const map = new Map();
+    for (const reaction of reactions) {
+      if (!map.has(reaction.comment_id)) map.set(reaction.comment_id, []);
+      map.get(reaction.comment_id).push(reaction);
+    }
+    const chips = new Map();
+    for (const [commentId, list] of map) {
+      chips.set(
+        commentId,
+        REACTION_EMOJIS.map((emoji) => {
+          const matching = list.filter((r) => r.emoji === emoji);
+          return {
+            emoji,
+            names: matching.map((r) => r.user_name || "?"),
+            mine: matching.some((r) => r.user_id === userId),
+          };
+        }).filter((chip) => chip.names.length > 0),
+      );
+    }
+    return chips;
+  }, [reactions, userId]);
+
+  // Close the picker on a click outside it or Escape.
+  useEffect(() => {
+    if (!pickerFor) return;
+    const handlePointer = (e) => {
+      if (!pickerRef.current?.contains(e.target)) setPickerFor(null);
+    };
+    const handleKey = (e) => {
+      if (e.key === "Escape") setPickerFor(null);
+    };
+    document.addEventListener("mousedown", handlePointer);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handlePointer);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [pickerFor]);
 
   // *** FUNCTIONS/HANDLERS ***
   const handleSend = async () => {
@@ -69,6 +120,20 @@ export default function VorgangComments({
       toast.error("Kommentar konnte nicht gespeichert werden");
     } finally {
       setIsSending(false);
+    }
+  };
+
+  // Same emoji as one's current reaction removes it, another replaces it.
+  const handleReact = async (comment, emoji) => {
+    setPickerFor(null);
+    if (!user) return;
+    const current = reactions.find(
+      (r) => r.comment_id === comment.id && r.user_id === userId,
+    )?.emoji;
+    try {
+      await setReaction(comment.id, current === emoji ? null : emoji, user);
+    } catch (error) {
+      toast.error("Reaktion konnte nicht gespeichert werden");
     }
   };
 
@@ -125,6 +190,8 @@ export default function VorgangComments({
         <ul className="changelog-comments-list">
           {comments.map((comment) => {
             const isOwn = userId && comment.created_by === userId;
+            const chips = chipsByComment.get(comment.id) || [];
+            const isPickerOpen = pickerFor === comment.id;
             return (
               <li key={comment.id} className="changelog-comments-item">
                 <div
@@ -150,7 +217,49 @@ export default function VorgangComments({
                       - {formatCommentDate(comment.created_at)}
                     </span>
                     {editingId !== comment.id && (
-                      <div className="entry-list-item-actions changelog-comments-actions">
+                      <div
+                        className={`entry-list-item-actions changelog-comments-actions${isPickerOpen ? " is-open" : ""}`}
+                      >
+                        <div
+                          className="changelog-reaction-anchor"
+                          ref={isPickerOpen ? pickerRef : null}
+                        >
+                          <button
+                            type="button"
+                            className="secondary"
+                            onClick={() =>
+                              setPickerFor(isPickerOpen ? null : comment.id)
+                            }
+                            title="Reagieren"
+                            aria-expanded={isPickerOpen}
+                          >
+                            <SmilePlus size={14} />
+                          </button>
+                          {isPickerOpen && (
+                            <div
+                              className="changelog-reaction-picker"
+                              role="menu"
+                            >
+                              {REACTION_EMOJIS.map((emoji) => (
+                                <button
+                                  key={emoji}
+                                  type="button"
+                                  role="menuitem"
+                                  className={
+                                    chips.some(
+                                      (c) => c.emoji === emoji && c.mine,
+                                    )
+                                      ? "is-mine"
+                                      : ""
+                                  }
+                                  onClick={() => handleReact(comment, emoji)}
+                                >
+                                  {emoji}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         {!unseenIds.has(comment.id) && (
                           <button
                             type="button"
@@ -200,6 +309,24 @@ export default function VorgangComments({
                     />
                   ) : (
                     <p className="changelog-comments-text">{comment.body}</p>
+                  )}
+                  {chips.length > 0 && (
+                    <div className="changelog-reactions">
+                      {chips.map((chip) => (
+                        <button
+                          key={chip.emoji}
+                          type="button"
+                          className={`changelog-reaction-chip${chip.mine ? " is-mine" : ""}`}
+                          onClick={() => handleReact(comment, chip.emoji)}
+                          title={chip.names.join(", ")}
+                        >
+                          <span>{chip.emoji}</span>
+                          <span className="changelog-reaction-count">
+                            {chip.names.length}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
               </li>

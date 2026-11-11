@@ -58,7 +58,7 @@
 }
 
 .changelog-unseen-item:hover {
-  background-color: #fafafa;
+  background-color: var(--color-row-hover);
 }
 
 .changelog .filters-container {
@@ -107,7 +107,7 @@
 }
 
 .changelog-vorgang-bar:hover {
-  background-color: #fafafa;
+  background-color: var(--color-row-hover);
   border-radius: var(--radius-lg);
 }
 
@@ -223,12 +223,82 @@
 }
 
 .changelog-comments-item:hover .changelog-comments-actions,
-.changelog-comments-actions:focus-within {
+.changelog-comments-actions:focus-within,
+.changelog-comments-actions.is-open {
   opacity: 1;
 }
 
 .changelog-comments-actions button {
   padding: var(--space-1) var(--space-2);
+}
+
+/* Emoji reactions: picker pops up from the smiley button, chips sit under
+   the comment text. The user's own reaction is outlined. */
+.changelog-reaction-anchor {
+  position: relative;
+  display: inline-flex;
+}
+
+.changelog-reaction-picker {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + var(--space-1));
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.changelog-comments-actions .changelog-reaction-picker button {
+  padding: 0;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 1.25rem;
+  line-height: 1;
+  transition: transform 0.1s ease;
+}
+
+.changelog-comments-actions .changelog-reaction-picker button:hover {
+  background: var(--btn-bg);
+  transform: scale(1.15);
+}
+
+.changelog-comments-actions .changelog-reaction-picker button.is-mine {
+  background: var(--btn-bg-hover);
+}
+
+.changelog-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.changelog-reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background: var(--color-surface);
+  font-size: 0.875rem;
+}
+
+.changelog-reaction-chip.is-mine {
+  border-color: var(--color-line);
+  background: var(--btn-bg);
+}
+
+.changelog-reaction-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-muted);
 }
 
 .changelog-comments-new {

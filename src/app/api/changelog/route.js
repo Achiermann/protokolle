@@ -48,7 +48,7 @@ async function loadSeenState(supabase, workspaceId) {
 }
 
 // GET /api/changelog — all Vorgänge of the workspace, their comments (oldest
-// first) and the caller's "seen" state. The client groups them
+// first), the reactions on them and the caller's "seen" state. The client groups them
 // (Thema → Vorgang → Kommentare), so one round trip suffices.
 export async function GET() {
   try {
@@ -65,33 +65,56 @@ export async function GET() {
     }
 
     const supabase = await createSupabaseServerClient();
-    const [vorgaengeResult, commentsResult] = await Promise.all([
-      supabase
-        .schema("protokoll_app")
-        .from("vorgaenge")
-        .select("*")
-        .eq("workspace_id", workspaceId),
-      supabase
-        .schema("protokoll_app")
-        .from("changelog_comments")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .order("created_at", { ascending: true }),
-    ]);
+    const [vorgaengeResult, commentsResult, reactionsResult] =
+      await Promise.all([
+        supabase
+          .schema("protokoll_app")
+          .from("vorgaenge")
+          .select("*")
+          .eq("workspace_id", workspaceId),
+        supabase
+          .schema("protokoll_app")
+          .from("changelog_comments")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .order("created_at", { ascending: true }),
+        supabase
+          .schema("protokoll_app")
+          .from("changelog_reactions")
+          .select("comment_id, user_id, emoji, created_at")
+          .eq("workspace_id", workspaceId)
+          .order("created_at", { ascending: true }),
+      ]);
 
     if (vorgaengeResult.error) throw vorgaengeResult.error;
     if (commentsResult.error) throw commentsResult.error;
+    if (reactionsResult.error) throw reactionsResult.error;
 
     const comments = await attachCreatorNames(
       supabase,
       commentsResult.data || [],
     );
 
+    // Reactions carry their author's name as `user_name` (same lookup).
+    const reactions = (
+      await attachCreatorNames(
+        supabase,
+        (reactionsResult.data || []).map((r) => ({
+          ...r,
+          created_by: r.user_id,
+        })),
+      )
+    ).map(({ created_by, created_by_name, ...r }) => ({
+      ...r,
+      user_name: created_by_name,
+    }));
+
     const seen = await loadSeenState(supabase, workspaceId);
 
     return NextResponse.json({
       vorgaenge: vorgaengeResult.data || [],
       comments,
+      reactions,
       seen,
     });
   } catch (error) {
