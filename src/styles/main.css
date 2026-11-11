@@ -22,6 +22,10 @@
   --color-error: #d33;
   --color-success: #2a8a3e;
   --color-title: #ff8a96;
+  --color-row-hover: #fafafa;
+  --color-faint: rgb(195, 195, 195);
+  /* Text/icons on a strong fill (primary buttons, selected toggles) */
+  --color-on-strong: #ffffff;
 
   /* Highlight marker colours — pastel */
   --marker-yellow: #fef3c7;
@@ -61,6 +65,43 @@
   --topic-base-h: 320;
   --topic-base-s: 42%;
   --topic-base-l: 46%;
+}
+
+/* Dark UI: neutral dark grey. Set via <html data-theme="dark"> (see
+   src/lib/theme.js). Accents (title pink, sidebar blue) stay the same;
+   pastel fills are dimmed versions of the same hues. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --color-app-bg: #1b1b1b;
+  --color-bg: #242424;
+  --color-surface: #242424;
+  --color-text: #e6e6e6;
+  --color-line: #d9d9d9;
+  --color-muted: #a0a0a0;
+  --color-brand: #242424;
+  --color-brand-hover: #2c3a3b;
+  --color-brand-contrast: #e6e6e6;
+  --color-border: #8a8a8a;
+  --color-border-soft: #3a3a3a;
+  --color-error: #ff6b6b;
+  --color-success: #5cc27a;
+  --color-row-hover: #2c2c2c;
+  --color-faint: #6b6b6b;
+  --color-on-strong: #1b1b1b;
+
+  --marker-yellow: #4a4220;
+  --marker-green: #1f3d32;
+  --marker-blue: #1f2f4a;
+  --marker-pink: #4a2338;
+  --marker-to-do: #4a3426;
+  --marker-done: #234030;
+
+  --btn-bg: #333333;
+  --btn-bg-hover: #404040;
+  --btn-primary-hover: #bdbdbd;
+
+  --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.4);
 }
 
 /* ================================
@@ -188,12 +229,12 @@ button:disabled {
 
 button.primary {
   background-color: var(--color-line);
-  color: #ffffff;
+  color: var(--color-on-strong);
 }
 
 button.primary:hover {
   background-color: var(--btn-primary-hover);
-  color: #ffffff;
+  color: var(--color-on-strong);
 }
 
 button.secondary {
@@ -323,7 +364,7 @@ button.member-toggle-selected,
 button.member-toggle-selected:hover {
   background-color: var(--color-text);
   border-color: var(--color-text);
-  color: #fff;
+  color: var(--color-on-strong);
 }
 
 /* ================================

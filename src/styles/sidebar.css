@@ -26,6 +26,10 @@
   --color-title: #8ac5ff;
 }
 
+:root[data-theme="dark"] .sidebar-stiftungen {
+  --color-brand: #1e2a38;
+}
+
 @font-palette-values --nablaTitle {
   font-family: "Nabla";
   base-palette: 0;

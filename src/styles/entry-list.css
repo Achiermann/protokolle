@@ -88,7 +88,7 @@
 }
 
 .entry-list-table-row:hover td {
-  background-color: #fafafa;
+  background-color: var(--color-row-hover);
 }
 
 .entry-list-item-title {
@@ -98,7 +98,7 @@
 }
 
 .entry-list-item-creator {
-  color: rgb(195, 195, 195);
+  color: var(--color-faint);
   font-weight: 400;
 }
 
@@ -162,6 +162,43 @@
 .entry-list-item-topic-c9 {
   color: #b4515e; /* dusty red */
   background-color: #fee2e2;
+}
+
+/* Dark UI: same hues, lighter text on the dimmed fills */
+:root[data-theme="dark"] .entry-list-item-topic-c0 {
+  color: #e08bc8;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c1 {
+  color: #c39be0;
+  background-color: #3a2a4a;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c2 {
+  color: #a99cf0;
+  background-color: #2f2a4a;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c3 {
+  color: #8fadeb;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c4 {
+  color: #7cc7d1;
+  background-color: #1f3d42;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c5 {
+  color: #85c99c;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c6 {
+  color: #b5c97f;
+  background-color: #33401f;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c7 {
+  color: #d6c27c;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c8 {
+  color: #e8a07c;
+}
+:root[data-theme="dark"] .entry-list-item-topic-c9 {
+  color: #ec8d99;
+  background-color: #4a2226;
 }
 
 .grouped-list-traktanden {

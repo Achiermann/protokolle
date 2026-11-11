@@ -170,6 +170,10 @@
   background-color: var(--marker-pink);
 }
 
+:root[data-theme="dark"] .timeline-ziel-color {
+  color: #ec8d99;
+}
+
 .timeline-item-done {
   opacity: 0.45;
 }
@@ -218,6 +222,11 @@
 .timeline-project-color {
   color: #4f5d70;
   background-color: #e2e8f0;
+}
+
+:root[data-theme="dark"] .timeline-project-color {
+  color: #b4c0d0;
+  background-color: #2f3640;
 }
 
 .timeline-project-clipped-start {

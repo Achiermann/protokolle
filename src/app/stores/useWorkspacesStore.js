@@ -49,6 +49,30 @@ export const useWorkspacesStore = create((set, get) => ({
     }
   },
 
+  renameWorkspace: async (name) => {
+    set({ error: null });
+    try {
+      const response = await fetch("/api/workspaces", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message || "Umbenennen fehlgeschlagen");
+      }
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === data.item.id ? { ...ws, name: data.item.name } : ws,
+        ),
+      }));
+      return data.item;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
   selectWorkspace: async (workspaceId) => {
     set({ error: null });
     try {
