@@ -531,75 +531,13 @@ export default function EntryList({
     if (!selectedEntry) return null;
     return (
       <div className="entry-list-detail-panel">
-        <div className="entry-list-detail-panel-top" onClick={handleClosePanel}>
-          <div className="entry-list-detail-panel-meta">
-            {selectedEntry.topic && (
-              <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">
-                  Thema
-                </span>
-                <span>{selectedEntry.topic}</span>
-              </span>
-            )}
-            <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">
-                Geändert
-              </span>
-              <span>{formatDate(selectedEntry.date_modified)}</span>
-            </span>
-            <span className="entry-list-detail-panel-meta-item">
-              <span className="entry-list-detail-panel-meta-label">
-                Erstellt
-              </span>
-              <span>{formatDate(selectedEntry.date_created)}</span>
-            </span>
-            {selectedEntry.scheduled && (
-              <span className="entry-list-detail-panel-meta-item">
-                <span className="entry-list-detail-panel-meta-label">
-                  Geplant
-                </span>
-                <span>{formatDate(selectedEntry.scheduled)}</span>
-              </span>
-            )}
-          </div>
-          <div className="entry-list-item-actions">
-            <button
-              type="button"
-              className="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                setEditingEntry(selectedEntry);
-              }}
-            >
-              <Pencil size={16} />
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleArchive(selectedEntry.id);
-              }}
-            >
-              <Archive size={16} />
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDelete(selectedEntry.id);
-              }}
-            >
-              <Trash size={16} />
-            </button>
-          </div>
-        </div>
-
         <div className="entry-list-detail-panel-content">
           <div className="entry-list-detail-panel-content-header">
             <span className="entry-list-detail-panel-meta-label">Inhalt</span>
           </div>
+          <h3 className="entry-list-detail-panel-title">
+            {selectedEntry.item_title}
+          </h3>
           {isEditingContent ? (
             <>
               <RichTextEditor
