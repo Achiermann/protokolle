@@ -4,16 +4,24 @@ import { useState, useEffect } from "react";
 import { UserPlus, Trash } from "lucide-react";
 import toast from "react-hot-toast";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
+import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import "../../styles/members-list.css";
 
 export default function MembersList() {
   // *** VARIABLES ***
   const members = useWorkspacesStore((state) => state.members);
+  const invitations = useWorkspacesStore((state) => state.invitations);
+  const removeInvitation = useWorkspacesStore(
+    (state) => state.removeInvitation,
+  );
   const callerRole = useWorkspacesStore((state) => state.callerRole);
   const loading = useWorkspacesStore((state) => state.loadingMembers);
   const fetchMembers = useWorkspacesStore((state) => state.fetchMembers);
   const inviteMember = useWorkspacesStore((state) => state.inviteMember);
   const removeMember = useWorkspacesStore((state) => state.removeMember);
+  const setMemberAdmin = useWorkspacesStore((state) => state.setMemberAdmin);
+  const userId = useAuthStore((state) => state.user?.id);
+  const canManage = isAdminRole(callerRole);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -31,8 +39,12 @@ export default function MembersList() {
 
     setInviting(true);
     try {
-      await inviteMember(inviteEmail.trim());
-      toast.success("Mitglied hinzugefügt");
+      const result = await inviteMember(inviteEmail.trim());
+      toast.success(
+        result?.pending
+          ? "Eingeladen – wird beim ersten Anmelden Mitglied"
+          : "Mitglied hinzugefügt",
+      );
       setInviteEmail("");
       setShowInviteForm(false);
     } catch (error) {
@@ -53,9 +65,31 @@ export default function MembersList() {
     }
   };
 
-  const getRoleLabel = (role) => {
-    if (role === "owner") return "Besitzer";
-    return "Mitglied";
+  const handleRemoveInvitation = async (invitationId) => {
+    if (!confirm("Einladung wirklich zurückziehen?")) return;
+
+    try {
+      await removeInvitation(invitationId);
+      toast.success("Einladung zurückgezogen");
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleAdminToggle = async (member) => {
+    try {
+      await setMemberAdmin(member.id, !isAdminRole(member.role));
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  // Why a switch can't be flipped: the creator is always admin, and nobody
+  // changes their own role (so a workspace can't lose its last admin).
+  const lockReason = (member) => {
+    if (member.role === "owner") return "Ersteller:in ist immer Admin";
+    if (member.user_id === userId) return "Eigene Rolle nicht änderbar";
+    return null;
   };
 
   return (
@@ -86,7 +120,8 @@ export default function MembersList() {
             </button>
           </div>
           <p className="members-list-invite-hint">
-            Die Person muss bereits ein Konto haben.
+            Hat die Person noch kein Konto, wird sie automatisch Mitglied,
+            sobald sie sich mit dieser E-Mail registriert.
           </p>
         </form>
       )}
@@ -104,8 +139,8 @@ export default function MembersList() {
           <thead>
             <tr>
               <th className="table-header-cell">E-Mail</th>
-              <th className="table-header-cell">Rolle</th>
-              {callerRole === "owner" && <th className="table-header-cell">Aktionen</th>}
+              <th className="table-header-cell">Admin</th>
+              {canManage && <th className="table-header-cell">Aktionen</th>}
             </tr>
           </thead>
           <tbody>
@@ -119,13 +154,20 @@ export default function MembersList() {
                   </div>
                 </td>
                 <td>
-                  <div className="members-list-item-role">
-                    {getRoleLabel(member.role)}
-                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    className="switch"
+                    aria-checked={isAdminRole(member.role)}
+                    aria-label={`Admin: ${member.name || member.email}`}
+                    title={lockReason(member) || undefined}
+                    disabled={!canManage || Boolean(lockReason(member))}
+                    onClick={() => handleAdminToggle(member)}
+                  />
                 </td>
-                {callerRole === "owner" && (
+                {canManage && (
                   <td>
-                    {member.role !== "owner" && (
+                    {member.role !== "owner" && member.user_id !== userId && (
                       <button
                         className="secondary"
                         onClick={() => handleRemove(member.id)}
@@ -133,6 +175,40 @@ export default function MembersList() {
                         <Trash size={16} />
                       </button>
                     )}
+                  </td>
+                )}
+              </tr>
+            ))}
+            {invitations.map((invitation) => (
+              <tr key={invitation.id} className="members-list-pending">
+                <td>
+                  <div className="members-list-item-email">
+                    {invitation.email}
+                  </div>
+                  <div className="members-list-item-role">
+                    Eingeladen – noch nicht registriert
+                  </div>
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    role="switch"
+                    className="switch"
+                    aria-checked={false}
+                    aria-label={`Admin: ${invitation.email}`}
+                    title="Erst nach der Registrierung änderbar"
+                    disabled
+                  />
+                </td>
+                {canManage && (
+                  <td>
+                    <button
+                      className="secondary"
+                      aria-label={`Einladung an ${invitation.email} zurückziehen`}
+                      onClick={() => handleRemoveInvitation(invitation.id)}
+                    >
+                      <Trash size={16} />
+                    </button>
                   </td>
                 )}
               </tr>

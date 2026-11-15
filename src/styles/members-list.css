@@ -59,6 +59,11 @@
   font-weight: 500;
 }
 
+.members-list-pending .members-list-item-email {
+  color: var(--color-muted);
+  font-style: italic;
+}
+
 .members-list-item-role {
   color: var(--color-muted);
   font-size: 0.875rem;

@@ -1,0 +1,551 @@
+/* *** BOOKING APP (b) *** */
+
+.booking-toolbar .entry-list-header {
+  margin-bottom: var(--space-3);
+}
+
+/* Project picker: one pill per project */
+.booking-project-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.booking-project-pill {
+  padding: var(--space-1) var(--space-4);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  background-color: transparent;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.booking-project-pill:hover {
+  background-color: var(--btn-bg);
+}
+
+.booking-project-pill.active {
+  background-color: var(--color-line);
+  border-color: var(--color-line);
+  color: var(--color-on-strong);
+}
+
+/* Karteikarten of the selected project */
+.booking-tabs {
+  display: flex;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--color-border-soft);
+  margin: 0 calc(-1 * var(--space-6)) calc(-1 * var(--space-4));
+  padding: 0 var(--space-6);
+}
+
+.booking-tab {
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.booking-tab:hover {
+  color: var(--color-text);
+}
+
+.booking-tab.active {
+  color: var(--color-text);
+  border-bottom-color: var(--color-line);
+}
+
+.booking-muted {
+  color: var(--color-muted);
+}
+
+/* Second rider: one tab per show ("19.11. Winterthur"). Scrolls sideways
+   when a tour has more shows than fit. */
+.booking-tabs:has(+ .booking-show-tabs) {
+  margin-bottom: 0;
+}
+
+.booking-show-tabs {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.booking-show-tabs .booking-tab {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.booking-tabs-action {
+  margin-left: auto;
+  align-self: center;
+  margin-bottom: var(--space-1);
+}
+
+.booking-pdf-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+/* *** SHOW DETAIL: one column, laid out like the PDF page *** */
+/* Everything in the sheet in Roboto; (0,2,0) outranks the global
+   `.main-content *` monospace rule. */
+.main-content .booking-sheet,
+.main-content .booking-sheet * {
+  font-family: "Roboto", sans-serif;
+  color: var(--color-text);
+}
+
+.booking-sheet {
+  padding-top: var(--space-6);
+}
+
+.booking-sheet-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.booking-sheet-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.booking-sheet-section {
+  margin-bottom: var(--space-6);
+}
+
+.booking-sheet-rule {
+  width: 100%;
+  margin: var(--space-7) 0 var(--space-6);
+  border: none;
+  border-top: 1px solid var(--color-line);
+}
+
+/* "+ Neues Projekt" / "+ Neuer Gig" */
+.booking-add-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.booking-project-pill.booking-add-button {
+  border-style: dashed;
+}
+
+.booking-checklists {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-7);
+}
+
+.booking-checklist-title {
+  font-weight: 600;
+}
+
+.booking-sheet-danger {
+  margin-top: var(--space-6);
+}
+
+.booking-sheet-danger button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.booking-project-panel {
+  padding-top: 0;
+  margin-top: var(--space-6);
+}
+
+.booking-project-access {
+  margin-top: var(--space-5);
+}
+
+/* *** INTERN: click-to-edit values *** */
+.booking-editable {
+  cursor: text;
+  border-radius: var(--radius-sm);
+  outline-offset: 2px;
+  transition: background-color 0.1s ease;
+}
+
+.booking-editable:hover {
+  background-color: var(--marker-yellow);
+}
+
+.booking-editable:focus-visible {
+  outline: 2px solid var(--color-line);
+}
+
+/* Empty fields stay visible (and clickable) in Intern only. */
+.booking-editable-empty {
+  display: inline-block;
+  min-width: 2rem;
+}
+
+/* Block-level values (multi-line text, the schedule table) fill the row so
+   the whole area is the click target. */
+.booking-fact dd > .booking-editable,
+.booking-edit-bare > .booking-editable {
+  display: block;
+}
+
+.main-content .booking-sheet .booking-edit-input {
+  width: 100%;
+  font: inherit;
+  line-height: 1.6;
+  padding: var(--space-1) var(--space-2);
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-2));
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  resize: none;
+  overflow: hidden;
+}
+
+.booking-detail-title .booking-edit-input {
+  width: auto;
+  min-width: 8rem;
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* "Venue" row right under the title: name, then address. */
+/* "Adresse" block at the top of the left column: section-style heading,
+   then venue name and address. */
+.booking-sheet-venue {
+  margin-bottom: var(--space-6);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.booking-sheet-venue address {
+  font-style: normal;
+}
+
+/* Intern: Projekt + Venue pickers on one line at the very top. */
+.booking-intern-pickers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-6);
+  margin-bottom: var(--space-5);
+}
+
+.booking-intern-pickers .booking-venue-picker {
+  margin-top: 0;
+}
+
+.booking-sheet-hint {
+  font-size: 0.875rem;
+  margin: calc(-1 * var(--space-2)) 0 var(--space-4);
+}
+
+.booking-venue-picker {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 0.875rem;
+}
+
+.booking-venue-picker select {
+  width: auto;
+  max-width: 100%;
+  font-size: 0.875rem;
+}
+
+/* Gig data in two columns under the full-width title + address. */
+.booking-sheet-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 var(--space-7);
+  align-items: start;
+  margin-top: var(--space-6);
+}
+
+.booking-sheet-column {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .booking-sheet-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* Stacked: the right column continues the left, so it needs a rule. */
+  .booking-sheet-column + .booking-sheet-column > :first-child {
+    border-top: 1px solid var(--color-line);
+    padding-top: var(--space-6);
+    margin-top: var(--space-7);
+  }
+}
+
+/* Body text a step larger in the sheet than in the compact views. */
+.booking-sheet .booking-fact,
+.booking-sheet .booking-schedule,
+.booking-sheet .booking-pre {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.booking-sheet .booking-link {
+  font-size: 0.9375rem;
+}
+
+.main-content .booking-detail-title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.booking-detail-sub {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.booking-card {
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-bg);
+  min-width: 0;
+}
+
+/* Section headings: normal case ("Sonstige Infos"), bold. */
+.booking-card-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--color-text);
+  margin: 0 0 var(--space-4);
+}
+
+.booking-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.booking-fact {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.booking-fact dt {
+  color: var(--color-muted);
+}
+
+.booking-fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.booking-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+}
+
+.booking-schedule {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.booking-schedule td {
+  padding: var(--space-2) 0;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+.booking-schedule-time {
+  white-space: nowrap;
+  padding-right: var(--space-4) !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  width: 1%;
+}
+
+.booking-pre {
+  white-space: pre-wrap;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+/* *** VENUES *** */
+.booking-venues {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: var(--space-4);
+}
+
+.main-content .booking-venue-name {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.booking-venues .booking-facts {
+  margin-top: var(--space-4);
+}
+
+.booking-details {
+  margin-top: var(--space-4);
+  font-size: 0.8125rem;
+}
+
+.booking-details summary {
+  cursor: pointer;
+  color: var(--color-muted);
+  margin-bottom: var(--space-2);
+}
+
+/* *** MOBILE *** */
+@media (max-width: 768px) {
+  .booking-sheet-header {
+    flex-direction: column;
+  }
+
+  .booking-tabs {
+    margin: 0 calc(-1 * var(--space-4)) calc(-1 * var(--space-4));
+    padding: 0 var(--space-4);
+  }
+
+  .booking-fact {
+    grid-template-columns: 6rem minmax(0, 1fr);
+  }
+
+  .booking-card {
+    padding: var(--space-3) var(--space-4);
+  }
+}
+
+/* *** INTERN: schedule editor — [⋮⋮] [hh] : [mm] [Beschrieb] [×] *** */
+.schedule-edit-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.schedule-edit-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) 0;
+  background-color: var(--color-bg);
+}
+
+.schedule-edit-row.dragging {
+  position: relative;
+  z-index: 2;
+  box-shadow: var(--shadow-lg);
+  border-radius: var(--radius-sm);
+}
+
+.main-content .booking-sheet .schedule-edit-handle,
+.main-content .booking-sheet .schedule-edit-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  background: transparent;
+  flex-shrink: 0;
+}
+
+.main-content .booking-sheet .schedule-edit-handle {
+  cursor: grab;
+  touch-action: none;
+}
+
+.main-content .booking-sheet .schedule-edit-handle:active {
+  cursor: grabbing;
+}
+
+.main-content .booking-sheet .schedule-edit-delete:hover {
+  background-color: var(--btn-bg);
+  border-radius: var(--radius-sm);
+}
+
+.schedule-edit-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.main-content .booking-sheet .schedule-edit-time input {
+  width: 2.75rem;
+  text-align: center;
+  padding: var(--space-1);
+  font-size: 1rem;
+}
+
+.schedule-edit-time.invalid input {
+  border-color: var(--color-error);
+}
+
+.main-content .booking-sheet .schedule-edit-text {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2);
+  font-size: 1rem;
+}
+
+/* The always-present empty row reads as "add". */
+.schedule-edit-draft input {
+  border-style: dashed;
+}
+
+/* Heading and value on one line ("Setlänge  45–60 min"). */
+.booking-sheet-inline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+}
+
+.booking-sheet-inline .booking-card-title {
+  margin-bottom: 0;
+}
+
+/* Long Notizen / Tech Specs (> 10 lines) flow into two columns. */
+.booking-pre-columns {
+  column-count: 2;
+  column-gap: var(--space-7);
+}
+
+@media (max-width: 768px) {
+  .booking-pre-columns {
+    column-count: 1;
+  }
+}

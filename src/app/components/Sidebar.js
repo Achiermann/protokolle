@@ -15,6 +15,8 @@ import {
   History,
   Menu,
   X,
+  FolderKanban,
+  MapPin,
 } from "lucide-react";
 import { useEntriesStore } from "../stores/useEntriesStore";
 import { useAuthStore } from "../stores/useAuthStore";
@@ -24,7 +26,12 @@ import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { parseTodoMarkers } from "../../lib/richText";
 import "../../styles/sidebar.css";
 
-export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
+export default function Sidebar({
+  activeApp = "p",
+  activeView,
+  isAdmin = false,
+  onViewChange,
+}) {
   // *** VARIABLES ***
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -44,7 +51,8 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
   useEntriesSync();
   useRealtimeSync();
 
-  const title = activeApp === "s" ? "stiftungen" : "protokolle";
+  const TITLES = { p: "protokolle", f: "finanzen", b: "booking" };
+  const title = TITLES[activeApp] || TITLES.p;
 
   // Open marker-todos across all entries; a multi-member marker counts once
   // per member, matching the rows it spawns in the ToDo table.
@@ -87,7 +95,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
       <aside
-        className={`sidebar ${activeApp === "s" ? "sidebar-stiftungen" : ""} ${isOpen ? "sidebar-open" : ""}`}
+        className={`sidebar ${activeApp === "f" ? "sidebar-finanzen" : ""} ${activeApp === "b" ? "sidebar-booking" : ""} ${isOpen ? "sidebar-open" : ""}`}
       >
         <h2 className="sidebar-title">{title}</h2>
         {workspace && (
@@ -152,7 +160,7 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
           </nav>
         )}
 
-        {activeApp === "s" && (
+        {activeApp === "f" && (
           <nav className="sidebar-nav">
             <button
               className={`sidebar-button ${activeView === "forderbereiche" ? "active" : ""}`}
@@ -167,6 +175,46 @@ export default function Sidebar({ activeApp = "p", activeView, onViewChange }) {
             >
               Eingabefristen
             </button>
+          </nav>
+        )}
+
+        {activeApp === "b" && (
+          <nav className="sidebar-nav">
+            <button
+              className={`sidebar-button ${activeView.startsWith("projekte-") ? "active" : ""}`}
+              onClick={() => handleViewChange("projekte-public")}
+            >
+              <FolderKanban size={20} />
+              Projekte
+            </button>
+
+            {/* Admins: the shared (public) and the editable (intern) sheet. */}
+            {isAdmin && activeView.startsWith("projekte-") && (
+              <div className="sidebar-subnav">
+                <button
+                  className={`sidebar-button sidebar-subbutton ${activeView === "projekte-public" ? "active" : ""}`}
+                  onClick={() => handleViewChange("projekte-public")}
+                >
+                  Public
+                </button>
+                <button
+                  className={`sidebar-button sidebar-subbutton ${activeView === "projekte-intern" ? "active" : ""}`}
+                  onClick={() => handleViewChange("projekte-intern")}
+                >
+                  Intern
+                </button>
+              </div>
+            )}
+
+            {isAdmin && (
+              <button
+                className={`sidebar-button ${activeView === "venues" ? "active" : ""}`}
+                onClick={() => handleViewChange("venues")}
+              >
+                <MapPin size={20} />
+                Venues
+              </button>
+            )}
           </nav>
         )}
         <div className="sidebar-footer">

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import { useAuthStore } from "../stores/useAuthStore";
+import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { getStoredTheme, setStoredTheme } from "@/lib/theme";
 import MembersList from "./MembersList";
@@ -167,9 +167,10 @@ export default function Settings() {
         </section>
       )}
 
-      <TopicsList />
+      {isAdminRole(role) && <MembersList />}
 
-      {role === "owner" && <MembersList />}
+      {/* Themen belong to Protokolle, which only admins can see. */}
+      {isAdminRole(role) && <TopicsList />}
     </div>
   );
 }

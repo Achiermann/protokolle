@@ -1,5 +1,9 @@
 import { create } from "zustand";
 
+// owner (workspace creator) and admin have full access; member sees only the
+// Booking projects they were added to.
+export const isAdminRole = (role) => role === "owner" || role === "admin";
+
 export const useAuthStore = create((set) => ({
   // *** VARIABLES ***
   user: null,

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/db/supabase-server';
 import { cookies } from 'next/headers';
+import { claimInvitations } from '@/lib/claimInvitations';
 
 // GET /api/workspaces — list workspaces for authenticated user
 export async function GET() {
@@ -16,6 +17,8 @@ export async function GET() {
         { status: 401 }
       );
     }
+
+    await claimInvitations(user);
 
     const { data: memberships, error: memberError } = await supabase
       .schema('protokoll_app')

@@ -8,6 +8,7 @@ export const useWorkspacesStore = create((set, get) => ({
   // *** VARIABLES ***
   workspaces: [],
   members: [],
+  invitations: [],
   callerRole: null,
   loadingWorkspaces: false,
   loadingMembers: false,
@@ -104,6 +105,7 @@ export const useWorkspacesStore = create((set, get) => ({
       const items = data.items || [];
       set({
         members: items,
+        invitations: data.invitations || [],
         callerRole: data.callerRole,
         loadingMembers: false,
       });
@@ -125,6 +127,52 @@ export const useWorkspacesStore = create((set, get) => ({
       const data = await response.json();
       if (!response.ok) {
         throw new Error(data.error?.message || "Einladung fehlgeschlagen");
+      }
+      await get().fetchMembers();
+      return data;
+    } catch (error) {
+      set({ error: error.message });
+      throw error;
+    }
+  },
+
+  // Optimistic: flip the switch at once, roll back if the server refuses.
+  setMemberAdmin: async (memberId, admin) => {
+    const previous = get().members;
+    set({
+      error: null,
+      members: previous.map((m) =>
+        m.id === memberId ? { ...m, role: admin ? "admin" : "member" } : m,
+      ),
+    });
+    try {
+      const response = await fetch("/api/workspaces/members", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ member_id: memberId, admin }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Ändern fehlgeschlagen");
+      }
+      return true;
+    } catch (error) {
+      set({ members: previous, error: error.message });
+      throw error;
+    }
+  },
+
+  removeInvitation: async (invitationId) => {
+    set({ error: null });
+    try {
+      const response = await fetch("/api/workspaces/invite", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invitation_id: invitationId }),
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error?.message || "Zurückziehen fehlgeschlagen");
       }
       await get().fetchMembers();
       return true;

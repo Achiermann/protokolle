@@ -21,13 +21,22 @@
   box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
 }
 
-.sidebar-stiftungen {
+.sidebar-finanzen {
   --color-brand: #e5f2ff;
   --color-title: #8ac5ff;
 }
 
-:root[data-theme="dark"] .sidebar-stiftungen {
+:root[data-theme="dark"] .sidebar-finanzen {
   --color-brand: #1e2a38;
+}
+
+.sidebar-booking {
+  --color-brand: #e8f7ec;
+  --color-title: #7fcf97;
+}
+
+:root[data-theme="dark"] .sidebar-booking {
+  --color-brand: #1f3326;
 }
 
 @font-palette-values --nablaTitle {
@@ -93,6 +102,34 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+/* Sub-items under a nav button (Booking › Projekte › Intern / Public):
+   indented and a touch smaller so they read as children. */
+.sidebar-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: calc(-1 * var(--space-1));
+}
+
+.sidebar-button.sidebar-subbutton {
+  height: 2.25rem;
+  padding-left: calc(var(--space-4) + 20px + var(--space-3));
+  font-size: 0.875rem;
+}
+
+/* Sub-items never fill: the active one is just bold. */
+.sidebar-button.sidebar-subbutton,
+.sidebar-button.sidebar-subbutton:hover,
+.sidebar-button.sidebar-subbutton.active,
+.sidebar-button.sidebar-subbutton.active:hover {
+  background-color: transparent;
+  color: var(--color-text);
+}
+
+.sidebar-button.sidebar-subbutton.active {
+  font-weight: 700;
 }
 
 .sidebar-button-todo-count {

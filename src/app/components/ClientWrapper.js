@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "../stores/useAuthStore";
+import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import Sidebar from "./Sidebar";
 import AppSwitcher from "./AppSwitcher";
 import EntryList from "./EntryList";
@@ -13,8 +13,13 @@ import ArchiveList from "./ArchiveList";
 import Changelog from "./Changelog";
 import Forderbereiche from "./stiftungen/Forderbereiche";
 import Eingabefristen from "./stiftungen/Eingabefristen";
+import BookingProjects from "./booking/BookingProjects";
+import BookingVenues from "./booking/BookingVenues";
 
-const DEFAULT_VIEW = { p: "list", s: "forderbereiche" };
+const DEFAULT_VIEW = { p: "list", f: "forderbereiche", b: "projekte-public" };
+
+// Non-admins only ever see Booking › Projekte (public) and their settings.
+const MEMBER_VIEWS = ["projekte-public", "members"];
 
 export default function ClientWrapper() {
   // *** VARIABLES ***
@@ -25,6 +30,7 @@ export default function ClientWrapper() {
   const [focusEntryId, setFocusEntryId] = useState(null);
   const fetchSession = useAuthStore((state) => state.fetchSession);
   const loading = useAuthStore((state) => state.loading);
+  const isAdmin = isAdminRole(useAuthStore((state) => state.role));
 
   // *** FUNCTIONS/HANDLERS ***
   useEffect(() => {
@@ -56,51 +62,63 @@ export default function ClientWrapper() {
     return null;
   }
 
+  const app = isAdmin ? activeApp : "b";
+  const view =
+    isAdmin || MEMBER_VIEWS.includes(activeView)
+      ? activeView
+      : "projekte-public";
+
   return (
     <div className="layout-container">
-      <AppSwitcher activeApp={activeApp} onAppChange={handleAppChange} />
+      {isAdmin && <AppSwitcher activeApp={app} onAppChange={handleAppChange} />}
       <Sidebar
-        activeApp={activeApp}
-        activeView={activeView}
+        activeApp={app}
+        activeView={view}
+        isAdmin={isAdmin}
         onViewChange={handleViewChange}
       />
       <main className="main-content">
-        {activeApp === "p" && activeView === "unbearbeitet" && (
+        {app === "p" && view === "unbearbeitet" && (
           <EntryList contentFilter="without" title="Offene Traktanden" />
         )}
-        {activeApp === "p" && activeView === "list" && (
+        {app === "p" && view === "list" && (
           <EntryList
             contentFilter="with"
             title="Alle Traktanden"
             focusEntryId={focusEntryId}
           />
         )}
-        {activeApp === "p" && activeView === "themen" && (
+        {app === "p" && view === "themen" && (
           <GroupedList
             field="topic"
             title="Themen"
             emptyLabel="Noch keine Themen."
           />
         )}
-        {activeApp === "p" && activeView === "todo" && (
+        {app === "p" && view === "todo" && (
           <TodoList onOpenEntry={handleOpenEntry} />
         )}
-        {activeApp === "p" && activeView === "timeline" && (
+        {app === "p" && view === "timeline" && (
           <Timeline onOpenEntry={handleOpenEntry} />
         )}
-        {activeApp === "p" && activeView === "changelog" && <Changelog />}
-        {activeApp === "p" && activeView === "archiv" && (
+        {app === "p" && view === "changelog" && <Changelog />}
+        {app === "p" && view === "archiv" && (
           <ArchiveList focusEntryId={focusEntryId} />
         )}
 
-        {activeApp === "s" && activeView === "forderbereiche" && (
-          <Forderbereiche />
-        )}
-        {activeApp === "s" && activeView === "eingabefristen" && (
-          <Eingabefristen />
-        )}
+        {app === "f" && view === "forderbereiche" && <Forderbereiche />}
+        {app === "f" && view === "eingabefristen" && <Eingabefristen />}
 
-        {activeView === "members" && <Settings />}
+        {/* One element for both modes, so switching Intern ↔ Public keeps
+            the selected project and show. */}
+        {app === "b" && view.startsWith("projekte-") && (
+          <BookingProjects
+            mode={view === "projekte-intern" ? "intern" : "public"}
+          />
+        )}
+        {app === "b" && view === "venues" && <BookingVenues />}
+
+        {view === "members" && <Settings />}
       </main>
     </div>
   );

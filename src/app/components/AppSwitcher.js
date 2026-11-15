@@ -6,7 +6,8 @@ export default function AppSwitcher({ activeApp = 'p', onAppChange }) {
   // *** VARIABLES ***
   const apps = [
     { key: 'p', label: 'p', title: 'Protokoll' },
-    { key: 's', label: 's', title: 'Stiftungen' },
+    { key: 'f', label: 'f', title: 'Finanzen' },
+    { key: 'b', label: 'b', title: 'Booking' },
   ];
 
   // *** FUNCTIONS/HANDLERS ***

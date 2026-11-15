@@ -7,6 +7,8 @@ import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { useAuthStore } from "../stores/useAuthStore";
 import "../../styles/workspace-selector.css";
 
+const ROLE_LABELS = { owner: "Admin", admin: "Admin", member: "Mitglied" };
+
 export default function WorkspaceSelector() {
   // *** VARIABLES ***
   const router = useRouter();
@@ -79,7 +81,9 @@ export default function WorkspaceSelector() {
                 onClick={() => handleSelect(ws.id)}
               >
                 <span className="workspace-item-name">{ws.name}</span>
-                <span className="workspace-item-role">{ws.role}</span>
+                <span className="workspace-item-role">
+                  {ROLE_LABELS[ws.role] || ws.role}
+                </span>
               </button>
             ))}
           </div>

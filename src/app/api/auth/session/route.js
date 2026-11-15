@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/db/supabase-server';
 import { cookies } from 'next/headers';
+import { claimInvitations } from '@/lib/claimInvitations';
 
 export async function GET() {
   try {
@@ -10,6 +11,8 @@ export async function GET() {
     if (error || !user) {
       return NextResponse.json({ user: null, workspace: null });
     }
+
+    await claimInvitations(user);
 
     const cookieStore = await cookies();
     const workspaceId = cookieStore.get('workspace_id')?.value || null;
