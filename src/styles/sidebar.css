@@ -228,6 +228,9 @@
     width: 100%;
     height: 100vh;
     z-index: 20;
+    /* No desktop card margin: with it, translateX(-100%) left a 10px strip
+       of the closed sidebar peeking in at the left edge. */
+    margin: 0;
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     border-right: none;

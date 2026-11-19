@@ -443,6 +443,14 @@
 
 /* *** MOBILE *** */
 @media (max-width: 768px) {
+  /* The shared mobile `.entry-list { overflow-x: auto }` (for wide tables)
+     made Booking a sideways scroller: the full-bleed toolbar overhangs the
+     list by the main-content padding. Booking has no wide tables, and the
+     show tabs scroll on their own, so let it overflow visibly instead. */
+  .entry-list.booking {
+    overflow-x: visible;
+  }
+
   .booking-sheet-header {
     flex-direction: column;
   }
