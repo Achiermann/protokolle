@@ -195,10 +195,14 @@
 
 /* *** MOBILE *** */
 @media (max-width: 768px) {
+  /* No sideways page scroll on phones: anything wider than the screen is
+     clipped here. `clip` (not `hidden`) keeps position: sticky working and
+     is respected by iOS Safari, which ignores overflow-x on html/body. */
   .layout-container {
     display: block;
     height: auto;
     min-height: 100vh;
+    overflow-x: clip;
   }
 
   .sidebar-burger {

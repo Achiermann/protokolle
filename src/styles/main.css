@@ -198,6 +198,18 @@ select,
   line-height: inherit;
 }
 
+/* iOS Safari zooms into any field under 16px on focus and never zooms back
+   out, leaving the page wider than the screen and pannable sideways. 16px
+   on phones prevents that; !important beats the many scoped 14px rules. */
+@media (max-width: 768px) {
+  input,
+  textarea,
+  select,
+  [contenteditable="true"] {
+    font-size: 16px !important;
+  }
+}
+
 button {
   padding: var(--space-2) var(--space-4);
   border: none;
