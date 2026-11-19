@@ -5,6 +5,7 @@ import { BOOKING_PATH } from "@/lib/returnTo";
 import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import Sidebar from "./Sidebar";
 import AppSwitcher from "./AppSwitcher";
+import MobileTabBar from "./MobileTabBar";
 import EntryList from "./EntryList";
 import GroupedList from "./GroupedList";
 import TodoList from "./TodoList";
@@ -34,6 +35,8 @@ export default function ClientWrapper({ initialApp = "p" }) {
   // One-shot deep link: the entry whose row the target view should open and
   // scroll to (set by the ToDo list's "Zum Traktandum" jump).
   const [focusEntryId, setFocusEntryId] = useState(null);
+  // Mobile sidebar overlay, opened from the burger in MobileTabBar.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const fetchSession = useAuthStore((state) => state.fetchSession);
   const loading = useAuthStore((state) => state.loading);
   const isAdmin = isAdminRole(useAuthStore((state) => state.role));
@@ -99,6 +102,23 @@ export default function ClientWrapper({ initialApp = "p" }) {
         activeView={view}
         isAdmin={isAdmin}
         onViewChange={handleViewChange}
+        isOpen={sidebarOpen}
+        onOpenChange={setSidebarOpen}
+      />
+      <MobileTabBar
+        activeApp={app}
+        isAdmin={isAdmin}
+        settingsActive={view === "members" && !sidebarOpen}
+        sidebarOpen={sidebarOpen}
+        onToggleSidebar={() => setSidebarOpen((v) => !v)}
+        onOpenSettings={() => {
+          setSidebarOpen(false);
+          handleViewChange("members");
+        }}
+        onAppChange={(next) => {
+          setSidebarOpen(false);
+          handleAppChange(next);
+        }}
       />
       <main className="main-content">
         {app === "p" && view === "unbearbeitet" && (

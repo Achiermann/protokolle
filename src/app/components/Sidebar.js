@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarRange,
@@ -13,8 +13,6 @@ import {
   LogOut,
   Archive,
   History,
-  Menu,
-  X,
   FolderKanban,
   MapPin,
 } from "lucide-react";
@@ -24,7 +22,7 @@ import { useChangelogStore, getUnseen } from "../stores/useChangelogStore";
 import { useEntriesSync } from "../hooks/useEntriesSync";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { parseTodoMarkers } from "../../lib/richText";
-import { BOOKING_PATH, isBookingPath, withNext } from "../../lib/returnTo";
+import { workspaceUrl } from "../../lib/returnTo";
 import "../../styles/sidebar.css";
 
 export default function Sidebar({
@@ -32,11 +30,13 @@ export default function Sidebar({
   activeView,
   isAdmin = false,
   onViewChange,
+  // Mobile overlay state; toggled by the burger in MobileTabBar.
+  isOpen = false,
+  onOpenChange,
 }) {
   // *** VARIABLES ***
   const router = useRouter();
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
   const entries = useEntriesStore((state) => state.entries);
   const workspace = useAuthStore((state) => state.workspace);
   const logout = useAuthStore((state) => state.logout);
@@ -83,19 +83,11 @@ export default function Sidebar({
 
   const handleViewChange = (view) => {
     onViewChange(view);
-    setIsOpen(false);
+    onOpenChange?.(false);
   };
 
   return (
     <>
-      <button
-        type="button"
-        className="sidebar-burger"
-        aria-label={isOpen ? "Menü schliessen" : "Menü öffnen"}
-        onClick={() => setIsOpen((v) => !v)}
-      >
-        {isOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
       <aside
         className={`sidebar ${activeApp === "f" ? "sidebar-finanzen" : ""} ${activeApp === "b" ? "sidebar-booking" : ""} ${isOpen ? "sidebar-open" : ""}`}
       >
@@ -240,11 +232,7 @@ export default function Sidebar({
 
           <button
             className="sidebar-button"
-            onClick={() =>
-              router.push(
-                withNext("/workspace", isBookingPath(pathname) ? BOOKING_PATH : null),
-              )
-            }
+            onClick={() => router.push(workspaceUrl(pathname))}
           >
             <Repeat size={20} />
             Workspace

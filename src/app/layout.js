@@ -57,6 +57,7 @@ export default function RootLayout({ children }) {
         {children}
         <Toaster
           position="bottom-right"
+          containerClassName="app-toaster"
           toastOptions={{
             style: { background: 'var(--color-bg)', color: 'var(--color-text)' },
           }}

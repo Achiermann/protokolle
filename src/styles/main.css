@@ -46,6 +46,9 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
+  /* Bottom tab bar on phones (MobileTabBar) */
+  --mobile-tab-bar-height: 3.75rem;
+
   /* Radii — pill-shaped controls */
   --radius-sm: 0.25rem;
   --radius-btn: 0.375rem;

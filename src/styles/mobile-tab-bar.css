@@ -1,0 +1,95 @@
+/* *** MOBILE TAB BAR (phones only) *** */
+.mobile-tab-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-tab-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    /* above the full-screen sidebar (20), so the burger can close it */
+    z-index: 30;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    height: calc(var(--mobile-tab-bar-height) + env(safe-area-inset-bottom));
+    padding: 0 var(--space-4) env(safe-area-inset-bottom);
+    background-color: var(--color-surface);
+    box-shadow: 0 -6px 12px -8px rgb(0 0 0 / 0.18);
+  }
+
+  .mobile-tab-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    background-color: transparent;
+    border-radius: var(--radius-btn);
+    color: var(--color-text);
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .mobile-tab-button.active {
+    background-color: var(--btn-bg);
+  }
+
+  .mobile-tab-app-current {
+    background-color: var(--btn-bg);
+  }
+
+  .mobile-tab-app-current.active {
+    background-color: var(--color-line);
+    color: var(--color-on-strong);
+  }
+
+  .mobile-tab-apps {
+    position: relative;
+  }
+
+  /* All apps stacked straight above the current-app button. */
+  .mobile-tab-apps-stack {
+    position: absolute;
+    bottom: calc(100% + var(--space-3));
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  }
+
+  .mobile-tab-app {
+    width: 2.75rem;
+    height: 2.75rem;
+    padding: 0;
+    border-radius: var(--radius-btn);
+    background-color: var(--btn-bg);
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .mobile-tab-app.active {
+    background-color: var(--color-line);
+    color: var(--color-on-strong);
+  }
+
+  /* The bar replaces the top-right p/f/b switcher on phones. */
+  .app-switcher {
+    display: none;
+  }
+
+  /* Toasts sit above the bar instead of under it. */
+  .app-toaster {
+    bottom: calc(
+      var(--mobile-tab-bar-height) + env(safe-area-inset-bottom) + 16px
+    ) !important;
+  }
+}

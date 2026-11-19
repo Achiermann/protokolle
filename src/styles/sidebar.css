@@ -189,10 +189,6 @@
   padding-top: var(--space-6);
 }
 
-.sidebar-burger {
-  display: none;
-}
-
 /* *** MOBILE *** */
 @media (max-width: 768px) {
   /* No sideways page scroll on phones: anything wider than the screen is
@@ -203,22 +199,6 @@
     height: auto;
     min-height: 100vh;
     overflow-x: clip;
-  }
-
-  .sidebar-burger {
-    display: inline-flex;
-    position: fixed;
-    top: var(--space-3);
-    right: var(--space-3);
-    z-index: 30;
-    width: 2.5rem;
-    height: 2.5rem;
-    padding: 0;
-    align-items: center;
-    justify-content: center;
-    background-color: var(--btn-bg);
-    border: none;
-    border-radius: var(--radius-btn);
   }
 
   .sidebar {
@@ -234,7 +214,12 @@
     transform: translateX(-100%);
     transition: transform 0.25s ease;
     border-right: none;
-    padding: var(--space-7) var(--space-5) var(--space-5);
+    /* bottom padding keeps the footer clear of the tab bar */
+    padding: var(--space-7) var(--space-5)
+      calc(
+        var(--mobile-tab-bar-height) + env(safe-area-inset-bottom) +
+          var(--space-5)
+      );
   }
 
   .sidebar-open {
@@ -243,7 +228,12 @@
 
   .main-content {
     flex: none;
-    padding: calc(var(--space-7) + var(--space-3)) var(--space-4) var(--space-5);
+    /* top: no more floating burger to clear; bottom: clear the tab bar */
+    padding: var(--space-5) var(--space-4)
+      calc(
+        var(--mobile-tab-bar-height) + env(safe-area-inset-bottom) +
+          var(--space-5)
+      );
     overflow-y: visible;
     height: auto;
   }

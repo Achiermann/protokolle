@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { Repeat } from "lucide-react";
 import toast from "react-hot-toast";
 import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { getStoredTheme, setStoredTheme } from "@/lib/theme";
+import { workspaceUrl } from "@/lib/returnTo";
 import MembersList from "./MembersList";
 import TopicsList from "./TopicsList";
 import "../../styles/settings.css";
@@ -23,6 +26,8 @@ export default function Settings() {
   const workspace = useAuthStore((state) => state.workspace);
   const setWorkspace = useAuthStore((state) => state.setWorkspace);
   const renameWorkspace = useWorkspacesStore((state) => state.renameWorkspace);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -134,36 +139,49 @@ export default function Settings() {
         </div>
       </section>
 
-      {role === "owner" && workspace && (
+      {workspace && (
         <section className="settings-section">
           <h3 className="settings-section-title">Workspace</h3>
-          <form
-            className="settings-name-form"
-            onSubmit={handleSaveWorkspaceName}
-          >
-            <div className="settings-field">
-              <label htmlFor="settings-workspace-name">Name</label>
-              <input
-                id="settings-workspace-name"
-                type="text"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="Workspace-Name"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="primary"
-              disabled={
-                savingWorkspace ||
-                !workspaceName.trim() ||
-                workspaceName.trim() === workspace.name
-              }
+          {role !== "owner" && (
+            <p className="settings-workspace-current">{workspace.name}</p>
+          )}
+          {role === "owner" && (
+            <form
+              className="settings-name-form"
+              onSubmit={handleSaveWorkspaceName}
             >
-              {savingWorkspace ? "Speichern..." : "Speichern"}
-            </button>
-          </form>
+              <div className="settings-field">
+                <label htmlFor="settings-workspace-name">Name</label>
+                <input
+                  id="settings-workspace-name"
+                  type="text"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  placeholder="Workspace-Name"
+                  required
+                />
+              </div>
+              <button
+                type="submit"
+                className="primary"
+                disabled={
+                  savingWorkspace ||
+                  !workspaceName.trim() ||
+                  workspaceName.trim() === workspace.name
+                }
+              >
+                {savingWorkspace ? "Speichern..." : "Speichern"}
+              </button>
+            </form>
+          )}
+          <button
+            type="button"
+            className="settings-workspace-switch"
+            onClick={() => router.push(workspaceUrl(pathname))}
+          >
+            <Repeat size={16} />
+            Workspace wechseln
+          </button>
         </section>
       )}
 
