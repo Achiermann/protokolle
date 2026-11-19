@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { BOOKING_PATH } from "@/lib/returnTo";
 import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import Sidebar from "./Sidebar";
 import AppSwitcher from "./AppSwitcher";
@@ -21,12 +23,16 @@ const DEFAULT_VIEW = { p: "list", f: "forderbereiche", b: "projekte-public" };
 // Non-admins only ever see Booking › Projekte (public) and their settings.
 const MEMBER_VIEWS = ["projekte-public", "members"];
 
-// `lockedApp` pins the wrapper to one app (the /booking PWA) and hides the
-// app switcher.
-export default function ClientWrapper({ lockedApp = null }) {
+// The URL reflects the app: `/` = Protokolle, `/?app=f` = Finanzen,
+// `/booking` = Booking (also the start page of the Booking PWA).
+const appUrl = (app) =>
+  app === "b" ? BOOKING_PATH : app === "f" ? "/?app=f" : "/";
+
+export default function ClientWrapper({ initialApp = "p" }) {
   // *** VARIABLES ***
-  const [activeApp, setActiveApp] = useState(lockedApp || "p");
-  const [activeView, setActiveView] = useState(DEFAULT_VIEW[lockedApp || "p"]);
+  const router = useRouter();
+  const [activeApp, setActiveApp] = useState(initialApp);
+  const [activeView, setActiveView] = useState(DEFAULT_VIEW[initialApp]);
   // One-shot deep link: the entry whose row the target view should open and
   // scroll to (set by the ToDo list's "Zum Traktandum" jump).
   const [focusEntryId, setFocusEntryId] = useState(null);
@@ -39,12 +45,24 @@ export default function ClientWrapper({ lockedApp = null }) {
     fetchSession();
   }, [fetchSession]);
 
+  // Members only have Booking, so send them to its URL.
+  useEffect(() => {
+    if (!loading && !isAdmin && initialApp !== "b") router.replace(BOOKING_PATH);
+  }, [loading, isAdmin, initialApp, router]);
+
   const handleViewChange = (view) => {
     setFocusEntryId(null);
     setActiveView(view);
   };
 
   const handleAppChange = (app) => {
+    // Booking lives on its own route; switching to or from it navigates.
+    if ((app === "b") !== (initialApp === "b")) {
+      router.push(appUrl(app));
+      return;
+    }
+    // p ↔ f stay on `/`: just update the URL so a reload keeps the app.
+    window.history.replaceState(null, "", appUrl(app));
     setFocusEntryId(null);
     setActiveApp(app);
     setActiveView(DEFAULT_VIEW[app]);
@@ -64,7 +82,7 @@ export default function ClientWrapper({ lockedApp = null }) {
     return null;
   }
 
-  const app = lockedApp || (isAdmin ? activeApp : "b");
+  const app = isAdmin ? activeApp : "b";
   const view =
     isAdmin || MEMBER_VIEWS.includes(activeView)
       ? activeView
@@ -72,7 +90,7 @@ export default function ClientWrapper({ lockedApp = null }) {
 
   return (
     <div className="layout-container">
-      {isAdmin && !lockedApp && <AppSwitcher activeApp={app} onAppChange={handleAppChange} />}
+      {isAdmin && <AppSwitcher activeApp={app} onAppChange={handleAppChange} />}
       <Sidebar
         activeApp={app}
         activeView={view}

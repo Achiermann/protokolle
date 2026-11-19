@@ -1,6 +1,6 @@
 import ClientWrapper from '../components/ClientWrapper';
 
-// Entry point of the standalone Booking PWA: same app, locked to Booking.
+// Booking app; also the start page of the Booking PWA.
 export default function BookingPage() {
-  return <ClientWrapper lockedApp="b" />;
+  return <ClientWrapper initialApp="b" />;
 }
