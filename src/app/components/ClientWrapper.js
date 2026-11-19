@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { BOOKING_PATH } from "@/lib/returnTo";
 import { isAdminRole, useAuthStore } from "../stores/useAuthStore";
 import Sidebar from "./Sidebar";
@@ -30,7 +29,6 @@ const appUrl = (app) =>
 
 export default function ClientWrapper({ initialApp = "p" }) {
   // *** VARIABLES ***
-  const router = useRouter();
   const [activeApp, setActiveApp] = useState(initialApp);
   const [activeView, setActiveView] = useState(DEFAULT_VIEW[initialApp]);
   // One-shot deep link: the entry whose row the target view should open and
@@ -47,8 +45,10 @@ export default function ClientWrapper({ initialApp = "p" }) {
 
   // Members only have Booking, so send them to its URL.
   useEffect(() => {
-    if (!loading && !isAdmin && initialApp !== "b") router.replace(BOOKING_PATH);
-  }, [loading, isAdmin, initialApp, router]);
+    // Full load (see handleAppChange) so the Booking manifest is the one read.
+    if (!loading && !isAdmin && initialApp !== "b")
+      window.location.replace(BOOKING_PATH);
+  }, [loading, isAdmin, initialApp]);
 
   const handleViewChange = (view) => {
     setFocusEntryId(null);
@@ -56,9 +56,12 @@ export default function ClientWrapper({ initialApp = "p" }) {
   };
 
   const handleAppChange = (app) => {
-    // Booking lives on its own route; switching to or from it navigates.
+    // Booking lives on its own route; switching to or from it is a full page
+    // load, so the browser reads that route's manifest from the start. After
+    // a client-side switch, Safari/Chrome keep the manifest of the first page
+    // and "Add to Home Screen" would install Protokolle instead of Booking.
     if ((app === "b") !== (initialApp === "b")) {
-      router.push(appUrl(app));
+      window.location.assign(appUrl(app));
       return;
     }
     // p ↔ f stay on `/`: just update the URL so a reload keeps the app.
