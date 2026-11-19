@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   CalendarRange,
   ClipboardList,
@@ -24,6 +24,7 @@ import { useChangelogStore, getUnseen } from "../stores/useChangelogStore";
 import { useEntriesSync } from "../hooks/useEntriesSync";
 import { useRealtimeSync } from "../hooks/useRealtimeSync";
 import { parseTodoMarkers } from "../../lib/richText";
+import { BOOKING_PATH, isBookingPath, withNext } from "../../lib/returnTo";
 import "../../styles/sidebar.css";
 
 export default function Sidebar({
@@ -34,6 +35,7 @@ export default function Sidebar({
 }) {
   // *** VARIABLES ***
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const entries = useEntriesStore((state) => state.entries);
   const workspace = useAuthStore((state) => state.workspace);
@@ -238,7 +240,11 @@ export default function Sidebar({
 
           <button
             className="sidebar-button"
-            onClick={() => router.push("/workspace")}
+            onClick={() =>
+              router.push(
+                withNext("/workspace", isBookingPath(pathname) ? BOOKING_PATH : null),
+              )
+            }
           >
             <Repeat size={20} />
             Workspace

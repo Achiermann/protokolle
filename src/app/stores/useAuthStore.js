@@ -1,4 +1,9 @@
 import { create } from "zustand";
+import { BOOKING_PATH, isBookingPath, withNext } from "@/lib/returnTo";
+
+// Logging out of the Booking PWA should lead back into it after re-login.
+const loginUrl = () =>
+  withNext("/login", isBookingPath(window.location.pathname) ? BOOKING_PATH : null);
 
 // owner (workspace creator) and admin have full access; member sees only the
 // Booking projects they were added to.
@@ -33,10 +38,10 @@ export const useAuthStore = create((set) => ({
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       set({ user: null, workspace: null, role: null });
-      window.location.href = "/login";
+      window.location.href = loginUrl();
     } catch (error) {
       // Force redirect even on error
-      window.location.href = "/login";
+      window.location.href = loginUrl();
     }
   },
 

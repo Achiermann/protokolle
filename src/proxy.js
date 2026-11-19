@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { BOOKING_PATH, isBookingPath, safeNext, withNext } from '@/lib/returnTo';
 
 const publicRoutes = ['/login'];
 
@@ -32,19 +33,25 @@ export async function proxy(request) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Requests from the Booking PWA remember to come back to /booking.
+  const next = isBookingPath(pathname)
+    ? BOOKING_PATH
+    : safeNext(request.nextUrl.searchParams.get('next'));
+
   if (!user && !isPublicRoute) {
-    const loginUrl = new URL('/login', request.url);
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(new URL(withNext('/login', next), request.url));
   }
 
   if (user && isPublicRoute) {
-    const homeUrl = new URL('/', request.url);
-    return NextResponse.redirect(homeUrl);
+    return NextResponse.redirect(new URL(next || '/', request.url));
   }
 
-  if (user && pathname === '/' && !request.cookies.get('workspace_id')?.value) {
-    const workspaceUrl = new URL('/workspace', request.url);
-    return NextResponse.redirect(workspaceUrl);
+  if (
+    user &&
+    (pathname === '/' || isBookingPath(pathname)) &&
+    !request.cookies.get('workspace_id')?.value
+  ) {
+    return NextResponse.redirect(new URL(withNext('/workspace', next), request.url));
   }
 
   return supabaseResponse;
@@ -54,6 +61,6 @@ export const config = {
   // PWA files (manifest, service worker, offline page) must be reachable
   // without a session, or install/offline would redirect to /login.
   matcher: [
-    '/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.png$).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|sw.js|offline.html|.*\\.png$|.*\\.webmanifest$).*)',
   ],
 };

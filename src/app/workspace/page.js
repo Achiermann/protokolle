@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import WorkspaceSelector from '../components/WorkspaceSelector';
 
 export default function WorkspacePage() {
-  return <WorkspaceSelector />;
+  return (
+    <Suspense>
+      <WorkspaceSelector />
+    </Suspense>
+  );
 }

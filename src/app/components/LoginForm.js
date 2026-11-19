@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useAuthStore } from "../stores/useAuthStore";
+import { safeNext, withNext } from "@/lib/returnTo";
 import "../../styles/login.css";
 
 export default function LoginForm() {
   // *** VARIABLES ***
   const router = useRouter();
+  // Set when the user came from the Booking PWA, so they return there.
+  const next = safeNext(useSearchParams().get("next"));
 
   const signup = useAuthStore((state) => state.signup);
   const login = useAuthStore((state) => state.login);
@@ -50,7 +53,7 @@ export default function LoginForm() {
     try {
       await verifyOtp({ email, token: code.trim(), type: "signup" });
       toast.success("E-Mail bestätigt – du wirst angemeldet");
-      router.push("/workspace");
+      router.push(withNext("/workspace", next));
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -65,7 +68,7 @@ export default function LoginForm() {
     try {
       await login({ email, password });
       toast.success("Erfolgreich angemeldet");
-      router.push("/workspace");
+      router.push(withNext("/workspace", next));
     } catch (error) {
       toast.error(error.message);
     } finally {
@@ -98,7 +101,7 @@ export default function LoginForm() {
       await verifyOtp({ email, token: code.trim(), type: "recovery" });
       await updatePassword(newPassword);
       toast.success("Passwort erfolgreich aktualisiert");
-      router.push("/workspace");
+      router.push(withNext("/workspace", next));
     } catch (error) {
       toast.error(error.message);
     } finally {

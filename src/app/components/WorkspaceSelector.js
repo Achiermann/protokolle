@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { useWorkspacesStore } from "../stores/useWorkspacesStore";
 import { useAuthStore } from "../stores/useAuthStore";
+import { safeNext } from "@/lib/returnTo";
 import "../../styles/workspace-selector.css";
 
 const ROLE_LABELS = { owner: "Admin", admin: "Admin", member: "Mitglied" };
@@ -12,6 +13,7 @@ const ROLE_LABELS = { owner: "Admin", admin: "Admin", member: "Mitglied" };
 export default function WorkspaceSelector() {
   // *** VARIABLES ***
   const router = useRouter();
+  const next = safeNext(useSearchParams().get("next"));
   const workspaces = useWorkspacesStore((state) => state.workspaces);
   const loading = useWorkspacesStore((state) => state.loadingWorkspaces);
   const fetchWorkspaces = useWorkspacesStore((state) => state.fetchWorkspaces);
@@ -34,7 +36,7 @@ export default function WorkspaceSelector() {
   const handleSelect = async (workspaceId) => {
     try {
       await selectWorkspace(workspaceId);
-      router.push("/");
+      router.push(next || "/");
     } catch (error) {
       toast.error("Workspace konnte nicht ausgewählt werden");
     }

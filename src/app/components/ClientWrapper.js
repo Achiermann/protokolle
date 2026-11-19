@@ -21,10 +21,12 @@ const DEFAULT_VIEW = { p: "list", f: "forderbereiche", b: "projekte-public" };
 // Non-admins only ever see Booking › Projekte (public) and their settings.
 const MEMBER_VIEWS = ["projekte-public", "members"];
 
-export default function ClientWrapper() {
+// `lockedApp` pins the wrapper to one app (the /booking PWA) and hides the
+// app switcher.
+export default function ClientWrapper({ lockedApp = null }) {
   // *** VARIABLES ***
-  const [activeApp, setActiveApp] = useState("p");
-  const [activeView, setActiveView] = useState(DEFAULT_VIEW.p);
+  const [activeApp, setActiveApp] = useState(lockedApp || "p");
+  const [activeView, setActiveView] = useState(DEFAULT_VIEW[lockedApp || "p"]);
   // One-shot deep link: the entry whose row the target view should open and
   // scroll to (set by the ToDo list's "Zum Traktandum" jump).
   const [focusEntryId, setFocusEntryId] = useState(null);
@@ -62,7 +64,7 @@ export default function ClientWrapper() {
     return null;
   }
 
-  const app = isAdmin ? activeApp : "b";
+  const app = lockedApp || (isAdmin ? activeApp : "b");
   const view =
     isAdmin || MEMBER_VIEWS.includes(activeView)
       ? activeView
@@ -70,7 +72,7 @@ export default function ClientWrapper() {
 
   return (
     <div className="layout-container">
-      {isAdmin && <AppSwitcher activeApp={app} onAppChange={handleAppChange} />}
+      {isAdmin && !lockedApp && <AppSwitcher activeApp={app} onAppChange={handleAppChange} />}
       <Sidebar
         activeApp={app}
         activeView={view}
