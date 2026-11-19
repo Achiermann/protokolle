@@ -51,5 +51,9 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico|.*\\.png$).*)'],
+  // PWA files (manifest, service worker, offline page) must be reachable
+  // without a session, or install/offline would redirect to /login.
+  matcher: [
+    '/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|sw.js|offline.html|.*\\.png$).*)',
+  ],
 };

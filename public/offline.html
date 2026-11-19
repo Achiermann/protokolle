@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Offline – Protokoll App</title>
+    <style>
+      :root { --bg: #e4e3ff; --card: #ffffff; --text: #262626; --muted: #6b6b6b; }
+      @media (prefers-color-scheme: dark) {
+        :root { --bg: #1b1b1b; --card: #242424; --text: #e6e6e6; --muted: #a0a0a0; }
+      }
+      html, body { height: 100%; margin: 0; }
+      body {
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg); color: var(--text);
+        font-family: system-ui, -apple-system, sans-serif; padding: 16px; box-sizing: border-box;
+      }
+      .card { background: var(--card); border-radius: 12px; padding: 32px 24px; max-width: 360px; text-align: center; }
+      img { width: 64px; height: 64px; border-radius: 14px; }
+      h1 { font-size: 20px; margin: 16px 0 8px; }
+      p { color: var(--muted); margin: 0 0 20px; line-height: 1.4; }
+      button {
+        font: inherit; padding: 8px 16px; border-radius: 8px; cursor: pointer;
+        border: 1px solid var(--muted); background: transparent; color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>Keine Verbindung</h1>
+      <p>Du bist offline. Sobald die Verbindung wieder da ist, kannst du weiterarbeiten.</p>
+      <button onclick="location.reload()">Erneut versuchen</button>
+    </div>
+  </body>
+</html>
